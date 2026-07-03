@@ -8,7 +8,9 @@ import { Hero } from "@/components/sections/Hero";
 import { EventsSection } from "@/components/sections/EventsSection";
 import { OfficersSection } from "@/components/sections/OfficersSection";
 import { DepartmentsSection } from "@/components/sections/DepartmentsSection";
+import { GallerySection } from "@/components/sections/GallerySection";
 import { AboutSection } from "@/components/sections/AboutSection";
+import { MembershipForm } from "@/components/sections/MembershipForm";
 import { SkillsSection } from "@/components/sections/SkillsSection";
 import { ExperienceSection } from "@/components/sections/ExperienceSection";
 import { ContactSection } from "@/components/sections/ContactSection";
@@ -21,7 +23,6 @@ export default function Home() {
 
   const handleLoadingComplete = useCallback(() => {
     setLoading(false);
-    // Auto-play music when loading finishes (user already interacted during loading)
     play();
   }, [play]);
 
@@ -40,7 +41,11 @@ export default function Home() {
             <SectionDivider />
             <DepartmentsSection />
             <SectionDivider />
+            <GallerySection />
+            <SectionDivider />
             <AboutSection />
+            <SectionDivider />
+            <MembershipForm />
             <SectionDivider />
             <SkillsSection />
             <SectionDivider />
