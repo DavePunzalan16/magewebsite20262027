@@ -33,7 +33,7 @@ export function Navbar() {
   }, []);
 
   const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Mage";
-  const avatarUrl = user?.user_metadata?.avatar_url;
+  const avatarUrl = user?.user_metadata?.avatar_url || null;
 
   return (
     <motion.nav
@@ -109,6 +109,7 @@ export function Navbar() {
                       href="/profile"
                       className="flex items-center gap-2.5 rounded-[8px] px-3 py-2 font-body text-[13px] text-offwhite transition-colors hover:bg-white/5 hover:text-white"
                       onClick={() => setProfileOpen(false)}
+                      prefetch={false}
                     >
                       <UserIcon className="h-4 w-4" /> Edit Profile
                     </Link>
@@ -117,6 +118,7 @@ export function Navbar() {
                         href="/dashboard/admin"
                         className="flex items-center gap-2.5 rounded-[8px] px-3 py-2 font-body text-[13px] text-offwhite transition-colors hover:bg-white/5 hover:text-white"
                         onClick={() => setProfileOpen(false)}
+                        prefetch={false}
                       >
                         <Settings className="h-4 w-4" /> Admin Panel
                       </Link>
@@ -173,7 +175,7 @@ export function Navbar() {
               <li className="pt-2">
                 {user ? (
                   <div className="flex flex-col items-center gap-3">
-                    <Link href="/profile" className="font-body text-[15px] font-medium text-primary" onClick={() => setMobileOpen(false)}>
+                    <Link href="/profile" className="font-body text-[15px] font-medium text-primary" onClick={() => setMobileOpen(false)} prefetch={false}>
                       My Profile
                     </Link>
                     <button onClick={() => { signOut(); setMobileOpen(false); }} className="font-body text-[14px] text-offwhite/60 hover:text-red-400">
