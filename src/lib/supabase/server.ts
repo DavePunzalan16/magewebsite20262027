@@ -1,6 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { createClient } from "@supabase/supabase-js";
 
+// Server client with cookie-based auth (for user sessions)
 export async function createServerSupabaseClient() {
   const cookieStore = await cookies();
 
@@ -18,10 +20,23 @@ export async function createServerSupabaseClient() {
               cookieStore.set(name, value, options)
             );
           } catch {
-            // The `setAll` method was called from a Server Component.
-            // This can be ignored if middleware refreshes user sessions.
+            // Called from Server Component — safe to ignore
           }
         },
+      },
+    }
+  );
+}
+
+// Admin client with service role key (for server-side operations that bypass RLS)
+export function createAdminClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
       },
     }
   );
