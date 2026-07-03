@@ -32,7 +32,7 @@ export default function Home() {
       {!loading && (
         <>
           <Navbar />
-          <main>
+          <main id="main-content">
             <Hero />
             <SectionDivider />
             <EventsSection />
