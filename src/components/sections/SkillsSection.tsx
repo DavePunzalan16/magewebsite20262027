@@ -8,10 +8,20 @@ import { skills } from "@/data/portfolio";
 
 export function SkillsSection() {
   return (
-    <section aria-label="Skills" className="py-16 md:py-20">
+    <section aria-label="Our Skills" className="py-16 md:py-20">
       <Container>
         <div className="grid gap-12 lg:grid-cols-2 lg:gap-24">
-          <SectionHeading>My Skills</SectionHeading>
+          <div>
+            <motion.p
+              className="mb-2 font-body text-[14px] font-semibold uppercase tracking-widest text-primary"
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+            >
+              What We Do
+            </motion.p>
+            <SectionHeading>Our Skills</SectionHeading>
+          </div>
           <motion.div
             className="flex flex-wrap gap-4"
             initial={{ opacity: 0, y: 20 }}

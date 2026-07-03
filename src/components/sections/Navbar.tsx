@@ -2,21 +2,29 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { navLinks, siteConfig } from "@/data/portfolio";
-import { Menu, X } from "lucide-react";
+import { useAuth } from "@/components/providers/AuthProvider";
+import { Menu, X, LogIn, LayoutDashboard } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const { user, role } = useAuth();
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 50);
-    };
+    const handleScroll = () => setScrolled(window.scrollY > 50);
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  const dashboardHref =
+    role === "admin"
+      ? "/dashboard/admin"
+      : role === "officer"
+        ? "/dashboard/officer"
+        : "/dashboard/member";
 
   return (
     <motion.nav
@@ -44,28 +52,48 @@ export function Navbar() {
             className="rounded-full"
           />
           <span className="hidden font-display text-[28px] leading-[1.5] tracking-tight text-offwhite sm:inline md:text-[32px]">
-            M.A.G.E. Guild
+            M.A.G.E.
           </span>
         </a>
 
         {/* Desktop links */}
-        <ul className="hidden items-center gap-8 md:flex">
+        <ul className="hidden items-center gap-6 lg:flex">
           {navLinks.map((link) => (
             <li key={link.href}>
               <a
                 href={link.href}
-                className="relative font-body text-[16px] font-medium text-offwhite transition-colors hover:text-white"
+                className="font-body text-[15px] font-medium text-offwhite transition-colors hover:text-white"
               >
                 {link.label}
-                <span className="absolute -bottom-1 left-0 h-[2px] w-0 bg-primary transition-all duration-300 group-hover:w-full hover:w-full" />
               </a>
             </li>
           ))}
         </ul>
 
+        {/* Auth buttons (desktop) */}
+        <div className="hidden items-center gap-3 lg:flex">
+          {user ? (
+            <Link
+              href={dashboardHref}
+              className="flex items-center gap-2 rounded-full bg-primary px-4 py-2 font-body text-[14px] font-bold text-black transition-all hover:bg-primary/90"
+            >
+              <LayoutDashboard className="h-4 w-4" />
+              Dashboard
+            </Link>
+          ) : (
+            <Link
+              href="/auth/signin"
+              className="flex items-center gap-2 rounded-full border border-primary/50 px-4 py-2 font-body text-[14px] font-medium text-primary transition-all hover:bg-primary/10"
+            >
+              <LogIn className="h-4 w-4" />
+              Login
+            </Link>
+          )}
+        </div>
+
         {/* Mobile hamburger */}
         <button
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-surface/50 text-white backdrop-blur-sm md:hidden"
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-surface/50 text-white backdrop-blur-sm lg:hidden"
           onClick={() => setMobileOpen(!mobileOpen)}
           aria-label={mobileOpen ? "Close menu" : "Open menu"}
           aria-expanded={mobileOpen}
@@ -81,26 +109,47 @@ export function Navbar() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="overflow-hidden border-t border-dark-gray/30 bg-background/95 backdrop-blur-lg md:hidden"
+            transition={{ duration: 0.3 }}
+            className="overflow-hidden border-t border-dark-gray/30 bg-background/95 backdrop-blur-lg lg:hidden"
           >
-            <ul className="flex flex-col items-center gap-6 py-8">
+            <ul className="flex flex-col items-center gap-5 py-6">
               {navLinks.map((link, index) => (
                 <motion.li
                   key={link.href}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.05 }}
+                  transition={{ delay: index * 0.04 }}
                 >
                   <a
                     href={link.href}
-                    className="font-body text-[18px] font-medium text-offwhite transition-colors hover:text-primary"
+                    className="font-body text-[17px] font-medium text-offwhite hover:text-primary"
                     onClick={() => setMobileOpen(false)}
                   >
                     {link.label}
                   </a>
                 </motion.li>
               ))}
+              <li className="pt-2">
+                {user ? (
+                  <Link
+                    href={dashboardHref}
+                    className="flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 font-body text-[14px] font-bold text-black"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    <LayoutDashboard className="h-4 w-4" />
+                    Dashboard
+                  </Link>
+                ) : (
+                  <Link
+                    href="/auth/signin"
+                    className="flex items-center gap-2 rounded-full border border-primary px-5 py-2.5 font-body text-[14px] font-medium text-primary"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    <LogIn className="h-4 w-4" />
+                    Login
+                  </Link>
+                )}
+              </li>
             </ul>
           </motion.div>
         )}

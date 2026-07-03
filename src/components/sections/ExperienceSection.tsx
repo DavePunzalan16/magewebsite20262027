@@ -7,10 +7,20 @@ import { experiences } from "@/data/portfolio";
 
 export function ExperienceSection() {
   return (
-    <section aria-label="Experience" className="py-16 md:py-20">
+    <section aria-label="Our History" className="py-16 md:py-20">
       <Container>
         <div className="grid gap-12 lg:grid-cols-2 lg:gap-24">
-          <SectionHeading>Experience</SectionHeading>
+          <div>
+            <motion.p
+              className="mb-2 font-body text-[14px] font-semibold uppercase tracking-widest text-primary"
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+            >
+              Where We&apos;ve Been
+            </motion.p>
+            <SectionHeading>Our History</SectionHeading>
+          </div>
           <div className="flex flex-col gap-12 lg:gap-20">
             {experiences.map((exp, index) => (
               <motion.div

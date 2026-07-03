@@ -3,6 +3,7 @@ import { Bebas_Neue, Manrope } from "next/font/google";
 import "./globals.css";
 import { LenisProvider } from "@/components/providers/LenisProvider";
 import { AudioProvider } from "@/components/providers/AudioProvider";
+import { AuthProvider } from "@/components/providers/AuthProvider";
 
 const bebasNeue = Bebas_Neue({
   weight: "400",
@@ -34,9 +35,11 @@ export default function RootLayout({
       className={`${bebasNeue.variable} ${manrope.variable} antialiased`}
     >
       <body className="min-h-screen bg-background text-foreground">
-        <AudioProvider>
-          <LenisProvider>{children}</LenisProvider>
-        </AudioProvider>
+        <AuthProvider>
+          <AudioProvider>
+            <LenisProvider>{children}</LenisProvider>
+          </AudioProvider>
+        </AuthProvider>
       </body>
     </html>
   );
