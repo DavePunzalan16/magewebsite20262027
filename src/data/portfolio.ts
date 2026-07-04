@@ -18,6 +18,7 @@ export interface GuildEvent {
 export const navLinks: NavLink[] = [
   { label: "Home", href: "#home" },
   { label: "Events", href: "#events" },
+  { label: "Feed", href: "/feed" },
   { label: "Officers", href: "#officers" },
   { label: "Gallery", href: "#gallery" },
   { label: "About", href: "#about" },

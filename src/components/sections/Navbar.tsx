@@ -58,9 +58,15 @@ export function Navbar() {
         <ul className="hidden items-center gap-6 lg:flex">
           {navLinks.map((link) => (
             <li key={link.href}>
-              <a href={link.href} className="font-body text-[15px] font-medium text-offwhite transition-colors hover:text-white">
-                {link.label}
-              </a>
+              {link.href.startsWith("/") ? (
+                <Link href={link.href} prefetch={false} className="font-body text-[15px] font-medium text-offwhite transition-colors hover:text-white">
+                  {link.label}
+                </Link>
+              ) : (
+                <a href={link.href} className="font-body text-[15px] font-medium text-offwhite transition-colors hover:text-white">
+                  {link.label}
+                </a>
+              )}
             </li>
           ))}
         </ul>
@@ -167,9 +173,15 @@ export function Navbar() {
             <ul className="flex flex-col items-center gap-5 py-6">
               {navLinks.map((link) => (
                 <li key={link.href}>
-                  <a href={link.href} className="font-body text-[17px] font-medium text-offwhite hover:text-primary" onClick={() => setMobileOpen(false)}>
-                    {link.label}
-                  </a>
+                  {link.href.startsWith("/") ? (
+                    <Link href={link.href} prefetch={false} className="font-body text-[17px] font-medium text-offwhite hover:text-primary" onClick={() => setMobileOpen(false)}>
+                      {link.label}
+                    </Link>
+                  ) : (
+                    <a href={link.href} className="font-body text-[17px] font-medium text-offwhite hover:text-primary" onClick={() => setMobileOpen(false)}>
+                      {link.label}
+                    </a>
+                  )}
                 </li>
               ))}
               <li className="pt-2">

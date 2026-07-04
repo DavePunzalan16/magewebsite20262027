@@ -438,3 +438,149 @@ Once you've run all the SQL above:
 - You can manage everything from the Supabase Table Editor or from the admin panel
 
 Let me know when you've completed these steps and I'll wire the dashboard to pull real data from Supabase!
+
+---
+
+## Step 14 — Guild Feed Tables (Posts, Comments, Reactions)
+
+These tables power the Facebook/Discord-style Guild Feed.
+
+### Posts table
+
+```sql
+create table posts (
+  id bigint generated always as identity primary key,
+  user_id uuid references profiles(id) on delete cascade,
+  content text not null,
+  image_url text,
+  category text default 'general' check (category in ('general', 'artwork', 'gaming', 'anime', 'meme', 'announcement')),
+  is_pinned boolean default false,
+  is_hidden boolean default false,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+alter table posts enable row level security;
+
+-- Anyone can read non-hidden posts
+create policy "Anyone can view posts"
+  on posts for select
+  using (is_hidden = false);
+
+-- Authenticated users can create posts
+create policy "Authenticated users can post"
+  on posts for insert
+  with check (auth.uid() = user_id);
+
+-- Users can update own posts
+create policy "Users can update own posts"
+  on posts for update
+  using (auth.uid() = user_id);
+
+-- Users can delete own posts
+create policy "Users can delete own posts"
+  on posts for delete
+  using (auth.uid() = user_id);
+
+-- Admins can manage all posts (moderate)
+create policy "Admins can manage all posts"
+  on posts for all
+  using (
+    exists (
+      select 1 from profiles where id = auth.uid() and role = 'admin'
+    )
+  );
+```
+
+**Run it.**
+
+---
+
+### Comments table
+
+```sql
+create table comments (
+  id bigint generated always as identity primary key,
+  post_id bigint references posts(id) on delete cascade,
+  user_id uuid references profiles(id) on delete cascade,
+  content text not null,
+  is_hidden boolean default false,
+  created_at timestamptz default now()
+);
+
+alter table comments enable row level security;
+
+create policy "Anyone can view comments"
+  on comments for select
+  using (is_hidden = false);
+
+create policy "Authenticated users can comment"
+  on comments for insert
+  with check (auth.uid() = user_id);
+
+create policy "Users can delete own comments"
+  on comments for delete
+  using (auth.uid() = user_id);
+
+create policy "Admins can manage comments"
+  on comments for all
+  using (
+    exists (
+      select 1 from profiles where id = auth.uid() and role = 'admin'
+    )
+  );
+```
+
+**Run it.**
+
+---
+
+### Reactions table
+
+```sql
+create table reactions (
+  id bigint generated always as identity primary key,
+  post_id bigint references posts(id) on delete cascade,
+  user_id uuid references profiles(id) on delete cascade,
+  emoji text not null default '❤️',
+  created_at timestamptz default now(),
+  unique(post_id, user_id, emoji)
+);
+
+alter table reactions enable row level security;
+
+create policy "Anyone can view reactions"
+  on reactions for select
+  using (true);
+
+create policy "Authenticated users can react"
+  on reactions for insert
+  with check (auth.uid() = user_id);
+
+create policy "Users can remove own reactions"
+  on reactions for delete
+  using (auth.uid() = user_id);
+```
+
+**Run it.**
+
+---
+
+### Updated Table Overview
+
+| Table | Purpose |
+|-------|---------|
+| `profiles` | User profiles (linked to auth.users) |
+| `events` | Guild events |
+| `event_registrations` | Who registered for which event |
+| `attendance` | Event attendance records |
+| `announcements` | Guild announcements |
+| `gallery` | Gallery image entries |
+| `membership_applications` | "Become a Member" form submissions |
+| **`posts`** | Guild feed posts |
+| **`comments`** | Comments on posts |
+| **`reactions`** | Emoji reactions on posts |
+
+---
+
+After running these 3 new SQL blocks, go to **Table Editor** and verify you see `posts`, `comments`, and `reactions` tables.
