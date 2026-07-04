@@ -74,13 +74,16 @@ export default function FeedPage() {
   // Fetch posts from Supabase
   useEffect(() => {
     if (!mounted) return;
-    const supabase = createClient();
-
-    supabase.from("posts").select("*").eq("is_hidden", false).order("is_pinned", { ascending: false }).order("created_at", { ascending: false }).limit(20)
-      .then(({ data }) => {
+    const fetchPosts = async () => {
+      try {
+        const supabase = createClient();
+        const { data } = await supabase.from("posts").select("*").eq("is_hidden", false).order("is_pinned", { ascending: false }).order("created_at", { ascending: false }).limit(20);
         if (data && data.length > 0) setPosts(data);
-      })
-      .catch(() => {}); // Keep fallback
+      } catch {
+        // Keep fallback data
+      }
+    };
+    fetchPosts();
   }, [mounted]);
 
   const handlePost = useCallback(async () => {
