@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -68,6 +68,9 @@ export default function FeedPage() {
   const [comments, setComments] = useState<Record<number, Comment[]>>({});
   const [menuOpen, setMenuOpen] = useState<number | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [postFile, setPostFile] = useState<File | null>(null);
+  const [postPreview, setPostPreview] = useState<string | null>(null);
+  const feedFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -90,10 +93,17 @@ export default function FeedPage() {
     if (!newPost.trim() || !user) return;
     setPosting(true);
 
+    let imageUrl: string | null = null;
+    if (postFile) {
+      const { uploadFile } = await import("@/lib/upload");
+      imageUrl = await uploadFile(postFile, "feed");
+    }
+
     const supabase = createClient();
     const { data, error } = await supabase.from("posts").insert({
       user_id: user.id,
       content: newPost,
+      image_url: imageUrl,
       category: "general",
     }).select().single();
 
@@ -102,8 +112,10 @@ export default function FeedPage() {
     }
 
     setNewPost("");
+    setPostFile(null);
+    setPostPreview(null);
     setPosting(false);
-  }, [newPost, user]);
+  }, [newPost, user, postFile]);
 
   const handleReact = useCallback(async (postId: number) => {
     if (!user) return;
@@ -184,9 +196,12 @@ export default function FeedPage() {
                   rows={2}
                 />
                 <div className="mt-2 flex items-center justify-between border-t border-dark-gray/20 pt-2">
-                  <button className="flex items-center gap-1.5 rounded-[6px] px-2 py-1 font-body text-[12px] text-offwhite/50 hover:bg-white/5 hover:text-offwhite">
-                    <ImageIcon className="h-4 w-4" /> Photo
-                  </button>
+                  <div>
+                    <button onClick={() => feedFileRef.current?.click()} className="flex items-center gap-1.5 rounded-[6px] px-2 py-1 font-body text-[12px] text-offwhite/50 hover:bg-white/5 hover:text-offwhite" type="button">
+                      <ImageIcon className="h-4 w-4" /> Photo
+                    </button>
+                    <input ref={feedFileRef} type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setPostFile(f); setPostPreview(URL.createObjectURL(f)); } }} className="hidden" />
+                  </div>
                   <button
                     onClick={handlePost}
                     disabled={!newPost.trim() || posting}
@@ -195,6 +210,12 @@ export default function FeedPage() {
                     <Send className="h-3.5 w-3.5" /> {posting ? "Posting..." : "Post"}
                   </button>
                 </div>
+                {postPreview && (
+                  <div className="relative mt-2 inline-block">
+                    <Image src={postPreview} alt="Preview" width={120} height={80} className="rounded-[6px] object-cover" />
+                    <button onClick={() => { setPostFile(null); setPostPreview(null); }} className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-[10px]">×</button>
+                  </div>
+                )}
               </div>
             </div>
           </motion.div>

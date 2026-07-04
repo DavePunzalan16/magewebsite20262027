@@ -635,3 +635,31 @@ insert into user_badges (user_id, badge_id)
 select p.id, b.id from profiles p, badges b
 where p.full_name = 'Guild Master' and b.name = 'Founding Mage';
 ```
+
+---
+
+## Step 16 — Enable Supabase Storage (REQUIRED for uploads)
+
+1. Go to **Storage** in Supabase sidebar
+2. Click **New Bucket**
+3. Name: `uploads`
+4. Toggle **Public** to ON
+5. Click **Create**
+
+Then run this in SQL Editor:
+
+```sql
+-- Allow authenticated users to upload
+create policy "Auth users can upload" on storage.objects
+  for insert with check (bucket_id = 'uploads' and auth.role() = 'authenticated');
+
+-- Allow anyone to view
+create policy "Public can view uploads" on storage.objects
+  for select using (bucket_id = 'uploads');
+
+-- Allow users to delete own uploads
+create policy "Users can delete own uploads" on storage.objects
+  for delete using (bucket_id = 'uploads' and auth.uid()::text = (storage.foldername(name))[1]);
+```
+
+**Run it.** Now image/video uploads will work from the admin panel, feed, and profile editor.

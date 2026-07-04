@@ -51,8 +51,33 @@ export default function EditProfilePage() {
 
   const handleSave = async () => {
     setSaving(true);
-    // Future: upload images to Supabase Storage, update profiles table
-    await new Promise((r) => setTimeout(r, 500));
+
+    const supabase = (await import("@/lib/supabase/client")).createClient();
+    let newAvatarUrl: string | null = null;
+
+    // Upload avatar if user picked a new file
+    if (avatarRef.current?.files?.[0]) {
+      const { uploadFile } = await import("@/lib/upload");
+      newAvatarUrl = await uploadFile(avatarRef.current.files[0], "avatars");
+    }
+
+    // Update auth user metadata (name, avatar, bio)
+    const metaUpdates: Record<string, string> = { full_name: displayName };
+    if (newAvatarUrl) metaUpdates.avatar_url = newAvatarUrl;
+    if (bio) metaUpdates.bio = bio;
+
+    await supabase.auth.updateUser({ data: metaUpdates });
+
+    // Update profiles table too
+    const { data: { user: freshUser } } = await supabase.auth.getUser();
+    if (freshUser) {
+      await supabase.from("profiles").update({
+        full_name: displayName,
+        bio,
+        avatar_url: newAvatarUrl || freshUser.user_metadata?.avatar_url || null,
+      }).eq("id", freshUser.id);
+    }
+
     setSaving(false);
     setSaved(true);
     setTimeout(() => router.push("/profile"), 800);
