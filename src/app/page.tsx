@@ -5,10 +5,11 @@ import { useAudio } from "@/components/providers/AudioProvider";
 import { LoadingScreen } from "@/components/sections/LoadingScreen";
 import { Navbar } from "@/components/sections/Navbar";
 import { Hero } from "@/components/sections/Hero";
-import { EventsSection } from "@/components/sections/EventsSection";
+import { DynamicEvents } from "@/components/sections/DynamicEvents";
+import { DynamicAnnouncements } from "@/components/sections/DynamicAnnouncements";
+import { DynamicGallery } from "@/components/sections/DynamicGallery";
 import { OfficersSection } from "@/components/sections/OfficersSection";
 import { DepartmentsSection } from "@/components/sections/DepartmentsSection";
-import { GallerySection } from "@/components/sections/GallerySection";
 import { AboutSection } from "@/components/sections/AboutSection";
 import { MembershipForm } from "@/components/sections/MembershipForm";
 import { SkillsSection } from "@/components/sections/SkillsSection";
@@ -35,13 +36,15 @@ export default function Home() {
           <main id="main-content">
             <Hero />
             <SectionDivider />
-            <EventsSection />
+            <DynamicAnnouncements />
+            <SectionDivider />
+            <DynamicEvents />
             <SectionDivider />
             <OfficersSection />
             <SectionDivider />
             <DepartmentsSection />
             <SectionDivider />
-            <GallerySection />
+            <DynamicGallery />
             <SectionDivider />
             <AboutSection />
             <SectionDivider />
