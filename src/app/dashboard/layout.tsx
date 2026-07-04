@@ -20,6 +20,7 @@ import {
   CheckSquare,
   Menu,
   X,
+  PenSquare,
 } from "lucide-react";
 
 export default function DashboardLayout({
@@ -61,6 +62,7 @@ export default function DashboardLayout({
 
   const adminLinks = [
     { href: "/dashboard/admin", label: "Overview", icon: LayoutDashboard },
+    { href: "/dashboard/admin/posts", label: "Create Post", icon: PenSquare },
     { href: "/dashboard/admin/approvals", label: "Approvals", icon: CheckSquare },
     { href: "/dashboard/admin/events", label: "Events", icon: Calendar },
     { href: "/dashboard/admin/gallery", label: "Gallery", icon: ImageIcon },

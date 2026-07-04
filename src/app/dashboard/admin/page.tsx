@@ -36,14 +36,13 @@ export default function AdminDashboard() {
 
   return (
     <div>
-      {/* Header */}
       <div className="mb-8">
-        <p className="font-body text-[14px] text-offwhite/60">{greeting}</p>
-        <h1 className="font-display text-[32px] text-white md:text-[44px]">
-          Admin Dashboard
+        <p className="font-body text-[13px] text-primary/60">{greeting}</p>
+        <h1 className="font-display text-[30px] text-white md:text-[40px]">
+          Dashboard
         </h1>
-        <p className="font-body text-[16px] text-offwhite">
-          Welcome back, <span className="text-primary">{user?.user_metadata?.full_name || "Guild Master"}</span>. Here&apos;s what&apos;s happening.
+        <p className="font-body text-[14px] text-offwhite/50">
+          Welcome, <span className="text-primary">{user?.user_metadata?.full_name || "Guild Master"}</span>
         </p>
       </div>
 
