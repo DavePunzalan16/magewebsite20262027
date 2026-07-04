@@ -4,6 +4,7 @@ import "./globals.css";
 import { LenisProvider } from "@/components/providers/LenisProvider";
 import { AudioProvider } from "@/components/providers/AudioProvider";
 import { AuthProvider } from "@/components/providers/AuthProvider";
+import { QueryProvider } from "@/components/providers/QueryProvider";
 import { SkipToContent } from "@/components/ui/SkipToContent";
 
 const bebasNeue = Bebas_Neue({
@@ -130,11 +131,13 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen bg-background text-foreground">
         <SkipToContent />
-        <AuthProvider>
-          <AudioProvider>
-            <LenisProvider>{children}</LenisProvider>
-          </AudioProvider>
-        </AuthProvider>
+        <QueryProvider>
+          <AuthProvider>
+            <AudioProvider>
+              <LenisProvider>{children}</LenisProvider>
+            </AudioProvider>
+          </AuthProvider>
+        </QueryProvider>
       </body>
     </html>
   );
