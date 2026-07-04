@@ -6,7 +6,7 @@ import { motion, useInView, AnimatePresence } from "framer-motion";
 import { Container } from "@/components/layout/Container";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { TiltCard } from "@/components/ui/TiltCard";
-import { officers, type Officer } from "@/data/officers";
+import { officers, specialMentions, type Officer } from "@/data/officers";
 import { Shield, X, Sparkles, Star } from "lucide-react";
 
 // Officer detail modal
@@ -120,8 +120,8 @@ function OfficerCard({ officer, index, onClick }: { officer: Officer; index: num
 export function OfficersSection() {
   const [selectedOfficer, setSelectedOfficer] = useState<Officer | null>(null);
 
-  const regularOfficers = officers.filter((o) => !o.isSpecial);
-  const specialOfficers = officers.filter((o) => o.isSpecial);
+  const regularOfficers = officers;
+  const specialOfficersList = specialMentions;
 
   return (
     <>
@@ -164,7 +164,7 @@ export function OfficersSection() {
               <h3 className="font-display text-[24px] text-white">Special Mentions</h3>
             </motion.div>
             <div className="grid gap-4 sm:grid-cols-2">
-              {specialOfficers.map((officer, index) => (
+              {specialOfficersList.map((officer, index) => (
                 <OfficerCard key={officer.id} officer={officer} index={index} onClick={() => setSelectedOfficer(officer)} />
               ))}
             </div>
