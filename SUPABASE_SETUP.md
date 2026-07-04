@@ -584,3 +584,54 @@ create policy "Users can remove own reactions"
 ---
 
 After running these 3 new SQL blocks, go to **Table Editor** and verify you see `posts`, `comments`, and `reactions` tables.
+
+---
+
+## Step 15 — Badges & Achievements Table
+
+```sql
+create table badges (
+  id bigint generated always as identity primary key,
+  name text not null,
+  description text,
+  icon text not null,
+  rarity text default 'common' check (rarity in ('common', 'rare', 'epic', 'legendary')),
+  created_at timestamptz default now()
+);
+
+-- Seed some badges
+insert into badges (name, description, icon, rarity) values
+  ('Founding Mage', 'Joined during the founding year', '⚔️', 'legendary'),
+  ('First Event', 'Attended your first guild event', '🎉', 'common'),
+  ('Art Wizard', 'Submitted artwork to the guild gallery', '🎨', 'rare'),
+  ('Social Butterfly', 'Made 10+ posts in the guild feed', '🦋', 'rare'),
+  ('Tournament Victor', 'Won a guild esports tournament', '🏆', 'epic'),
+  ('Perfect Attendance', 'Attended all events in a month', '⭐', 'epic'),
+  ('Recruiter', 'Referred 3+ new members', '🧲', 'rare'),
+  ('Meme Lord', 'Got 50+ reactions on a meme post', '😂', 'legendary');
+
+create table user_badges (
+  id bigint generated always as identity primary key,
+  user_id uuid references profiles(id) on delete cascade,
+  badge_id bigint references badges(id) on delete cascade,
+  awarded_at timestamptz default now(),
+  unique(user_id, badge_id)
+);
+
+alter table badges enable row level security;
+alter table user_badges enable row level security;
+
+create policy "Anyone can view badges" on badges for select using (true);
+create policy "Anyone can view user badges" on user_badges for select using (true);
+create policy "Admins can manage badges" on badges for all using (exists (select 1 from profiles where id = auth.uid() and role = 'admin'));
+create policy "Admins can award badges" on user_badges for all using (exists (select 1 from profiles where id = auth.uid() and role = 'admin'));
+```
+
+**Run it.** You'll see `badges` (with 8 pre-seeded badges) and `user_badges` tables.
+
+To award a badge to the admin user, run:
+```sql
+insert into user_badges (user_id, badge_id)
+select p.id, b.id from profiles p, badges b
+where p.full_name = 'Guild Master' and b.name = 'Founding Mage';
+```
