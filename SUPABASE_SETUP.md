@@ -663,3 +663,21 @@ create policy "Users can delete own uploads" on storage.objects
 ```
 
 **Run it.** Now image/video uploads will work from the admin panel, feed, and profile editor.
+
+---
+
+## Step 17 — Add profile fields for favorites and genres
+
+Run this in SQL Editor to add the missing columns:
+
+```sql
+alter table profiles add column if not exists favorite_anime text;
+alter table profiles add column if not exists favorite_game text;
+alter table profiles add column if not exists favorite_manga text;
+alter table profiles add column if not exists favorite_character text;
+alter table profiles add column if not exists anime_genres text[];
+alter table profiles add column if not exists game_genres text[];
+alter table profiles add column if not exists manga_genres text[];
+```
+
+**Run it.**

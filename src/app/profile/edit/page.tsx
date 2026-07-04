@@ -61,20 +61,31 @@ export default function EditProfilePage() {
       newAvatarUrl = await uploadFile(avatarRef.current.files[0], "avatars");
     }
 
-    // Update auth user metadata (name, avatar, bio)
+    // Update auth user metadata
     const metaUpdates: Record<string, string> = { full_name: displayName };
     if (newAvatarUrl) metaUpdates.avatar_url = newAvatarUrl;
     if (bio) metaUpdates.bio = bio;
+    metaUpdates.favorite_anime = favoriteAnime;
+    metaUpdates.favorite_game = favoriteGame;
+    metaUpdates.favorite_manga = favoriteManga;
+    metaUpdates.favorite_character = favoriteCharacter;
 
     await supabase.auth.updateUser({ data: metaUpdates });
 
-    // Update profiles table too
+    // Update profiles table with all fields
     const { data: { user: freshUser } } = await supabase.auth.getUser();
     if (freshUser) {
       await supabase.from("profiles").update({
         full_name: displayName,
         bio,
         avatar_url: newAvatarUrl || freshUser.user_metadata?.avatar_url || null,
+        favorite_anime: favoriteAnime || null,
+        favorite_game: favoriteGame || null,
+        favorite_manga: favoriteManga || null,
+        favorite_character: favoriteCharacter || null,
+        anime_genres: selectedAnimeGenres.length > 0 ? selectedAnimeGenres : null,
+        game_genres: selectedGameGenres.length > 0 ? selectedGameGenres : null,
+        manga_genres: selectedMangaGenres.length > 0 ? selectedMangaGenres : null,
       }).eq("id", freshUser.id);
     }
 

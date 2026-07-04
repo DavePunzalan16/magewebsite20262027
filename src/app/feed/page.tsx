@@ -80,7 +80,12 @@ export default function FeedPage() {
     const fetchPosts = async () => {
       try {
         const supabase = createClient();
-        const { data } = await supabase.from("posts").select("*").eq("is_hidden", false).order("is_pinned", { ascending: false }).order("created_at", { ascending: false }).limit(20);
+        const { data } = await supabase
+          .from("posts")
+          .select("*")
+          .order("is_pinned", { ascending: false })
+          .order("created_at", { ascending: false })
+          .limit(30);
         if (data && data.length > 0) setPosts(data);
       } catch {
         // Keep fallback data
@@ -297,7 +302,8 @@ export default function FeedPage() {
                 {/* Image */}
                 {post.image_url && (
                   <div className="mb-3 overflow-hidden rounded-[10px] border border-dark-gray/20">
-                    <Image src={post.image_url} alt="" width={600} height={400} className="w-full object-cover" />
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={post.image_url} alt="" className="w-full max-h-[400px] object-cover" loading="lazy" />
                   </div>
                 )}
 

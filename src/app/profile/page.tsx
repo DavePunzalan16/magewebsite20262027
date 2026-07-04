@@ -43,6 +43,7 @@ export default function ProfilePage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const [profileData, setProfileData] = useState<Record<string, unknown> | null>(null);
   const heroRef = useRef<HTMLDivElement>(null);
 
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
@@ -57,6 +58,18 @@ export default function ProfilePage() {
     if (mounted && !authLoading && !user) router.push("/auth/signin");
   }, [user, authLoading, router, mounted]);
 
+  // Fetch profile from Supabase
+  useEffect(() => {
+    if (!user) return;
+    const fetchProfile = async () => {
+      const { createClient } = await import("@/lib/supabase/client");
+      const supabase = createClient();
+      const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+      if (data) setProfileData(data);
+    };
+    fetchProfile();
+  }, [user]);
+
   if (!mounted || authLoading || !user) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -65,9 +78,16 @@ export default function ProfilePage() {
     );
   }
 
-  const displayName = user.user_metadata?.full_name || user.email?.split("@")[0] || "Mage";
-  const avatarUrl = user.user_metadata?.avatar_url || null;
-  const bio = user.user_metadata?.bio || "No bio yet — edit your profile to tell the guild about yourself!";
+  const displayName = (profileData?.full_name as string) || user.user_metadata?.full_name || user.email?.split("@")[0] || "Mage";
+  const avatarUrl = (profileData?.avatar_url as string) || user.user_metadata?.avatar_url || null;
+  const bio = (profileData?.bio as string) || user.user_metadata?.bio || "No bio yet — edit your profile to tell the guild about yourself!";
+  const favoriteAnime = (profileData?.favorite_anime as string) || "Not set";
+  const favoriteGame = (profileData?.favorite_game as string) || "Not set";
+  const favoriteManga = (profileData?.favorite_manga as string) || "Not set";
+  const favoriteCharacter = (profileData?.favorite_character as string) || "Not set";
+  const animeGenres = (profileData?.anime_genres as string[]) || [];
+  const gameGenres = (profileData?.game_genres as string[]) || [];
+  const mangaGenres = (profileData?.manga_genres as string[]) || [];
 
   // Fallback badges if table is empty
   const displayBadges: Badge[] = badges.length > 0 ? badges.slice(0, 6) : [
@@ -112,7 +132,8 @@ export default function ProfilePage() {
             transition={{ type: "spring", stiffness: 200 }}
           >
             {avatarUrl ? (
-              <Image src={avatarUrl} alt="" width={130} height={130} className="h-28 w-28 rounded-full border-[5px] border-background object-cover md:h-32 md:w-32" />
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={avatarUrl} alt="" className="h-28 w-28 rounded-full border-[5px] border-background object-cover md:h-32 md:w-32" />
             ) : (
               <div className="flex h-28 w-28 items-center justify-center rounded-full border-[5px] border-background bg-gradient-to-br from-primary/30 to-primary/10 font-display text-[40px] text-primary md:h-32 md:w-32 md:text-[48px]">
                 {displayName.charAt(0).toUpperCase()}
@@ -156,10 +177,10 @@ export default function ProfilePage() {
                 <Heart className="h-4 w-4 text-primary" /> Favorites
               </h2>
               <div className="flex flex-col gap-2.5">
-                <FavItem icon={Tv} label="Anime" value="Not set" />
-                <FavItem icon={Gamepad2} label="Game" value="Not set" />
-                <FavItem icon={BookOpen} label="Manga" value="Not set" />
-                <FavItem icon={Star} label="Character" value="Not set" />
+                <FavItem icon={Tv} label="Anime" value={favoriteAnime} />
+                <FavItem icon={Gamepad2} label="Game" value={favoriteGame} />
+                <FavItem icon={BookOpen} label="Manga" value={favoriteManga} />
+                <FavItem icon={Star} label="Character" value={favoriteCharacter} />
               </div>
             </motion.div>
 
@@ -179,6 +200,37 @@ export default function ProfilePage() {
                 <StatRow label="Department" value="—" />
               </div>
             </motion.div>
+
+            {/* Genres */}
+            {(animeGenres.length > 0 || gameGenres.length > 0 || mangaGenres.length > 0) && (
+              <motion.div className="rounded-[14px] border border-dark-gray/30 bg-surface/20 p-5" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
+                <h2 className="mb-3 font-body text-[14px] font-semibold text-white">My Genres</h2>
+                {animeGenres.length > 0 && (
+                  <div className="mb-3">
+                    <p className="mb-1.5 font-body text-[11px] uppercase tracking-wider text-offwhite/40">Anime</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {animeGenres.map((g) => <span key={g} className="rounded-full bg-primary/10 px-2.5 py-0.5 font-body text-[11px] text-primary">{g}</span>)}
+                    </div>
+                  </div>
+                )}
+                {gameGenres.length > 0 && (
+                  <div className="mb-3">
+                    <p className="mb-1.5 font-body text-[11px] uppercase tracking-wider text-offwhite/40">Games</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {gameGenres.map((g) => <span key={g} className="rounded-full bg-blue-500/10 px-2.5 py-0.5 font-body text-[11px] text-blue-400">{g}</span>)}
+                    </div>
+                  </div>
+                )}
+                {mangaGenres.length > 0 && (
+                  <div>
+                    <p className="mb-1.5 font-body text-[11px] uppercase tracking-wider text-offwhite/40">Manga</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {mangaGenres.map((g) => <span key={g} className="rounded-full bg-green-500/10 px-2.5 py-0.5 font-body text-[11px] text-green-400">{g}</span>)}
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            )}
           </div>
 
           {/* Right column — Badges + Achievements */}

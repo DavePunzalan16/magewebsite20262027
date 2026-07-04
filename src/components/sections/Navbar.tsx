@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { navLinks, siteConfig } from "@/data/portfolio";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { createClient } from "@/lib/supabase/client";
 import { Menu, X, LogIn, LogOut, Settings, User as UserIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -33,7 +34,18 @@ export function Navbar() {
   }, []);
 
   const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Mage";
-  const avatarUrl = user?.user_metadata?.avatar_url || null;
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(user?.user_metadata?.avatar_url || null);
+
+  // Fetch latest avatar from profiles table
+  useEffect(() => {
+    if (!user) return;
+    const fetchAvatar = async () => {
+      const supabase = createClient();
+      const { data } = await supabase.from("profiles").select("avatar_url").eq("id", user.id).single();
+      if (data?.avatar_url) setAvatarUrl(data.avatar_url);
+    };
+    fetchAvatar();
+  }, [user]);
 
   return (
     <motion.nav
@@ -80,7 +92,8 @@ export function Navbar() {
                 className="flex items-center gap-2 rounded-full border border-dark-gray/40 bg-surface/50 py-1.5 pl-1.5 pr-3 transition-all hover:border-primary/30 hover:bg-surface"
               >
                 {avatarUrl ? (
-                  <Image src={avatarUrl} alt="" width={32} height={32} className="rounded-full object-cover" />
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img src={avatarUrl} alt="" width={32} height={32} className="h-8 w-8 rounded-full object-cover" />
                 ) : (
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20 font-body text-[13px] font-bold text-primary">
                     {displayName.charAt(0).toUpperCase()}
