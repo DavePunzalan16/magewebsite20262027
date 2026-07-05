@@ -7,13 +7,14 @@ import Image from "next/image";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
-import { Edit3, Gamepad2, Tv, BookOpen, Heart, Star, Trophy, Shield, Sparkles } from "lucide-react";
 import { PremiumFooter } from "@/components/sections/Footer";
+import { Edit3, Gamepad2, Tv, BookOpen, Heart, Star, Trophy, Shield, Sparkles, Globe, MessageSquare } from "lucide-react";
 
 interface ProfileData {
   full_name?: string;
   avatar_url?: string;
   bio?: string;
+  role?: string;
   favorite_anime?: string;
   favorite_game?: string;
   favorite_manga?: string;
@@ -21,13 +22,40 @@ interface ProfileData {
   anime_genres?: string[];
   game_genres?: string[];
   manga_genres?: string[];
+  discord_username?: string;
+  steam_username?: string;
+  valorant_ign?: string;
+  social_links?: Record<string, string>;
 }
+
+interface Badge {
+  id: number;
+  name: string;
+  description: string | null;
+  icon: string;
+  rarity: string;
+}
+
+const rarityColors: Record<string, string> = {
+  common: "from-gray-500/20 to-gray-600/10 border-gray-500/20",
+  rare: "from-blue-500/20 to-blue-600/10 border-blue-500/20",
+  epic: "from-purple-500/20 to-purple-600/10 border-purple-500/20",
+  legendary: "from-yellow-500/20 to-amber-600/10 border-yellow-500/30 shadow-yellow-500/5 shadow-md",
+};
+
+const rarityText: Record<string, string> = {
+  common: "text-gray-400",
+  rare: "text-blue-400",
+  epic: "text-purple-400",
+  legendary: "text-yellow-400",
+};
 
 export default function ProfilePage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [badges, setBadges] = useState<Badge[]>([]);
   const heroRef = useRef<HTMLDivElement>(null);
 
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
@@ -35,43 +63,26 @@ export default function ProfilePage() {
   const overlayOpacity = useTransform(scrollYProgress, [0, 0.5], [0.3, 0.7]);
 
   useEffect(() => { setMounted(true); }, []);
-
   useEffect(() => {
-    if (mounted && !authLoading && !user) {
-      router.push("/auth/signin");
-    }
+    if (mounted && !authLoading && !user) router.push("/auth/signin");
   }, [user, authLoading, router, mounted]);
 
-  // Fetch profile from Supabase
   useEffect(() => {
     if (!user) return;
     const supabase = createClient();
     supabase.from("profiles").select("*").eq("id", user.id).single()
-      .then(({ data }) => {
-        if (data) setProfile(data as ProfileData);
-      });
+      .then(({ data }) => { if (data) setProfile(data as ProfileData); });
+    supabase.from("badges").select("*").then(({ data }) => { if (data) setBadges(data); });
   }, [user]);
 
   if (!mounted || authLoading || !user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-      </div>
-    );
+    return <div className="flex min-h-screen items-center justify-center bg-background"><div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" /></div>;
   }
 
-  // Use profile data from DB, fallback to user metadata
   const displayName = profile?.full_name || user.user_metadata?.full_name || user.email?.split("@")[0] || "Mage";
   const avatarUrl = profile?.avatar_url || user.user_metadata?.avatar_url || null;
-  const bio = profile?.bio || user.user_metadata?.bio || "No bio yet — edit your profile to add one!";
-  const favoriteAnime = profile?.favorite_anime || user.user_metadata?.favorite_anime || "Not set";
-  const favoriteGame = profile?.favorite_game || user.user_metadata?.favorite_game || "Not set";
-  const favoriteManga = profile?.favorite_manga || user.user_metadata?.favorite_manga || "Not set";
-  const favoriteCharacter = profile?.favorite_character || user.user_metadata?.favorite_character || "Not set";
-  const animeGenres: string[] = profile?.anime_genres || [];
-  const gameGenres: string[] = profile?.game_genres || [];
-  const mangaGenres: string[] = profile?.manga_genres || [];
-  const hasGenres = animeGenres.length > 0 || gameGenres.length > 0 || mangaGenres.length > 0;
+  const bio = profile?.bio || user.user_metadata?.bio || "No bio yet — edit your profile!";
+  const isAdmin = user.email === "admin@gmail.com" || profile?.role === "admin";
 
   return (
     <div className="min-h-screen bg-background">
@@ -85,8 +96,7 @@ export default function ProfilePage() {
         <Link href="/" className="absolute left-4 top-4 z-10 rounded-full bg-black/30 px-3 py-1.5 font-body text-[12px] text-white/80 backdrop-blur-sm hover:bg-black/50">← Home</Link>
       </div>
 
-      {/* Content */}
-      <div className="mx-auto max-w-[900px] px-4 md:px-8">
+      <div className="mx-auto max-w-[920px] px-4 md:px-8">
         {/* Header */}
         <div className="relative -mt-14 mb-6 flex flex-col gap-4 md:-mt-18 md:flex-row md:items-end md:gap-5">
           <div className="relative shrink-0">
@@ -101,7 +111,10 @@ export default function ProfilePage() {
             <div className="absolute bottom-1 right-1 h-4 w-4 rounded-full border-2 border-background bg-green-400" />
           </div>
           <div className="flex-1">
-            <h1 className="font-display text-[26px] text-white md:text-[32px]">{displayName}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="font-display text-[26px] text-white md:text-[32px]">{displayName}</h1>
+              {isAdmin && <span className="rounded-full bg-yellow-500/10 px-2 py-0.5 font-body text-[9px] font-bold uppercase text-yellow-400">👑 Admin</span>}
+            </div>
             <p className="font-body text-[13px] text-offwhite/50">{user.email}</p>
             <p className="mt-1.5 max-w-[450px] font-body text-[13px] leading-relaxed text-offwhite/70">{bio}</p>
           </div>
@@ -110,62 +123,98 @@ export default function ProfilePage() {
           </Link>
         </div>
 
-        {/* Grid */}
-        <div className="grid gap-4 pb-20 md:grid-cols-3">
-          {/* Left col */}
+        {/* Content grid */}
+        <div className="grid gap-4 pb-10 md:grid-cols-3">
+          {/* Left column */}
           <div className="flex flex-col gap-4">
-            {/* Favorites */}
-            <Card>
-              <h2 className="mb-3 flex items-center gap-2 font-body text-[13px] font-semibold text-white"><Heart className="h-4 w-4 text-primary" /> Favorites</h2>
-              <FavItem icon={Tv} label="Anime" value={favoriteAnime} />
-              <FavItem icon={Gamepad2} label="Game" value={favoriteGame} />
-              <FavItem icon={BookOpen} label="Manga" value={favoriteManga} />
-              <FavItem icon={Star} label="Character" value={favoriteCharacter} />
+            {/* Gaming Accounts */}
+            <Card title="Gaming Accounts" icon={Gamepad2}>
+              <AccountRow label="Discord" value={profile?.discord_username} emoji="💬" />
+              <AccountRow label="Steam" value={profile?.steam_username} emoji="🎮" />
+              <AccountRow label="Valorant" value={profile?.valorant_ign} emoji="🎯" />
             </Card>
-            <Card>
-              <h2 className="mb-3 flex items-center gap-2 font-body text-[13px] font-semibold text-white"><Shield className="h-4 w-4 text-primary" /> Guild Info</h2>
-              <StatRow label="Role" value="Member" />
+
+            {/* Social Links */}
+            {profile?.social_links && Object.keys(profile.social_links).length > 0 && (
+              <Card title="Social Links" icon={Globe}>
+                {Object.entries(profile.social_links).map(([platform, url]) => (
+                  <a key={platform} href={url} target="_blank" rel="noopener noreferrer"
+                    className="mb-1.5 flex items-center gap-2 rounded-[6px] bg-background/20 px-3 py-2 font-body text-[12px] text-primary/80 hover:text-primary last:mb-0">
+                    <Globe className="h-3 w-3" /> {platform}
+                  </a>
+                ))}
+              </Card>
+            )}
+
+            {/* Favorites */}
+            <Card title="Favorites" icon={Heart}>
+              <FavItem label="Anime" value={profile?.favorite_anime || "Not set"} emoji="📺" />
+              <FavItem label="Game" value={profile?.favorite_game || "Not set"} emoji="🎮" />
+              <FavItem label="Manga" value={profile?.favorite_manga || "Not set"} emoji="📖" />
+              <FavItem label="Character" value={profile?.favorite_character || "Not set"} emoji="⭐" />
+            </Card>
+
+            {/* Guild Info */}
+            <Card title="Guild Info" icon={Shield}>
+              <StatRow label="Role" value={isAdmin ? "Admin" : profile?.role || "Member"} />
               <StatRow label="Since" value="A.Y. 2026-2027" />
             </Card>
           </div>
 
-          {/* Right col */}
+          {/* Right column — Badges + Genres */}
           <div className="flex flex-col gap-4 md:col-span-2">
-            {/* Genres */}
-            <Card>
-              <h2 className="mb-3 flex items-center gap-2 font-body text-[13px] font-semibold text-white"><Sparkles className="h-4 w-4 text-primary" /> My Genres</h2>
-              {!hasGenres && <p className="font-body text-[12px] text-offwhite/30 italic">No genres selected — edit your profile to add them.</p>}
-              {animeGenres.length > 0 && (
-                <div className="mb-3">
-                  <p className="mb-1.5 font-body text-[10px] uppercase tracking-wider text-offwhite/40">Anime</p>
-                  <div className="flex flex-wrap gap-1.5">{animeGenres.map((g) => <span key={g} className="rounded-full bg-primary/10 px-2.5 py-0.5 font-body text-[11px] text-primary">{g}</span>)}</div>
-                </div>
-              )}
-              {gameGenres.length > 0 && (
-                <div className="mb-3">
-                  <p className="mb-1.5 font-body text-[10px] uppercase tracking-wider text-offwhite/40">Games</p>
-                  <div className="flex flex-wrap gap-1.5">{gameGenres.map((g) => <span key={g} className="rounded-full bg-blue-500/10 px-2.5 py-0.5 font-body text-[11px] text-blue-400">{g}</span>)}</div>
-                </div>
-              )}
-              {mangaGenres.length > 0 && (
-                <div>
-                  <p className="mb-1.5 font-body text-[10px] uppercase tracking-wider text-offwhite/40">Manga</p>
-                  <div className="flex flex-wrap gap-1.5">{mangaGenres.map((g) => <span key={g} className="rounded-full bg-green-500/10 px-2.5 py-0.5 font-body text-[11px] text-green-400">{g}</span>)}</div>
-                </div>
-              )}
-            </Card>
-            {/* Badges placeholder */}
-            <Card>
-              <h2 className="mb-3 flex items-center gap-2 font-body text-[13px] font-semibold text-white"><Trophy className="h-4 w-4 text-primary" /> Badges</h2>
-              <div className="grid grid-cols-3 gap-2">
-                {[{ icon: "⚔️", name: "Founding Mage", rarity: "legendary" }, { icon: "🎉", name: "First Event", rarity: "common" }, { icon: "🎨", name: "Art Wizard", rarity: "rare" }].map((b) => (
-                  <div key={b.name} className="rounded-[8px] border border-dark-gray/30 bg-background/20 p-2.5 text-center">
-                    <span className="text-[20px]">{b.icon}</span>
-                    <p className="font-body text-[10px] font-medium text-white mt-1">{b.name}</p>
-                  </div>
+            {/* Badges — 3D cards */}
+            <div className="rounded-[12px] border border-dark-gray/30 bg-surface/20 p-5">
+              <h2 className="mb-4 flex items-center gap-2 font-body text-[14px] font-semibold text-white"><Trophy className="h-4 w-4 text-primary" /> Badges</h2>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                {(badges.length > 0 ? badges : [
+                  { id: 1, name: "Founding Mage", description: "Joined founding year", icon: "⚔️", rarity: "legendary" },
+                  { id: 2, name: "First Event", description: "Attended first event", icon: "🎉", rarity: "common" },
+                  { id: 3, name: "Art Wizard", description: "Submitted artwork", icon: "🎨", rarity: "rare" },
+                ]).map((badge) => (
+                  <motion.div
+                    key={badge.id}
+                    className={`group relative cursor-default overflow-hidden rounded-[10px] border bg-gradient-to-br p-3 transition-transform duration-200 hover:scale-[1.03] hover:-translate-y-0.5 ${rarityColors[badge.rarity]}`}
+                    whileHover={{ rotateY: 5, rotateX: -3 }}
+                    style={{ transformStyle: "preserve-3d", perspective: "600px" }}
+                  >
+                    {/* Shimmer on legendary */}
+                    {badge.rarity === "legendary" && (
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-yellow-400/5 to-transparent animate-[shimmer_4s_ease-in-out_infinite]" />
+                    )}
+                    <div className="relative z-10">
+                      <span className="text-[22px]">{badge.icon}</span>
+                      <p className="mt-1.5 font-body text-[11px] font-semibold text-white">{badge.name}</p>
+                      <p className={`font-body text-[9px] font-bold uppercase tracking-wider ${rarityText[badge.rarity]}`}>{badge.rarity}</p>
+                    </div>
+                    {/* Tooltip */}
+                    <div className="pointer-events-none absolute inset-x-0 bottom-full z-20 mb-1 flex justify-center opacity-0 transition-opacity group-hover:opacity-100">
+                      <span className="rounded bg-black/90 px-2 py-1 font-body text-[10px] text-offwhite whitespace-nowrap">{badge.description}</span>
+                    </div>
+                  </motion.div>
                 ))}
               </div>
-            </Card>
+            </div>
+
+            {/* Genres */}
+            <div className="rounded-[12px] border border-dark-gray/30 bg-surface/20 p-5">
+              <h2 className="mb-4 flex items-center gap-2 font-body text-[14px] font-semibold text-white"><Sparkles className="h-4 w-4 text-primary" /> My Genres</h2>
+              {!(profile?.anime_genres?.length || profile?.game_genres?.length || profile?.manga_genres?.length) ? (
+                <p className="font-body text-[12px] text-offwhite/30 italic">No genres selected — edit your profile to add them.</p>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {profile?.anime_genres && profile.anime_genres.length > 0 && (
+                    <GenreRow label="Anime" genres={profile.anime_genres} color="primary" />
+                  )}
+                  {profile?.game_genres && profile.game_genres.length > 0 && (
+                    <GenreRow label="Games" genres={profile.game_genres} color="blue-400" />
+                  )}
+                  {profile?.manga_genres && profile.manga_genres.length > 0 && (
+                    <GenreRow label="Manga" genres={profile.manga_genres} color="green-400" />
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -174,14 +223,31 @@ export default function ProfilePage() {
   );
 }
 
-function Card({ children }: { children: React.ReactNode }) {
-  return <div className="rounded-[12px] border border-dark-gray/30 bg-surface/20 p-4">{children}</div>;
+function Card({ title, icon: Icon, children }: { title: string; icon: React.ComponentType<{ className?: string }>; children: React.ReactNode }) {
+  return (
+    <div className="rounded-[12px] border border-dark-gray/30 bg-surface/20 p-4">
+      <h2 className="mb-3 flex items-center gap-2 font-body text-[13px] font-semibold text-white"><Icon className="h-4 w-4 text-primary" /> {title}</h2>
+      {children}
+    </div>
+  );
 }
 
-function FavItem({ icon: Icon, label, value }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string }) {
+function AccountRow({ label, value, emoji }: { label: string; value?: string; emoji: string }) {
   return (
     <div className="mb-2 flex items-center gap-2.5 rounded-[6px] bg-background/20 px-3 py-2 last:mb-0">
-      <Icon className="h-3.5 w-3.5 shrink-0 text-primary/50" />
+      <span className="text-[14px]">{emoji}</span>
+      <div className="flex-1 min-w-0">
+        <p className="font-body text-[10px] uppercase tracking-wider text-offwhite/30">{label}</p>
+        <p className="truncate font-body text-[12px] text-offwhite/70">{value || "Not linked"}</p>
+      </div>
+    </div>
+  );
+}
+
+function FavItem({ label, value, emoji }: { label: string; value: string; emoji: string }) {
+  return (
+    <div className="mb-2 flex items-center gap-2.5 rounded-[6px] bg-background/20 px-3 py-2 last:mb-0">
+      <span className="text-[13px]">{emoji}</span>
       <div>
         <p className="font-body text-[10px] uppercase tracking-wider text-offwhite/30">{label}</p>
         <p className="font-body text-[12px] text-offwhite/70">{value}</p>
@@ -195,6 +261,17 @@ function StatRow({ label, value }: { label: string; value: string }) {
     <div className="flex items-center justify-between py-1">
       <span className="font-body text-[11px] text-offwhite/40">{label}</span>
       <span className="font-body text-[12px] font-medium text-white">{value}</span>
+    </div>
+  );
+}
+
+function GenreRow({ label, genres, color }: { label: string; genres: string[]; color: string }) {
+  return (
+    <div>
+      <p className="mb-1.5 font-body text-[10px] uppercase tracking-wider text-offwhite/40">{label}</p>
+      <div className="flex flex-wrap gap-1.5">
+        {genres.map((g) => <span key={g} className={`rounded-full bg-${color}/10 px-2.5 py-0.5 font-body text-[10px] text-${color}`}>{g}</span>)}
+      </div>
     </div>
   );
 }

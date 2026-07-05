@@ -1008,3 +1008,33 @@ alter table gallery add column if not exists is_featured boolean default false;
 ```
 
 **Run it.** Enables featured/highlighted gallery items in the CMS.
+
+---
+
+## Step 24 — Sprint 45: Profile social links + gaming accounts
+
+```sql
+alter table profiles add column if not exists discord_username text;
+alter table profiles add column if not exists steam_username text;
+alter table profiles add column if not exists valorant_ign text;
+alter table profiles add column if not exists social_links jsonb default '{}';
+```
+
+**Run it.** Enables Discord IGN, Steam, Valorant accounts and custom social links on profiles.
+
+Also add more badges:
+
+```sql
+insert into badges (name, description, icon, rarity) values
+  ('Guild Creator', 'Built the M.A.G.E. Digital Platform', '🏗️', 'legendary'),
+  ('Admin', 'Platform administrator', '👑', 'legendary'),
+  ('Officer', 'Current guild officer', '🛡️', 'epic'),
+  ('Veteran Mage', 'Active for 2+ semesters', '📜', 'epic'),
+  ('Content Creator', 'Regular poster in the feed', '✨', 'rare'),
+  ('Early Adopter', 'One of the first 50 members', '🌟', 'rare'),
+  ('Cosplay Master', 'Won a cosplay competition', '🎭', 'epic'),
+  ('Speed Runner', 'Completed guild challenge in record time', '⚡', 'rare')
+on conflict do nothing;
+```
+
+**Run it.**

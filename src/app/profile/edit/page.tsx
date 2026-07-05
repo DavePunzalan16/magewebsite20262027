@@ -25,6 +25,9 @@ export default function EditProfilePage() {
   const [favoriteGame, setFavoriteGame] = useState("");
   const [favoriteManga, setFavoriteManga] = useState("");
   const [favoriteCharacter, setFavoriteCharacter] = useState("");
+  const [discordUsername, setDiscordUsername] = useState("");
+  const [steamUsername, setSteamUsername] = useState("");
+  const [valorantIgn, setValorantIgn] = useState("");
   const [selectedAnimeGenres, setSelectedAnimeGenres] = useState<string[]>([]);
   const [selectedGameGenres, setSelectedGameGenres] = useState<string[]>([]);
   const [selectedMangaGenres, setSelectedMangaGenres] = useState<string[]>([]);
@@ -83,6 +86,9 @@ export default function EditProfilePage() {
         favorite_game: favoriteGame || null,
         favorite_manga: favoriteManga || null,
         favorite_character: favoriteCharacter || null,
+        discord_username: discordUsername || null,
+        steam_username: steamUsername || null,
+        valorant_ign: valorantIgn || null,
         anime_genres: selectedAnimeGenres.length > 0 ? selectedAnimeGenres : null,
         game_genres: selectedGameGenres.length > 0 ? selectedGameGenres : null,
         manga_genres: selectedMangaGenres.length > 0 ? selectedMangaGenres : null,
@@ -162,6 +168,12 @@ export default function EditProfilePage() {
               <Field label="Game" value={favoriteGame} onChange={setFavoriteGame} placeholder="e.g. Genshin Impact" />
               <Field label="Manga / Comics" value={favoriteManga} onChange={setFavoriteManga} placeholder="e.g. One Piece" />
               <Field label="Character" value={favoriteCharacter} onChange={setFavoriteCharacter} placeholder="e.g. Levi Ackerman" />
+            </Card>
+
+            <Card title="Gaming Accounts">
+              <Field label="Discord Username" value={discordUsername} onChange={setDiscordUsername} placeholder="e.g. MageGod#1234" />
+              <Field label="Steam Username" value={steamUsername} onChange={setSteamUsername} placeholder="e.g. steamuser123" />
+              <Field label="Valorant IGN" value={valorantIgn} onChange={setValorantIgn} placeholder="e.g. MageKing#PH1" />
             </Card>
           </div>
 
