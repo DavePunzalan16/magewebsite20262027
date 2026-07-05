@@ -41,13 +41,13 @@ This plan implements realtime feed subscriptions, a notifications system, admin 
     - Create `src/lib/validators/reports.ts` with createReportSchema (post_id, reason) and moderatePostSchema (action, reason)
     - _Requirements: 10.5_
 
-- [ ] 3. Repository layer
+- [x] 3. Repository layer
   - [x] 3.1 Create NotificationRepository extending BaseRepository
     - Create `src/lib/repositories/notifications.ts`
     - Implement create(), findByUser() with pagination, markAsRead(), markAllAsRead(), getUnreadCount()
     - _Requirements: 2.6, 10.2_
 
-  - [-] 3.2 Write property tests for NotificationRepository
+  - [x] 3.2 Write property tests for NotificationRepository
     - **Property 4: Notification ordering and pagination**
     - **Property 5: Mark-all-read completeness**
     - **Property 6: Unread count accuracy**
@@ -58,7 +58,7 @@ This plan implements realtime feed subscriptions, a notifications system, admin 
     - Implement create(), findPending() with joined post/profile data, review()
     - _Requirements: 6.1, 6.2, 6.3_
 
-  - [-] 3.4 Write property test for ReportRepository
+  - [x] 3.4 Write property test for ReportRepository
     - **Property 10: Report creation invariant**
     - **Validates: Requirements 6.2**
 
@@ -68,66 +68,66 @@ This plan implements realtime feed subscriptions, a notifications system, admin 
     - Update findMany() to exclude posts where deleted_at IS NOT NULL
     - _Requirements: 6.5, 6.6, 6.7, 6.8_
 
-  - [-] 3.6 Write property tests for moderation state transitions
+  - [x] 3.6 Write property tests for moderation state transitions
     - **Property 9: Moderation state transition with audit trail**
     - **Validates: Requirements 6.4, 6.5, 6.6, 6.8**
 
-- [~] 4. Checkpoint - Ensure repository layer tests pass
+- [ ] 4. Checkpoint - Ensure repository layer tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 5. Service layer
-  - [-] 5.1 Create NotificationService with business logic
+- [x] 5. Service layer
+  - [x] 5.1 Create NotificationService with business logic
     - Create `src/lib/services/notifications.ts`
     - Implement notifyComment(), notifyReaction(), notifyModeration()
     - Enforce self-notification prevention (actor_id === recipient → no-op)
     - _Requirements: 2.1, 2.2, 2.4, 2.5_
 
-  - [~] 5.2 Write property tests for NotificationService
+  - [x] 5.2 Write property tests for NotificationService
     - **Property 1: Self-notification prevention**
     - **Property 2: Interaction notification creation**
     - **Property 3: Moderation notification creation**
     - **Validates: Requirements 2.1, 2.2, 2.4, 2.5**
 
-  - [~] 5.3 Integrate NotificationService into existing interaction flows
+  - [x] 5.3 Integrate NotificationService into existing interaction flows
     - Update `src/app/api/posts/[id]/comments/route.ts` POST handler to call notifyComment()
     - Update `src/app/api/posts/[id]/reactions/route.ts` POST handler to call notifyReaction()
     - _Requirements: 2.1, 2.2_
 
-- [ ] 6. API routes for notifications
-  - [~] 6.1 Create GET /api/notifications route
+- [x] 6. API routes for notifications
+  - [x] 6.1 Create GET /api/notifications route
     - Create `src/app/api/notifications/route.ts`
     - Authenticate user, validate query params with notificationQuerySchema
     - Return paginated notifications ordered by created_at descending
     - _Requirements: 3.1, 3.5_
 
-  - [~] 6.2 Create PATCH /api/notifications/[id]/read route
+  - [x] 6.2 Create PATCH /api/notifications/[id]/read route
     - Create `src/app/api/notifications/[id]/read/route.ts`
     - Authenticate user, mark single notification as read
     - _Requirements: 3.2, 3.5_
 
-  - [~] 6.3 Create PATCH /api/notifications/read-all route
+  - [x] 6.3 Create PATCH /api/notifications/read-all route
     - Create `src/app/api/notifications/read-all/route.ts`
     - Authenticate user, mark all unread notifications as read
     - _Requirements: 3.3, 3.5_
 
-  - [~] 6.4 Create GET /api/notifications/unread-count route
+  - [x] 6.4 Create GET /api/notifications/unread-count route
     - Create `src/app/api/notifications/unread-count/route.ts`
     - Authenticate user, return unread count
     - _Requirements: 3.4, 3.5_
 
-- [ ] 7. API routes for reports and moderation
-  - [~] 7.1 Create POST /api/reports route
+- [x] 7. API routes for reports and moderation
+  - [x] 7.1 Create POST /api/reports route
     - Create `src/app/api/reports/route.ts`
     - Authenticate user, validate body with createReportSchema
     - Create report record with status 'pending'
     - _Requirements: 6.2_
 
-  - [~] 7.2 Create GET /api/admin/reports route
+  - [x] 7.2 Create GET /api/admin/reports route
     - Create `src/app/api/admin/reports/route.ts`
     - Authenticate admin user, return pending reports with joined post and profile data
     - _Requirements: 6.3_
 
-  - [~] 7.3 Create PATCH /api/admin/posts/[id]/moderate route
+  - [x] 7.3 Create PATCH /api/admin/posts/[id]/moderate route
     - Create `src/app/api/admin/posts/[id]/moderate/route.ts`
     - Authenticate admin user, validate body with moderatePostSchema
     - Handle hide, unhide, and soft_delete actions
@@ -135,11 +135,11 @@ This plan implements realtime feed subscriptions, a notifications system, admin 
     - Call NotificationService.notifyModeration() for post author
     - _Requirements: 6.4, 6.5, 6.6, 6.8, 2.4_
 
-  - [~] 7.4 Write property test for Zod validation
+  - [x] 7.4 Write property test for Zod validation
     - **Property 15: Zod validation rejects invalid input**
     - **Validates: Requirements 10.5**
 
-- [~] 8. Checkpoint - Ensure all API routes and service tests pass
+- [ ] 8. Checkpoint - Ensure all API routes and service tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 9. Client-side realtime hooks and cache utilities
@@ -147,35 +147,35 @@ This plan implements realtime feed subscriptions, a notifications system, admin 
     - Add fast-check as a devDependency
     - _Requirements: (testing infrastructure)_
 
-  - [~] 9.2 Create pure cache update utility functions
+  - [x] 9.2 Create pure cache update utility functions
     - Create `src/lib/utils/feed-cache.ts`
     - Implement updateFeedCacheWithNewPost() with deduplication
     - Implement applyOptimisticToggle() for reaction/bookmark toggles
     - Implement applyOptimisticComment() for comment count increment
     - _Requirements: 4.6, 8.1, 8.2, 8.3, 8.6_
 
-  - [~] 9.3 Write property tests for cache utility functions
+  - [ ] 9.3 Write property tests for cache utility functions
     - **Property 7: Realtime cache update correctness**
     - **Property 8: Cache deduplication**
     - **Property 11: Toggle optimistic update correctness**
     - **Property 12: Comment optimistic update**
     - **Validates: Requirements 4.6, 8.1, 8.2, 8.3, 8.6**
 
-  - [~] 9.4 Create useRealtimeFeed hook
+  - [ ] 9.4 Create useRealtimeFeed hook
     - Create `src/hooks/useRealtimeFeed.ts`
     - Subscribe to Supabase Realtime channel for posts, comments, and reactions tables
     - Use cache update utilities to update TanStack Query cache on events
     - Handle automatic reconnection on network interruption
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.6_
 
-  - [~] 9.5 Create useRealtimeNotifications hook
+  - [ ] 9.5 Create useRealtimeNotifications hook
     - Create `src/hooks/useRealtimeNotifications.ts`
     - Subscribe to per-user notification channel with filter on user_id
     - Increment unread badge count and prepend to notification list on INSERT event
     - Handle reconnection with exponential backoff and reconcile missed notifications
     - _Requirements: 5.1, 5.2, 5.3, 5.4_
 
-  - [~] 9.6 Create usePresence hook
+  - [ ] 9.6 Create usePresence hook
     - Create `src/hooks/usePresence.ts`
     - Subscribe to presence:guild channel with user metadata tracking
     - Return onlineMembers list and onlineCount
@@ -184,14 +184,14 @@ This plan implements realtime feed subscriptions, a notifications system, admin 
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
 
 - [ ] 10. RealtimeProvider and optimistic updates
-  - [~] 10.1 Create RealtimeProvider component
+  - [ ] 10.1 Create RealtimeProvider component
     - Create `src/components/providers/RealtimeProvider.tsx`
     - Initialize useRealtimeFeed and useRealtimeNotifications hooks
     - Provide presence context to child components
     - Wrap feed pages with this provider
     - _Requirements: 4.4, 5.3_
 
-  - [~] 10.2 Implement optimistic updates for reactions, comments, and bookmarks
+  - [ ] 10.2 Implement optimistic updates for reactions, comments, and bookmarks
     - Update feed mutation hooks to use onMutate/onError/onSettled pattern
     - Apply optimistic toggle for reactions using applyOptimisticToggle
     - Apply optimistic toggle for bookmarks using applyOptimisticToggle
@@ -199,23 +199,23 @@ This plan implements realtime feed subscriptions, a notifications system, admin 
     - Roll back on server error
     - _Requirements: 8.1, 8.2, 8.3_
 
-  - [~] 10.3 Update QueryProvider with feed-specific stale times
+  - [ ] 10.3 Update QueryProvider with feed-specific stale times
     - Configure staleTime of 30s for feed data queries
     - Configure staleTime of 60s for notification count queries
     - _Requirements: 8.4_
 
-  - [~] 10.4 Implement cursor-based pagination for feed
+  - [ ] 10.4 Implement cursor-based pagination for feed
     - Update PostRepository.findMany() to accept cursor parameter (timestamp)
     - Update /api/feed route to support cursor query parameter
     - Return only posts with created_at < cursor, ordered descending
     - _Requirements: 8.5_
 
-  - [~] 10.5 Write property test for cursor-based pagination
+  - [ ] 10.5 Write property test for cursor-based pagination
     - **Property 13: Cursor-based pagination correctness**
     - **Validates: Requirements 8.5**
 
 - [ ] 11. UI components
-  - [~] 11.1 Create NotificationBell component
+  - [ ] 11.1 Create NotificationBell component
     - Create `src/components/feed/NotificationBell.tsx`
     - Bell icon with unread badge count
     - Dropdown panel showing recent notifications
@@ -223,20 +223,20 @@ This plan implements realtime feed subscriptions, a notifications system, admin 
     - Mark all as read button
     - _Requirements: 5.2, 3.1, 3.2, 3.3_
 
-  - [~] 11.2 Create OnlinePresenceIndicator component
+  - [ ] 11.2 Create OnlinePresenceIndicator component
     - Create `src/components/feed/OnlinePresenceIndicator.tsx`
     - Display count of online members
     - Expandable avatar list showing online member details
     - _Requirements: 7.4, 7.5_
 
-  - [~] 11.3 Create ReportDialog component
+  - [ ] 11.3 Create ReportDialog component
     - Create `src/components/feed/ReportDialog.tsx`
     - Use Radix Dialog for modal
     - Form with reason text input (min 5 chars, max 500)
     - Submit to POST /api/reports
     - _Requirements: 6.2_
 
-  - [~] 11.4 Wire UI components into existing feed layout
+  - [ ] 11.4 Wire UI components into existing feed layout
     - Add NotificationBell to dashboard layout header
     - Add OnlinePresenceIndicator to feed sidebar or header
     - Add Report button to post card options menu triggering ReportDialog
@@ -244,17 +244,17 @@ This plan implements realtime feed subscriptions, a notifications system, admin 
     - _Requirements: 5.2, 7.4_
 
 - [ ] 12. Notification cleanup utility
-  - [~] 12.1 Create notification cleanup function
+  - [ ] 12.1 Create notification cleanup function
     - Create `src/lib/utils/notification-cleanup.ts`
     - Implement cleanupOldNotifications() that deletes read notifications older than 90 days
     - Preserve all unread notifications regardless of age
     - _Requirements: 1.5_
 
-  - [~] 12.2 Write property test for notification cleanup
+  - [ ] 12.2 Write property test for notification cleanup
     - **Property 14: Notification cleanup preserves unread**
     - **Validates: Requirements 1.5**
 
-- [~] 13. Final checkpoint - Ensure all tests pass
+- [ ] 13. Final checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes

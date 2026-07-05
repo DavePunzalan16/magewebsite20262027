@@ -1,6 +1,7 @@
 // Feature: realtime-feed-notifications, Property 10: Report creation invariant
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import * as fc from "fast-check";
+import { createAdminClient } from "@/lib/supabase/server";
 import { ReportRepository } from "../reports";
 
 /**
@@ -16,43 +17,33 @@ vi.mock("@/lib/supabase/server", () => ({
   createAdminClient: vi.fn(),
 }));
 
-function createMockSupabaseClient(capturedInserts: Record<string, unknown>[]) {
-  const mockSingle = vi.fn();
-  const mockSelect = vi.fn(() => ({ single: mockSingle }));
-  const mockInsert = vi.fn((data: Record<string, unknown>) => {
-    capturedInserts.push(data);
-    // Return a fake report with the inserted data merged with defaults
-    mockSingle.mockReturnValue({
-      data: {
-        id: Math.floor(Math.random() * 10000),
-        ...data,
-        created_at: new Date().toISOString(),
-        reviewed_at: null,
-      },
-      error: null,
-    });
-    return { select: mockSelect };
-  });
-  const mockFrom = vi.fn(() => ({ insert: mockInsert }));
-
-  return {
-    from: mockFrom,
-    _mockInsert: mockInsert,
-    _mockFrom: mockFrom,
-  };
-}
+const mockedCreateAdminClient = vi.mocked(createAdminClient);
 
 describe("ReportRepository - Property 10: Report creation invariant", () => {
   let capturedInserts: Record<string, unknown>[];
-  let mockClient: ReturnType<typeof createMockSupabaseClient>;
 
   beforeEach(() => {
     capturedInserts = [];
-    mockClient = createMockSupabaseClient(capturedInserts);
 
-    // Patch createAdminClient to return our mock
-    const { createAdminClient } = require("@/lib/supabase/server");
-    (createAdminClient as ReturnType<typeof vi.fn>).mockReturnValue(mockClient);
+    const mockSingle = vi.fn();
+    const mockSelect = vi.fn(() => ({ single: mockSingle }));
+    const mockInsert = vi.fn((data: Record<string, unknown>) => {
+      capturedInserts.push(data);
+      mockSingle.mockReturnValue({
+        data: {
+          id: Math.floor(Math.random() * 10000),
+          ...data,
+          created_at: new Date().toISOString(),
+          reviewed_at: null,
+          reviewed_by: null,
+        },
+        error: null,
+      });
+      return { select: mockSelect };
+    });
+    const mockFrom = vi.fn(() => ({ insert: mockInsert }));
+
+    mockedCreateAdminClient.mockReturnValue({ from: mockFrom } as unknown as ReturnType<typeof createAdminClient>);
   });
 
   it("should always insert with status 'pending' and no reviewed_by for any valid report inputs", async () => {
@@ -76,7 +67,7 @@ describe("ReportRepository - Property 10: Report creation invariant", () => {
           const insertedData = capturedInserts[0];
           expect(insertedData.status).toBe("pending");
 
-          // Verify that reviewed_by is NOT included in the insert (should be null by DB default)
+          // Verify that reviewed_by is NOT included in the insert (null by DB default)
           expect(insertedData).not.toHaveProperty("reviewed_by");
 
           // Verify the returned report has status 'pending' and reviewed_by null

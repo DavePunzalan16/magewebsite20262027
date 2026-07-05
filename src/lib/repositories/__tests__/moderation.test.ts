@@ -10,42 +10,47 @@ vi.mock("@/lib/supabase/server", () => ({
   createAdminClient: vi.fn(() => mockSupabaseClient),
 }));
 
-// Chainable mock builder for Supabase query methods
-function createChainableMock(resolveValue: { data?: unknown; error: null | { message: string }; count?: number }) {
-  const chain: Record<string, unknown> = {};
+// Creates a fresh chainable mock for Supabase queries
+function createChainableMock() {
+  const calls: { method: string; args: unknown[] }[] = [];
+  const chain: Record<string, ReturnType<typeof vi.fn>> = {};
   const methods = ["from", "select", "insert", "update", "delete", "eq", "is", "order", "range", "single", "limit"];
+
   for (const method of methods) {
-    chain[method] = vi.fn(() => chain);
+    chain[method] = vi.fn((...args: unknown[]) => {
+      calls.push({ method, args });
+      return chain;
+    });
   }
-  // Terminal methods resolve
-  chain["then"] = (resolve: (val: unknown) => void) => resolve(resolveValue);
-  // Make it thenable
-  Object.defineProperty(chain, "then", {
-    value: (resolve: (val: unknown) => void) => {
-      resolve(resolveValue);
-      return Promise.resolve(resolveValue);
-    },
-  });
-  return chain;
+
+  // Make it thenable to resolve as a promise
+  (chain as unknown as Record<string, unknown>)["then"] = (
+    resolve: (val: unknown) => void,
+    _reject?: (val: unknown) => void
+  ) => {
+    resolve({ data: { id: 1 }, error: null });
+    return Promise.resolve({ data: { id: 1 }, error: null });
+  };
+
+  return { chain, calls };
 }
 
-let mockUpdateChain: ReturnType<typeof createChainableMock>;
-let mockInsertChain: ReturnType<typeof createChainableMock>;
-let mockFromFn: ReturnType<typeof vi.fn>;
+let postsChain: ReturnType<typeof createChainableMock>;
+let activityLogsChain: ReturnType<typeof createChainableMock>;
 let mockSupabaseClient: { from: ReturnType<typeof vi.fn> };
 
 beforeEach(() => {
-  mockUpdateChain = createChainableMock({ data: null, error: null });
-  mockInsertChain = createChainableMock({ data: null, error: null });
+  postsChain = createChainableMock();
+  activityLogsChain = createChainableMock();
 
-  mockFromFn = vi.fn((table: string) => {
-    if (table === "activity_logs") {
-      return mockInsertChain;
-    }
-    return mockUpdateChain;
-  });
-
-  mockSupabaseClient = { from: mockFromFn };
+  mockSupabaseClient = {
+    from: vi.fn((table: string) => {
+      if (table === "activity_logs") {
+        return activityLogsChain.chain;
+      }
+      return postsChain.chain;
+    }),
+  };
 });
 
 // UUID arbitrary for generating valid UUIDs
@@ -55,26 +60,25 @@ const postIdArb = fc.integer({ min: 1, max: 1_000_000 });
 
 describe("Property 9: Moderation state transition with audit trail", () => {
   it("softDelete sets deleted_at to a non-null timestamp and logs activity with entity_type 'moderation' and action 'soft_delete'", () => {
-    fc.assert(
+    return fc.assert(
       fc.asyncProperty(postIdArb, uuidArb, async (postId, adminUserId) => {
-        // Reset mocks for each iteration
-        mockUpdateChain = createChainableMock({ data: null, error: null });
-        mockInsertChain = createChainableMock({ data: null, error: null });
-        mockFromFn.mockImplementation((table: string) => {
-          if (table === "activity_logs") {
-            return mockInsertChain;
-          }
-          return mockUpdateChain;
+        // Fresh mocks per iteration
+        postsChain = createChainableMock();
+        activityLogsChain = createChainableMock();
+        mockSupabaseClient.from = vi.fn((table: string) => {
+          if (table === "activity_logs") return activityLogsChain.chain;
+          return postsChain.chain;
         });
 
         const repo = new PostRepository();
         await repo.softDelete(postId, adminUserId);
 
-        // Verify posts table was updated with a non-null deleted_at
-        expect(mockFromFn).toHaveBeenCalledWith("posts");
-        const updateFn = mockUpdateChain["update"] as ReturnType<typeof vi.fn>;
-        expect(updateFn).toHaveBeenCalledTimes(1);
-        const updateArg = updateFn.mock.calls[0][0];
+        // Verify posts table was called
+        expect(mockSupabaseClient.from).toHaveBeenCalledWith("posts");
+
+        // Verify update was called with a non-null deleted_at timestamp
+        expect(postsChain.chain.update).toHaveBeenCalledTimes(1);
+        const updateArg = postsChain.chain.update.mock.calls[0][0];
         expect(updateArg).toHaveProperty("deleted_at");
         expect(updateArg.deleted_at).not.toBeNull();
         expect(typeof updateArg.deleted_at).toBe("string");
@@ -82,14 +86,12 @@ describe("Property 9: Moderation state transition with audit trail", () => {
         expect(new Date(updateArg.deleted_at).toISOString()).toBe(updateArg.deleted_at);
 
         // Verify eq was called with the post id
-        const eqFn = mockUpdateChain["eq"] as ReturnType<typeof vi.fn>;
-        expect(eqFn).toHaveBeenCalledWith("id", postId);
+        expect(postsChain.chain.eq).toHaveBeenCalledWith("id", postId);
 
-        // Verify activity_logs was called with correct params
-        expect(mockFromFn).toHaveBeenCalledWith("activity_logs");
-        const insertFn = mockInsertChain["insert"] as ReturnType<typeof vi.fn>;
-        expect(insertFn).toHaveBeenCalledTimes(1);
-        const insertArg = insertFn.mock.calls[0][0];
+        // Verify activity_logs insert was called with correct moderation params
+        expect(mockSupabaseClient.from).toHaveBeenCalledWith("activity_logs");
+        expect(activityLogsChain.chain.insert).toHaveBeenCalledTimes(1);
+        const insertArg = activityLogsChain.chain.insert.mock.calls[0][0];
         expect(insertArg).toMatchObject({
           user_id: adminUserId,
           action: "soft_delete",
@@ -102,37 +104,34 @@ describe("Property 9: Moderation state transition with audit trail", () => {
   });
 
   it("unhide sets is_hidden=false and logs activity with entity_type 'moderation' and action 'unhide'", () => {
-    fc.assert(
+    return fc.assert(
       fc.asyncProperty(postIdArb, uuidArb, async (postId, adminUserId) => {
-        // Reset mocks for each iteration
-        mockUpdateChain = createChainableMock({ data: null, error: null });
-        mockInsertChain = createChainableMock({ data: null, error: null });
-        mockFromFn.mockImplementation((table: string) => {
-          if (table === "activity_logs") {
-            return mockInsertChain;
-          }
-          return mockUpdateChain;
+        // Fresh mocks per iteration
+        postsChain = createChainableMock();
+        activityLogsChain = createChainableMock();
+        mockSupabaseClient.from = vi.fn((table: string) => {
+          if (table === "activity_logs") return activityLogsChain.chain;
+          return postsChain.chain;
         });
 
         const repo = new PostRepository();
         await repo.unhide(postId, adminUserId);
 
-        // Verify posts table was updated with is_hidden=false
-        expect(mockFromFn).toHaveBeenCalledWith("posts");
-        const updateFn = mockUpdateChain["update"] as ReturnType<typeof vi.fn>;
-        expect(updateFn).toHaveBeenCalledTimes(1);
-        const updateArg = updateFn.mock.calls[0][0];
+        // Verify posts table was called
+        expect(mockSupabaseClient.from).toHaveBeenCalledWith("posts");
+
+        // Verify update was called with is_hidden=false
+        expect(postsChain.chain.update).toHaveBeenCalledTimes(1);
+        const updateArg = postsChain.chain.update.mock.calls[0][0];
         expect(updateArg).toEqual({ is_hidden: false });
 
         // Verify eq was called with the post id
-        const eqFn = mockUpdateChain["eq"] as ReturnType<typeof vi.fn>;
-        expect(eqFn).toHaveBeenCalledWith("id", postId);
+        expect(postsChain.chain.eq).toHaveBeenCalledWith("id", postId);
 
-        // Verify activity_logs was called with correct params
-        expect(mockFromFn).toHaveBeenCalledWith("activity_logs");
-        const insertFn = mockInsertChain["insert"] as ReturnType<typeof vi.fn>;
-        expect(insertFn).toHaveBeenCalledTimes(1);
-        const insertArg = insertFn.mock.calls[0][0];
+        // Verify activity_logs insert was called with correct moderation params
+        expect(mockSupabaseClient.from).toHaveBeenCalledWith("activity_logs");
+        expect(activityLogsChain.chain.insert).toHaveBeenCalledTimes(1);
+        const insertArg = activityLogsChain.chain.insert.mock.calls[0][0];
         expect(insertArg).toMatchObject({
           user_id: adminUserId,
           action: "unhide",
@@ -145,35 +144,29 @@ describe("Property 9: Moderation state transition with audit trail", () => {
   });
 
   it("hide (via update with is_hidden=true) sets is_hidden=true on the post", () => {
-    fc.assert(
+    return fc.assert(
       fc.asyncProperty(postIdArb, uuidArb, async (postId, _adminUserId) => {
-        // For hide, we use the update method with is_hidden: true
-        // The update method also sets updated_at, so we verify is_hidden is part of the payload
-        const mockSelectChain = createChainableMock({
-          data: { id: postId, is_hidden: true },
-          error: null,
-        });
-
-        mockFromFn.mockImplementation((table: string) => {
-          if (table === "posts") {
-            return mockSelectChain;
-          }
-          return mockInsertChain;
+        // Fresh mocks per iteration
+        postsChain = createChainableMock();
+        activityLogsChain = createChainableMock();
+        mockSupabaseClient.from = vi.fn((table: string) => {
+          if (table === "activity_logs") return activityLogsChain.chain;
+          return postsChain.chain;
         });
 
         const repo = new PostRepository();
         await repo.update(postId, { is_hidden: true });
 
         // Verify posts table was called
-        expect(mockFromFn).toHaveBeenCalledWith("posts");
-        const updateFn = mockSelectChain["update"] as ReturnType<typeof vi.fn>;
-        expect(updateFn).toHaveBeenCalledTimes(1);
-        const updateArg = updateFn.mock.calls[0][0];
+        expect(mockSupabaseClient.from).toHaveBeenCalledWith("posts");
+
+        // Verify update was called with is_hidden=true (among other fields like updated_at)
+        expect(postsChain.chain.update).toHaveBeenCalledTimes(1);
+        const updateArg = postsChain.chain.update.mock.calls[0][0];
         expect(updateArg.is_hidden).toBe(true);
 
         // Verify eq was called with the post id
-        const eqFn = mockSelectChain["eq"] as ReturnType<typeof vi.fn>;
-        expect(eqFn).toHaveBeenCalledWith("id", postId);
+        expect(postsChain.chain.eq).toHaveBeenCalledWith("id", postId);
       }),
       { numRuns: 100 }
     );

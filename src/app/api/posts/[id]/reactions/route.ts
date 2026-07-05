@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { createAdminClient } from "@/lib/supabase/server";
+import { NotificationService } from "@/lib/services/notifications";
 
 // POST /api/posts/:id/reactions — toggle reaction
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -37,6 +38,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   } else {
     // Add reaction
     await admin.from("reactions").insert({ post_id: postId, user_id: user.id, emoji });
+
+    // Notify post author about the new reaction
+    const notificationService = new NotificationService();
+    const { data: post } = await admin.from("posts").select("user_id").eq("id", postId).single();
+    if (post) {
+      await notificationService.notifyReaction(post.user_id, user.id, postId).catch(() => {});
+    }
+
     return NextResponse.json({ action: "added" });
   }
 }

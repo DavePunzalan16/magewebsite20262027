@@ -13,11 +13,12 @@ export interface PostFilters {
   pinned?: boolean;
   limit?: number;
   offset?: number;
+  cursor?: string; // ISO timestamp for cursor-based pagination
 }
 
 export class PostRepository extends BaseRepository {
   async findMany(filters: PostFilters = {}): Promise<PaginatedResult<Post>> {
-    const { category, userId, limit = 20, offset = 0 } = filters;
+    const { category, userId, limit = 20, offset = 0, cursor } = filters;
 
     let query = this.db
       .from("posts")
@@ -25,8 +26,13 @@ export class PostRepository extends BaseRepository {
       .eq("is_hidden", false)
       .is("deleted_at", null)
       .order("is_pinned", { ascending: false })
-      .order("created_at", { ascending: false })
-      .range(offset, offset + limit - 1);
+      .order("created_at", { ascending: false });
+
+    if (cursor) {
+      query = query.lt("created_at", cursor).limit(limit);
+    } else {
+      query = query.range(offset, offset + limit - 1);
+    }
 
     if (category && category !== "all") query = query.eq("category", category);
     if (userId) query = query.eq("user_id", userId);
@@ -37,7 +43,7 @@ export class PostRepository extends BaseRepository {
     return {
       data: (data || []) as Post[],
       total: count || 0,
-      hasMore: (count || 0) > offset + limit,
+      hasMore: (data || []).length === limit,
     };
   }
 

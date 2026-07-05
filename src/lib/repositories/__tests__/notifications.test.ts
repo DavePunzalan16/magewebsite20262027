@@ -53,13 +53,25 @@ const notificationArb = fc.record({
   type: notificationTypeArb,
   title: fc.string({ minLength: 1, maxLength: 50 }),
   body: fc.string({ minLength: 1, maxLength: 100 }),
-  entity_type: fc.option(fc.constantFrom("post", "comment"), { nil: null }),
-  entity_id: fc.option(fc.stringify(fc.integer({ min: 1 })), { nil: null }),
-  actor_id: fc.option(fc.uuid(), { nil: null }),
-  is_read: fc.boolean(),
-  created_at: fc.date({ min: new Date("2024-01-01"), max: new Date("2025-12-31") }).map(
-    (d) => d.toISOString()
+  entity_type: fc.oneof(
+    fc.constant(null as string | null),
+    fc.constantFrom("post" as string | null, "comment" as string | null)
   ),
+  entity_id: fc.oneof(
+    fc.constant(null as string | null),
+    fc.integer({ min: 1 }).map((n) => String(n) as string | null)
+  ),
+  actor_id: fc.oneof(
+    fc.constant(null as string | null),
+    fc.uuid().map((u) => u as string | null)
+  ),
+  is_read: fc.boolean(),
+  created_at: fc
+    .integer({
+      min: new Date("2024-01-01").getTime(),
+      max: new Date("2025-12-31").getTime(),
+    })
+    .map((ts) => new Date(ts).toISOString()),
 });
 
 beforeEach(() => {

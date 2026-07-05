@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { createAdminClient } from "@/lib/supabase/server";
+import { NotificationService } from "@/lib/services/notifications";
 import { z } from "zod";
 
 const commentSchema = z.object({
@@ -49,6 +50,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       .single();
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    // Notify post author about the new comment
+    const notificationService = new NotificationService();
+    const { data: post } = await admin.from("posts").select("user_id").eq("id", parseInt(id)).single();
+    if (post) {
+      await notificationService.notifyComment(post.user_id, user.id, parseInt(id), content).catch(() => {});
+    }
+
     return NextResponse.json({ comment: data }, { status: 201 });
   } catch {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });

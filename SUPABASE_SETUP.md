@@ -846,3 +846,42 @@ alter table notifications replica identity full;
 ```
 
 **Run all blocks.** After this you'll have `notifications`, `reports` tables + soft-delete support + realtime enabled.
+
+---
+
+## Step 20 — FIX: Admin RLS Policies (run this to fix admin post creation)
+
+The existing `posts` SELECT policy only shows `is_hidden = false`. Admins need to see ALL posts. Run this:
+
+```sql
+-- Drop the restrictive select policy and replace with one that allows admin full access
+drop policy if exists "Anyone can view posts" on posts;
+drop policy if exists "Admins can manage all posts" on posts;
+
+-- Public can see non-hidden, non-deleted posts
+create policy "Public can view visible posts" on posts for select
+  using (is_hidden = false and deleted_at is null);
+
+-- Admin can see ALL posts (including hidden)
+create policy "Admin full access" on posts for all
+  using (
+    exists (select 1 from profiles where id = auth.uid() and role = 'admin')
+  );
+
+-- Authenticated users can insert their own posts
+drop policy if exists "Authenticated users can post" on posts;
+create policy "Users can insert own posts" on posts for insert
+  with check (auth.uid() = user_id);
+
+-- Users can update own posts
+drop policy if exists "Users can update own posts" on posts;
+create policy "Users can update own posts" on posts for update
+  using (auth.uid() = user_id);
+
+-- Users can delete own posts
+drop policy if exists "Users can delete own posts" on posts;
+create policy "Users can delete own posts" on posts for delete
+  using (auth.uid() = user_id);
+```
+
+**Run this NOW.** After this, the admin can create, read, update, and delete ALL posts. Normal users can only see non-hidden posts and manage their own.
