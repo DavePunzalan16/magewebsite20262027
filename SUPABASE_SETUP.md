@@ -776,3 +776,73 @@ create index if not exists idx_profiles_role on profiles(role);
 ```
 
 **Run all blocks.** After this you'll have: `shares`, `bookmarks`, `activity_logs` tables + indexes on all feed tables.
+
+---
+
+## Step 19 — Sprint 3.5: Realtime Feed & Notifications
+
+### Notifications table
+
+```sql
+create table if not exists notifications (
+  id bigint generated always as identity primary key,
+  user_id uuid references profiles(id) on delete cascade not null,
+  type text not null check (type in ('comment', 'reaction', 'mention', 'post', 'moderation')),
+  title text not null,
+  body text,
+  entity_type text,
+  entity_id text,
+  actor_id uuid references profiles(id) on delete set null,
+  is_read boolean default false,
+  created_at timestamptz default now()
+);
+
+alter table notifications enable row level security;
+
+create policy "Users can view own notifications" on notifications for select using (auth.uid() = user_id);
+create policy "Users can update own notifications" on notifications for update using (auth.uid() = user_id);
+create policy "Service can insert notifications" on notifications for insert with check (true);
+
+create index idx_notifications_user_unread on notifications(user_id, is_read, created_at desc);
+create index idx_notifications_user_id on notifications(user_id);
+```
+
+### Reports table
+
+```sql
+create table if not exists reports (
+  id bigint generated always as identity primary key,
+  post_id bigint references posts(id) on delete cascade,
+  reporter_id uuid references profiles(id) on delete cascade,
+  reason text not null,
+  status text default 'pending' check (status in ('pending', 'reviewed', 'dismissed')),
+  reviewed_by uuid references profiles(id),
+  created_at timestamptz default now(),
+  reviewed_at timestamptz
+);
+
+alter table reports enable row level security;
+
+create policy "Users can submit reports" on reports for insert with check (auth.uid() = reporter_id);
+create policy "Admins can view reports" on reports for select using (exists (select 1 from profiles where id = auth.uid() and role = 'admin'));
+create policy "Admins can update reports" on reports for update using (exists (select 1 from profiles where id = auth.uid() and role = 'admin'));
+
+create index idx_reports_status on reports(status, created_at);
+```
+
+### Add soft-delete to posts
+
+```sql
+alter table posts add column if not exists deleted_at timestamptz;
+```
+
+### Enable Realtime (replica identity)
+
+```sql
+alter table posts replica identity full;
+alter table comments replica identity full;
+alter table reactions replica identity full;
+alter table notifications replica identity full;
+```
+
+**Run all blocks.** After this you'll have `notifications`, `reports` tables + soft-delete support + realtime enabled.

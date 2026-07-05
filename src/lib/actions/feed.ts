@@ -52,6 +52,22 @@ export async function hideFeedPost(postId: number) {
 export async function toggleReaction(postId: number, userId: string, emoji = "❤️") {
   const repo = new InteractionRepository();
   const result = await repo.toggleReaction(postId, userId, emoji);
+
+  // Send notification if reaction was added
+  if (result === "added") {
+    try {
+      const { NotificationService } = await import("@/lib/services/notifications");
+      const { createAdminClient } = await import("@/lib/supabase/server");
+      const db = createAdminClient();
+      const { data: post } = await db.from("posts").select("user_id").eq("id", postId).single();
+      const { data: actor } = await db.from("profiles").select("full_name").eq("id", userId).single();
+      if (post && post.user_id !== userId) {
+        const notifService = new NotificationService();
+        await notifService.onReaction(post.user_id, userId, postId, actor?.full_name || "Someone");
+      }
+    } catch {}
+  }
+
   return { action: result };
 }
 
@@ -61,6 +77,20 @@ export async function addComment(postId: number, userId: string, content: string
   const { content: validContent } = commentSchema.parse({ content });
   const repo = new InteractionRepository();
   const comment = await repo.addComment(postId, userId, validContent);
+
+  // Send notification to post author
+  try {
+    const { NotificationService } = await import("@/lib/services/notifications");
+    const { createAdminClient } = await import("@/lib/supabase/server");
+    const db = createAdminClient();
+    const { data: post } = await db.from("posts").select("user_id").eq("id", postId).single();
+    const { data: actor } = await db.from("profiles").select("full_name").eq("id", userId).single();
+    if (post && post.user_id !== userId) {
+      const notifService = new NotificationService();
+      await notifService.onComment(post.user_id, userId, postId, actor?.full_name || "Someone");
+    }
+  } catch {}
+
   return { comment };
 }
 

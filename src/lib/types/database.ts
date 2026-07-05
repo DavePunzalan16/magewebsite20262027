@@ -35,6 +35,7 @@ export interface Post {
   is_hidden: boolean;
   created_at: string;
   updated_at: string;
+  deleted_at?: string | null;
   // Joined fields
   profiles?: Pick<Profile, "full_name" | "avatar_url">;
 }
@@ -135,4 +136,73 @@ export interface UserBadge {
   user_id: string;
   badge_id: number;
   awarded_at: string;
+}
+
+export interface Notification {
+  id: number;
+  user_id: string;
+  type: "comment" | "reaction" | "mention" | "post" | "moderation";
+  title: string;
+  body: string;
+  entity_type: string | null;
+  entity_id: string | null;
+  actor_id: string | null;
+  is_read: boolean;
+  created_at: string;
+  // Joined
+  actor?: Pick<Profile, "full_name" | "avatar_url">;
+}
+
+export interface Report {
+  id: number;
+  post_id: number;
+  reporter_id: string;
+  reason: string;
+  status: "pending" | "reviewed" | "dismissed";
+  reviewed_by: string | null;
+  created_at: string;
+  reviewed_at: string | null;
+  // Joined
+  posts?: Post;
+  reporter?: Pick<Profile, "full_name" | "avatar_url">;
+}
+
+export interface PresenceState {
+  user_id: string;
+  full_name: string;
+  avatar_url: string | null;
+  online_at: string;
+}
+
+export interface Notification {
+  id: number;
+  user_id: string;
+  type: "comment" | "reaction" | "mention" | "post" | "moderation";
+  title: string;
+  body: string | null;
+  entity_type: string | null;
+  entity_id: string | null;
+  actor_id: string | null;
+  is_read: boolean;
+  created_at: string;
+  // Joined
+  profiles?: Pick<Profile, "full_name" | "avatar_url">;
+}
+
+export interface Report {
+  id: number;
+  post_id: number;
+  reporter_id: string;
+  reason: string;
+  status: "pending" | "reviewed" | "dismissed";
+  reviewed_by: string | null;
+  created_at: string;
+  reviewed_at: string | null;
+}
+
+export interface PresenceState {
+  user_id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  online_at: string;
 }
