@@ -8,6 +8,7 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { Edit3, Gamepad2, Tv, BookOpen, Heart, Star, Trophy, Shield, Sparkles } from "lucide-react";
+import { PremiumFooter } from "@/components/sections/Footer";
 
 interface ProfileData {
   full_name?: string;
@@ -168,6 +169,7 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
+      <PremiumFooter />
     </div>
   );
 }

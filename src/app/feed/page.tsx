@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import { uploadFile } from "@/lib/upload";
 import { siteConfig } from "@/data/portfolio";
 import { useRealtimeFeed } from "@/hooks/useRealtimeFeed";
+import { PremiumFooter } from "@/components/sections/Footer";
 import {
   Heart, MessageCircle, Share2, Bookmark, Send, ImageIcon,
   MoreHorizontal, Trash2, EyeOff, Pin, ArrowLeft, Users,
@@ -458,6 +459,7 @@ export default function FeedPage() {
           </div>
         </aside>
       </div>
+      <PremiumFooter />
     </div>
   );
 }

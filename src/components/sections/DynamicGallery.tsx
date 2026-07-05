@@ -25,7 +25,8 @@ function Lightbox({ item, onClose, onPrev, onNext }: { item: GalleryItem; onClos
       <button onClick={onPrev} className="absolute left-4 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20" aria-label="Previous"><ChevronLeft className="h-5 w-5" /></button>
       <button onClick={onNext} className="absolute right-4 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20" aria-label="Next"><ChevronRight className="h-5 w-5" /></button>
       <motion.div className="relative z-10 max-h-[80vh] max-w-[85vw] overflow-hidden rounded-[12px]" initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }} key={item.id}>
-        <Image src={item.src} alt={item.alt} width={item.width} height={item.height} className="max-h-[80vh] w-auto object-contain" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={item.src} alt={item.alt} className="max-h-[80vh] w-auto object-contain" />
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 pt-8">
           <p className="font-body text-[15px] font-medium text-white">{item.title}</p>
           <p className="font-body text-[12px] text-offwhite/60">{item.category}</p>
@@ -97,7 +98,8 @@ export function DynamicGallery() {
                 {filtered.map((item, index) => (
                   <motion.div key={item.id} layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.25 }} className="mb-3 break-inside-avoid">
                     <button onClick={() => openLightbox(index)} className="group relative w-full overflow-hidden rounded-[10px] border border-dark-gray/20 transition-all hover:border-primary/30" aria-label={`View ${item.title}`}>
-                      <Image src={item.src} alt={item.alt} width={item.width} height={item.height} className="w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={item.src} alt={item.alt} className="w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" loading="lazy" />
                       <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/40">
                         <ZoomIn className="h-7 w-7 text-white opacity-0 transition-opacity group-hover:opacity-100" />
                       </div>
