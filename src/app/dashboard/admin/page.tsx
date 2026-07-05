@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { createClient } from "@/lib/supabase/client";
 import {
   Users,
   Calendar,
@@ -10,74 +12,99 @@ import {
   TrendingUp,
   UserPlus,
   ArrowUpRight,
+  FileText,
 } from "lucide-react";
 import Link from "next/link";
 
-const stats = [
-  { label: "Total Members", value: "127", icon: Users, change: "+12 this month", href: "/dashboard/admin/members", color: "from-purple-500/20 to-transparent" },
-  { label: "Pending Approvals", value: "8", icon: UserPlus, change: "Needs review", href: "/dashboard/admin/approvals", color: "from-orange-500/20 to-transparent" },
-  { label: "Active Events", value: "5", icon: Calendar, change: "2 upcoming", href: "/dashboard/admin/events", color: "from-blue-500/20 to-transparent" },
-  { label: "Gallery Items", value: "34", icon: ImageIcon, change: "+6 new", href: "/dashboard/admin/gallery", color: "from-pink-500/20 to-transparent" },
-  { label: "Announcements", value: "12", icon: Megaphone, change: "3 this week", href: "/dashboard/admin/announcements", color: "from-green-500/20 to-transparent" },
-  { label: "Attendance Rate", value: "78%", icon: TrendingUp, change: "+5% vs last month", href: "/dashboard/admin/analytics", color: "from-cyan-500/20 to-transparent" },
-];
-
-const recentActivity = [
-  { text: "Juan Dela Cruz submitted a membership application", time: "2 hours ago", type: "approval" },
-  { text: "Arcane Convergence 2026 event was updated", time: "5 hours ago", type: "event" },
-  { text: "3 new gallery items uploaded by Media Dept", time: "1 day ago", type: "gallery" },
-  { text: "Monthly attendance report generated", time: "2 days ago", type: "analytics" },
-  { text: "New announcement: Recruitment Now Open!", time: "3 days ago", type: "announcement" },
-];
+interface DashboardStats {
+  totalMembers: number;
+  pendingApprovals: number;
+  totalEvents: number;
+  totalPosts: number;
+  totalAnnouncements: number;
+  galleryItems: number;
+}
 
 export default function AdminDashboard() {
   const { user } = useAuth();
-  const greeting = getGreeting();
+  const [stats, setStats] = useState<DashboardStats>({
+    totalMembers: 0, pendingApprovals: 0, totalEvents: 0,
+    totalPosts: 0, totalAnnouncements: 0, galleryItems: 0,
+  });
+  const [recentActivity, setRecentActivity] = useState<{ content: string; created_at: string }[]>([]);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      const supabase = createClient();
+      const [members, pending, events, posts, announcements, gallery] = await Promise.all([
+        supabase.from("profiles").select("*", { count: "exact", head: true }),
+        supabase.from("membership_applications").select("*", { count: "exact", head: true }).eq("status", "pending"),
+        supabase.from("events").select("*", { count: "exact", head: true }),
+        supabase.from("posts").select("*", { count: "exact", head: true }),
+        supabase.from("announcements").select("*", { count: "exact", head: true }),
+        supabase.from("gallery").select("*", { count: "exact", head: true }),
+      ]);
+
+      setStats({
+        totalMembers: members.count || 0,
+        pendingApprovals: pending.count || 0,
+        totalEvents: events.count || 0,
+        totalPosts: posts.count || 0,
+        totalAnnouncements: announcements.count || 0,
+        galleryItems: gallery.count || 0,
+      });
+
+      // Recent posts as activity
+      const { data: recentPosts } = await supabase
+        .from("posts")
+        .select("content, created_at")
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      if (recentPosts) setRecentActivity(recentPosts);
+    };
+
+    fetchStats();
+  }, []);
+
+  const greeting = new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 17 ? "Good afternoon" : "Good evening";
+
+  const statCards = [
+    { label: "Total Members", value: stats.totalMembers, icon: Users, href: "/dashboard/admin/members", color: "from-purple-500/20" },
+    { label: "Pending Approvals", value: stats.pendingApprovals, icon: UserPlus, href: "/dashboard/admin/approvals", color: "from-orange-500/20" },
+    { label: "Total Posts", value: stats.totalPosts, icon: FileText, href: "/dashboard/admin/posts", color: "from-blue-500/20" },
+    { label: "Events", value: stats.totalEvents, icon: Calendar, href: "/dashboard/admin/events", color: "from-green-500/20" },
+    { label: "Announcements", value: stats.totalAnnouncements, icon: Megaphone, href: "/dashboard/admin/announcements", color: "from-pink-500/20" },
+    { label: "Gallery", value: stats.galleryItems, icon: ImageIcon, href: "/dashboard/admin/gallery", color: "from-cyan-500/20" },
+  ];
 
   return (
     <div>
       <div className="mb-8">
         <p className="font-body text-[13px] text-primary/60">{greeting}</p>
-        <h1 className="font-display text-[30px] text-white md:text-[40px]">
-          Dashboard
-        </h1>
+        <h1 className="font-display text-[30px] text-white md:text-[40px]">Dashboard</h1>
         <p className="font-body text-[14px] text-offwhite/50">
           Welcome, <span className="text-primary">{user?.user_metadata?.full_name || "Guild Master"}</span>
         </p>
       </div>
 
-      {/* Stats grid */}
+      {/* Real stats */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {stats.map((stat, i) => {
+        {statCards.map((stat, i) => {
           const Icon = stat.icon;
           return (
-            <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.06 }}
-            >
-              <Link
-                href={stat.href}
-                className="group relative block overflow-hidden rounded-[12px] border border-dark-gray/30 bg-surface/30 p-5 transition-all duration-200 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5"
-              >
-                {/* Background gradient */}
-                <div className={`absolute inset-0 bg-gradient-to-br ${stat.color} opacity-0 transition-opacity group-hover:opacity-100`} />
-
-                <div className="relative z-10">
-                  <div className="mb-3 flex items-center justify-between">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-[8px] bg-primary/10">
-                      <Icon className="h-5 w-5 text-primary" />
-                    </div>
-                    <span className="font-display text-[32px] text-white">{stat.value}</span>
+            <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
+              <Link href={stat.href} className="group relative block overflow-hidden rounded-[12px] border border-dark-gray/30 bg-surface/30 p-5 transition-all hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
+                <div className={`absolute inset-0 bg-gradient-to-br ${stat.color} to-transparent opacity-0 group-hover:opacity-100 transition-opacity`} />
+                <div className="relative z-10 flex items-center justify-between mb-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-[8px] bg-primary/10">
+                    <Icon className="h-5 w-5 text-primary" />
                   </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-body text-[14px] font-medium text-white">{stat.label}</p>
-                      <p className="font-body text-[12px] text-offwhite/50">{stat.change}</p>
-                    </div>
-                    <ArrowUpRight className="h-4 w-4 text-offwhite/30 transition-all group-hover:text-primary group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                  </div>
+                  <span className="font-display text-[32px] text-white">{stat.value}</span>
+                </div>
+                <div className="relative z-10 flex items-center justify-between">
+                  <p className="font-body text-[13px] font-medium text-white">{stat.label}</p>
+                  <ArrowUpRight className="h-4 w-4 text-offwhite/20 group-hover:text-primary transition-colors" />
                 </div>
               </Link>
             </motion.div>
@@ -85,57 +112,24 @@ export default function AdminDashboard() {
         })}
       </div>
 
-      {/* Recent activity */}
-      <motion.div
-        className="mt-8 rounded-[12px] border border-dark-gray/30 bg-surface/20 p-6"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-      >
-        <h2 className="mb-5 font-body text-[18px] font-semibold text-white">Recent Activity</h2>
-        <div className="flex flex-col gap-1">
-          {recentActivity.map((activity, i) => (
-            <motion.div
-              key={i}
-              className="flex items-center justify-between rounded-[8px] px-3 py-3 transition-colors hover:bg-white/3"
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.5 + i * 0.05 }}
-            >
-              <div className="flex items-center gap-3">
-                <div className="h-2 w-2 rounded-full bg-primary/60" />
-                <p className="font-body text-[14px] text-offwhite">{activity.text}</p>
+      {/* Real recent activity */}
+      <motion.div className="mt-8 rounded-[12px] border border-dark-gray/30 bg-surface/20 p-6" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+        <h2 className="mb-4 font-body text-[16px] font-semibold text-white">Recent Posts</h2>
+        {recentActivity.length === 0 ? (
+          <p className="font-body text-[13px] text-offwhite/40">No recent activity yet.</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {recentActivity.map((item, i) => (
+              <div key={i} className="flex items-center justify-between rounded-[6px] px-3 py-2 hover:bg-white/[0.02]">
+                <p className="font-body text-[13px] text-offwhite/70 truncate max-w-[70%]">{item.content}</p>
+                <span className="font-body text-[11px] text-offwhite/30 shrink-0">
+                  {new Date(item.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric" })}
+                </span>
               </div>
-              <span className="hidden shrink-0 font-body text-[12px] text-offwhite/40 sm:block">
-                {activity.time}
-              </span>
-            </motion.div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </motion.div>
-
-      {/* Quick actions */}
-      <div className="mt-6 grid gap-3 sm:grid-cols-3">
-        <Link href="/dashboard/admin/approvals" className="rounded-[10px] border border-dark-gray/30 bg-orange-500/5 p-4 text-center transition-all hover:bg-orange-500/10 hover:border-orange-500/30">
-          <p className="font-body text-[14px] font-medium text-white">Review Approvals</p>
-          <p className="font-body text-[12px] text-offwhite/50">8 pending</p>
-        </Link>
-        <Link href="/dashboard/admin/events" className="rounded-[10px] border border-dark-gray/30 bg-blue-500/5 p-4 text-center transition-all hover:bg-blue-500/10 hover:border-blue-500/30">
-          <p className="font-body text-[14px] font-medium text-white">Manage Events</p>
-          <p className="font-body text-[12px] text-offwhite/50">5 active</p>
-        </Link>
-        <Link href="/dashboard/admin/announcements" className="rounded-[10px] border border-dark-gray/30 bg-green-500/5 p-4 text-center transition-all hover:bg-green-500/10 hover:border-green-500/30">
-          <p className="font-body text-[14px] font-medium text-white">Post Announcement</p>
-          <p className="font-body text-[12px] text-offwhite/50">Last: 3 days ago</p>
-        </Link>
-      </div>
     </div>
   );
-}
-
-function getGreeting() {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good morning ☀️";
-  if (hour < 17) return "Good afternoon 🌤️";
-  return "Good evening 🌙";
 }
