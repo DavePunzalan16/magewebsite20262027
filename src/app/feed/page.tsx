@@ -453,13 +453,58 @@ export default function FeedPage() {
           </div>
 
           {/* Online (placeholder) */}
-          <div className="rounded-[12px] border border-dark-gray/30 bg-surface/20 p-4">
-            <h3 className="mb-2 font-body text-[11px] font-semibold uppercase tracking-wider text-offwhite/40">Guild Members</h3>
-            <p className="font-body text-[11px] text-offwhite/30">Connect with fellow mages in the feed.</p>
-          </div>
+          <MembersSidebar currentUserId={user?.id} />
         </aside>
       </div>
       <PremiumFooter />
+    </div>
+  );
+}
+
+// Members sidebar component
+function MembersSidebar({ currentUserId }: { currentUserId?: string }) {
+  const [members, setMembers] = useState<{ id: string; full_name: string | null; avatar_url: string | null; role: string }[]>([]);
+  const [loadingMembers, setLoadingMembers] = useState(true);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.from("profiles").select("id, full_name, avatar_url, role").order("created_at", { ascending: false }).limit(15)
+      .then(({ data }) => { if (data) setMembers(data); setLoadingMembers(false); });
+  }, []);
+
+  return (
+    <div className="rounded-[12px] border border-dark-gray/30 bg-surface/20 p-4">
+      <h3 className="mb-3 font-body text-[11px] font-semibold uppercase tracking-wider text-offwhite/40">Guild Members ({members.length})</h3>
+      {loadingMembers ? (
+        <div className="flex flex-col gap-2">{Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-8 animate-pulse rounded-[6px] bg-surface/30" />)}</div>
+      ) : members.length === 0 ? (
+        <p className="font-body text-[11px] text-offwhite/30">No members yet.</p>
+      ) : (
+        <div className="flex flex-col gap-1.5 max-h-[300px] overflow-y-auto">
+          {members.map((member) => (
+            <Link
+              key={member.id}
+              href={`/profile/${member.id}`}
+              prefetch={false}
+              className="flex items-center gap-2 rounded-[6px] px-2 py-1.5 transition-colors hover:bg-white/5"
+            >
+              {member.avatar_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={member.avatar_url} alt="" className="h-6 w-6 rounded-full object-cover" />
+              ) : (
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/15 font-body text-[9px] font-bold text-primary">
+                  {(member.full_name || "M").charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="truncate font-body text-[11px] text-offwhite/70">{member.full_name || "Member"}</p>
+              </div>
+              {member.role === "admin" && <span className="font-body text-[8px] text-yellow-400">👑</span>}
+              {member.id === currentUserId && <span className="font-body text-[8px] text-primary">you</span>}
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
