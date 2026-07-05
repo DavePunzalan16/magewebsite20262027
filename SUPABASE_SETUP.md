@@ -681,3 +681,98 @@ alter table profiles add column if not exists manga_genres text[];
 ```
 
 **Run it.**
+
+---
+
+## Step 18 — Sprint 3.1: Feed Database Foundation (Shares, Bookmarks, Activity Logs)
+
+These tables complete the feed system. Run each block in SQL Editor.
+
+### Shares table
+
+```sql
+create table if not exists shares (
+  id bigint generated always as identity primary key,
+  post_id bigint references posts(id) on delete cascade,
+  user_id uuid references profiles(id) on delete cascade,
+  shared_to text default 'profile' check (shared_to in ('profile', 'external', 'message')),
+  created_at timestamptz default now(),
+  unique(post_id, user_id)
+);
+
+alter table shares enable row level security;
+
+create policy "Anyone can view shares" on shares for select using (true);
+create policy "Auth users can share" on shares for insert with check (auth.uid() = user_id);
+create policy "Users can unshare" on shares for delete using (auth.uid() = user_id);
+```
+
+### Bookmarks table
+
+```sql
+create table if not exists bookmarks (
+  id bigint generated always as identity primary key,
+  post_id bigint references posts(id) on delete cascade,
+  user_id uuid references profiles(id) on delete cascade,
+  created_at timestamptz default now(),
+  unique(post_id, user_id)
+);
+
+alter table bookmarks enable row level security;
+
+create policy "Users can view own bookmarks" on bookmarks for select using (auth.uid() = user_id);
+create policy "Auth users can bookmark" on bookmarks for insert with check (auth.uid() = user_id);
+create policy "Users can remove bookmarks" on bookmarks for delete using (auth.uid() = user_id);
+```
+
+### Activity Logs table
+
+```sql
+create table if not exists activity_logs (
+  id bigint generated always as identity primary key,
+  user_id uuid references profiles(id) on delete set null,
+  action text not null,
+  entity_type text not null,
+  entity_id text,
+  metadata jsonb default '{}',
+  created_at timestamptz default now()
+);
+
+alter table activity_logs enable row level security;
+
+create policy "Admins can view all logs" on activity_logs for select
+  using (exists (select 1 from profiles where id = auth.uid() and role = 'admin'));
+create policy "System can insert logs" on activity_logs for insert
+  with check (true);
+```
+
+### Performance Indexes
+
+```sql
+-- Posts
+create index if not exists idx_posts_user_id on posts(user_id);
+create index if not exists idx_posts_created_at on posts(created_at desc);
+create index if not exists idx_posts_category on posts(category);
+create index if not exists idx_posts_is_pinned on posts(is_pinned desc, created_at desc);
+
+-- Comments
+create index if not exists idx_comments_post_id on comments(post_id);
+create index if not exists idx_comments_user_id on comments(user_id);
+
+-- Reactions
+create index if not exists idx_reactions_post_id on reactions(post_id);
+create index if not exists idx_reactions_user_id on reactions(user_id);
+
+-- Shares & Bookmarks
+create index if not exists idx_shares_post_id on shares(post_id);
+create index if not exists idx_bookmarks_user_id on bookmarks(user_id);
+
+-- Activity logs
+create index if not exists idx_activity_logs_user_id on activity_logs(user_id);
+create index if not exists idx_activity_logs_created_at on activity_logs(created_at desc);
+
+-- Profiles
+create index if not exists idx_profiles_role on profiles(role);
+```
+
+**Run all blocks.** After this you'll have: `shares`, `bookmarks`, `activity_logs` tables + indexes on all feed tables.
