@@ -15,6 +15,7 @@ import { MembershipForm } from "@/components/sections/MembershipForm";
 import { SkillsSection } from "@/components/sections/SkillsSection";
 import { ExperienceSection } from "@/components/sections/ExperienceSection";
 import { ContactSection } from "@/components/sections/ContactSection";
+import { PremiumFooter } from "@/components/sections/Footer";
 import { SectionDivider } from "@/components/layout/SectionDivider";
 import { MusicPlayer } from "@/components/ui/MusicPlayer";
 
@@ -56,6 +57,7 @@ export default function Home() {
             <SectionDivider />
             <ContactSection />
           </main>
+          <PremiumFooter />
           <MusicPlayer />
         </>
       )}
