@@ -923,3 +923,78 @@ create policy "Users can share" on shares for insert
 ```
 
 **Run it.** After this, reactions, comments, bookmarks, and shares will work.
+
+---
+
+## Step 22 — NUCLEAR FIX: Drop ALL policies and recreate clean (run if reactions/comments still fail)
+
+If Step 21 gave errors about duplicate policies, run this to start fresh:
+
+```sql
+-- POSTS: Drop all and recreate
+drop policy if exists "Public can view visible posts" on posts;
+drop policy if exists "Admin full access" on posts;
+drop policy if exists "Users can insert own posts" on posts;
+drop policy if exists "Users can update own posts" on posts;
+drop policy if exists "Users can delete own posts" on posts;
+drop policy if exists "Anyone can view posts" on posts;
+drop policy if exists "Admins can manage all posts" on posts;
+drop policy if exists "Authenticated users can post" on posts;
+
+create policy "posts_select" on posts for select using (is_hidden = false or public.is_admin());
+create policy "posts_insert" on posts for insert with check (auth.uid() = user_id);
+create policy "posts_update" on posts for update using (auth.uid() = user_id or public.is_admin());
+create policy "posts_delete" on posts for delete using (auth.uid() = user_id or public.is_admin());
+
+-- REACTIONS: Drop all and recreate
+drop policy if exists "Anyone can view reactions" on reactions;
+drop policy if exists "Authenticated users can react" on reactions;
+drop policy if exists "Users can remove own reactions" on reactions;
+drop policy if exists "Users can react" on reactions;
+drop policy if exists "Users can unreact" on reactions;
+
+create policy "reactions_select" on reactions for select using (true);
+create policy "reactions_insert" on reactions for insert with check (auth.uid() = user_id);
+create policy "reactions_delete" on reactions for delete using (auth.uid() = user_id);
+
+-- COMMENTS: Drop all and recreate
+drop policy if exists "Anyone can view comments" on comments;
+drop policy if exists "Authenticated users can comment" on comments;
+drop policy if exists "Users can delete own comments" on comments;
+drop policy if exists "Admins can manage comments" on comments;
+drop policy if exists "Users can comment" on comments;
+
+create policy "comments_select" on comments for select using (true);
+create policy "comments_insert" on comments for insert with check (auth.uid() = user_id);
+create policy "comments_delete" on comments for delete using (auth.uid() = user_id or public.is_admin());
+
+-- BOOKMARKS: Drop all and recreate
+drop policy if exists "Users can view own bookmarks" on bookmarks;
+drop policy if exists "Auth users can bookmark" on bookmarks;
+drop policy if exists "Users can remove bookmarks" on bookmarks;
+drop policy if exists "Users can bookmark" on bookmarks;
+
+create policy "bookmarks_select" on bookmarks for select using (auth.uid() = user_id);
+create policy "bookmarks_insert" on bookmarks for insert with check (auth.uid() = user_id);
+create policy "bookmarks_delete" on bookmarks for delete using (auth.uid() = user_id);
+
+-- EVENTS: allow admin to insert
+drop policy if exists "Admins can manage events" on events;
+create policy "events_all" on events for all using (public.is_admin());
+
+-- GALLERY: allow admin to manage
+drop policy if exists "Admins can manage gallery" on gallery;
+create policy "gallery_all" on gallery for all using (public.is_admin());
+
+-- ANNOUNCEMENTS: allow admin
+drop policy if exists "Admins can manage announcements" on announcements;
+create policy "announcements_all" on announcements for all using (public.is_admin());
+```
+
+Also add a `pending_approval` column to posts for the approval system:
+
+```sql
+alter table posts add column if not exists pending_approval boolean default false;
+```
+
+**Run both blocks.** This nukes all conflicting policies and creates clean, working ones.

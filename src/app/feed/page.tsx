@@ -86,6 +86,7 @@ export default function FeedPage() {
     let query = supabase.from("posts")
       .select("id, user_id, content, image_url, category, is_pinned, created_at")
       .eq("is_hidden", false)
+      .or("pending_approval.is.null,pending_approval.eq.false")
       .order("is_pinned", { ascending: false })
       .order("created_at", { ascending: false })
       .limit(30);
@@ -152,7 +153,7 @@ export default function FeedPage() {
     enabled: true,
   });
 
-  // Create post
+  // Create post — non-admin posts need approval
   const handlePost = async () => {
     if (!newPost.trim() || !user) return;
     setPosting(true);
@@ -160,12 +161,14 @@ export default function FeedPage() {
     let imageUrl: string | null = null;
     if (postFile) imageUrl = await uploadFile(postFile, "feed");
 
+    const isAdmin = user.email === "admin@gmail.com";
     const supabase = createClient();
     const { data } = await supabase.from("posts").insert({
       user_id: user.id, content: newPost, image_url: imageUrl, category: "general",
+      pending_approval: !isAdmin, // Admin posts go live immediately
     }).select("id, user_id, content, image_url, category, is_pinned, created_at").single();
 
-    if (data) {
+    if (data && isAdmin) {
       setPosts((prev) => [{
         ...data,
         author_name: userProfile?.full_name || user.user_metadata?.full_name || "You",
