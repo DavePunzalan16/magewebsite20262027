@@ -41,6 +41,19 @@ interface CommentItem {
 
 const categories = ["All", "General", "Artwork", "Gaming", "Anime", "Meme", "Announcement"];
 
+const fallbackPosts: FeedPost[] = [
+  { id: 901, user_id: "", content: "🎉 Welcome to the M.A.G.E. Guild Feed! Share your thoughts, art, memes, and connect with fellow guild members. Cast your passion!", image_url: null, category: "announcement", is_pinned: true, created_at: "2026-07-04T10:00:00Z", author_name: "Guild Master", author_avatar: null, reactions: 24, comments: 8, shares: 3, userReacted: false, userBookmarked: false },
+  { id: 902, user_id: "", content: "Just finished a pixel art version of our guild emblem! ⚔️🎨 What do you guys think? Took me about 3 hours.", image_url: "/images/mageicon.jpg", category: "artwork", is_pinned: false, created_at: "2026-07-03T15:30:00Z", author_name: "ArtMage", author_avatar: null, reactions: 18, comments: 6, shares: 2, userReacted: false, userBookmarked: false },
+  { id: 903, user_id: "", content: "Anyone up for Valorant 5v5 tonight? Guild members only! Drop a ❤️ if you're in. 🎮", image_url: null, category: "gaming", is_pinned: false, created_at: "2026-07-03T12:00:00Z", author_name: "GamerNigel", author_avatar: null, reactions: 31, comments: 12, shares: 1, userReacted: false, userBookmarked: false },
+  { id: 904, user_id: "", content: "New season of Jujutsu Kaisen hits different. No spoilers but episode 5 had me screaming 🤯🔥", image_url: null, category: "anime", is_pinned: false, created_at: "2026-07-02T20:00:00Z", author_name: "AnimeFan", author_avatar: null, reactions: 45, comments: 19, shares: 5, userReacted: false, userBookmarked: false },
+  { id: 905, user_id: "", content: "When the professor says 'no homework' but gives a surprise quiz instead 💀😂 #UECaloocanMoments", image_url: null, category: "meme", is_pinned: false, created_at: "2026-07-02T14:00:00Z", author_name: "MemeLord", author_avatar: null, reactions: 67, comments: 23, shares: 8, userReacted: false, userBookmarked: false },
+  { id: 906, user_id: "", content: "📢 Monthly meeting this Wednesday 5PM at AVR Room 2. Attendance required for all members!", image_url: null, category: "announcement", is_pinned: false, created_at: "2026-07-01T09:00:00Z", author_name: "Secretary Rose", author_avatar: null, reactions: 12, comments: 4, shares: 1, userReacted: false, userBookmarked: false },
+  { id: 907, user_id: "", content: "Working on cosplay props for Arcane Convergence 2026! Going as Raiden Shogun ⚡ Any cosplayers here?", image_url: null, category: "general", is_pinned: false, created_at: "2026-06-30T18:00:00Z", author_name: "CosplayQueen", author_avatar: null, reactions: 28, comments: 9, shares: 2, userReacted: false, userBookmarked: false },
+  { id: 908, user_id: "", content: "One Piece chapter 1120 discussion! 🏴‍☠️ What are your theories about the final saga?", image_url: null, category: "anime", is_pinned: false, created_at: "2026-06-29T21:00:00Z", author_name: "PirateKing", author_avatar: null, reactions: 39, comments: 27, shares: 4, userReacted: false, userBookmarked: false },
+  { id: 909, user_id: "", content: "Guild merch designs are looking fire 🔥 Can't wait for the official drop at Arcane Convergence!", image_url: null, category: "general", is_pinned: false, created_at: "2026-06-28T16:00:00Z", author_name: "MerchTeam", author_avatar: null, reactions: 33, comments: 11, shares: 6, userReacted: false, userBookmarked: false },
+  { id: 910, user_id: "", content: "Just got into Diamond in Valorant! Any guild members wanna duo queue? 💎🎯", image_url: null, category: "gaming", is_pinned: false, created_at: "2026-06-27T22:00:00Z", author_name: "DiamondMage", author_avatar: null, reactions: 21, comments: 8, shares: 1, userReacted: false, userBookmarked: false },
+];
+
 export default function FeedPage() {
   const { user, loading: authLoading } = useAuth();
   const [posts, setPosts] = useState<FeedPost[]>([]);
@@ -109,7 +122,8 @@ export default function FeedPage() {
 
       setPosts(enriched);
     } else {
-      setPosts([]);
+      // Show fallback welcome posts when DB is empty
+      setPosts(fallbackPosts);
     }
     setLoading(false);
   }, [activeCategory]);

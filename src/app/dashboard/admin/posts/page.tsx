@@ -35,23 +35,21 @@ export default function AdminPostsPage() {
   const [loading, setLoading] = useState(true);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // Load posts — use admin API that bypasses RLS
+  // Load posts — direct Supabase query (admin RLS policy gives full access)
   useEffect(() => {
+    if (!user) return;
     const loadPosts = async () => {
-      try {
-        const res = await fetch("/api/admin/posts");
-        const data = await res.json();
-        if (data.posts) setPosts(data.posts);
-      } catch {
-        // Fallback: direct query (will only show non-hidden due to RLS)
-        const supabase = createClient();
-        const { data } = await supabase.from("posts").select("*").order("created_at", { ascending: false }).limit(50);
-        if (data) setPosts(data);
-      }
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("posts")
+        .select("id, content, image_url, category, is_pinned, is_hidden, created_at")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (data) setPosts(data);
       setLoading(false);
     };
     loadPosts();
-  }, []);
+  }, [user]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

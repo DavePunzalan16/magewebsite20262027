@@ -885,3 +885,41 @@ create policy "Users can delete own posts" on posts for delete
 ```
 
 **Run this NOW.** After this, the admin can create, read, update, and delete ALL posts. Normal users can only see non-hidden posts and manage their own.
+
+---
+
+## Step 21 — FIX: Reactions, Comments, Bookmarks RLS (run this to fix interactions)
+
+The insert policies reference `auth.uid() = user_id` but need the `is_admin()` helper too. Run this:
+
+```sql
+-- Fix reactions: allow any authenticated user to insert/delete their own
+drop policy if exists "Authenticated users can react" on reactions;
+drop policy if exists "Users can remove own reactions" on reactions;
+
+create policy "Users can react" on reactions for insert
+  with check (auth.uid() = user_id);
+
+create policy "Users can unreact" on reactions for delete
+  using (auth.uid() = user_id);
+
+-- Fix comments: allow any authenticated user to insert
+drop policy if exists "Authenticated users can comment" on comments;
+
+create policy "Users can comment" on comments for insert
+  with check (auth.uid() = user_id);
+
+-- Fix bookmarks (if table exists)
+drop policy if exists "Auth users can bookmark" on bookmarks;
+
+create policy "Users can bookmark" on bookmarks for insert
+  with check (auth.uid() = user_id);
+
+-- Fix shares (if table exists)
+drop policy if exists "Auth users can share" on shares;
+
+create policy "Users can share" on shares for insert
+  with check (auth.uid() = user_id);
+```
+
+**Run it.** After this, reactions, comments, bookmarks, and shares will work.
