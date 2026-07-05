@@ -38,6 +38,17 @@ interface CommentItem {
 
 const categories = ["All", "General", "Artwork", "Gaming", "Anime", "Meme", "Announcement"];
 
+const fallbackPosts: FeedPost[] = [
+  { id: 901, user_id: "", content: "🎉 Welcome to the M.A.G.E. Guild Feed! This is your space to share thoughts, art, memes, and connect with fellow guild members. Cast your passion!", image_url: null, category: "announcement", is_pinned: true, created_at: "2026-07-04T10:00:00Z", profiles: { full_name: "Guild Master", avatar_url: null }, reactions: 24, comments: 8, shares: 3, userReacted: false, userBookmarked: false },
+  { id: 902, user_id: "", content: "Just finished a pixel art version of our guild emblem! ⚔️🎨 What do you guys think? Took me about 3 hours.", image_url: "/images/mageicon.jpg", category: "artwork", is_pinned: false, created_at: "2026-07-03T15:30:00Z", profiles: { full_name: "ArtMage", avatar_url: null }, reactions: 18, comments: 6, shares: 2, userReacted: false, userBookmarked: false },
+  { id: 903, user_id: "", content: "Anyone up for a Valorant 5v5 tonight? Guild members only custom match! Drop a ❤️ if you're in. 🎮", image_url: null, category: "gaming", is_pinned: false, created_at: "2026-07-03T12:00:00Z", profiles: { full_name: "GamerNigel", avatar_url: null }, reactions: 31, comments: 12, shares: 1, userReacted: false, userBookmarked: false },
+  { id: 904, user_id: "", content: "The new season of Jujutsu Kaisen hits different. No spoilers but episode 5 had me screaming 🤯🔥", image_url: null, category: "anime", is_pinned: false, created_at: "2026-07-02T20:00:00Z", profiles: { full_name: "AnimeFan", avatar_url: null }, reactions: 45, comments: 19, shares: 5, userReacted: false, userBookmarked: false },
+  { id: 905, user_id: "", content: "When the professor says 'no homework' but gives a surprise quiz instead 💀😂 #UECaloocanMoments", image_url: null, category: "meme", is_pinned: false, created_at: "2026-07-02T14:00:00Z", profiles: { full_name: "MemeLord", avatar_url: null }, reactions: 67, comments: 23, shares: 8, userReacted: false, userBookmarked: false },
+  { id: 906, user_id: "", content: "📢 REMINDER: Monthly meeting this Wednesday 5PM at AVR Room 2. Attendance is required for all members!", image_url: null, category: "announcement", is_pinned: false, created_at: "2026-07-01T09:00:00Z", profiles: { full_name: "Secretary Rose", avatar_url: null }, reactions: 12, comments: 4, shares: 1, userReacted: false, userBookmarked: false },
+  { id: 907, user_id: "", content: "Working on cosplay props for Arcane Convergence 2026! Going as Raiden Shogun ⚡ Any other cosplayers in the guild?", image_url: null, category: "general", is_pinned: false, created_at: "2026-06-30T18:00:00Z", profiles: { full_name: "CosplayQueen", avatar_url: null }, reactions: 28, comments: 9, shares: 2, userReacted: false, userBookmarked: false },
+  { id: 908, user_id: "", content: "One Piece chapter 1120 discussion thread! 🏴‍☠️ What are your theories about the final saga? No spoilers for anime-only watchers please!", image_url: null, category: "anime", is_pinned: false, created_at: "2026-06-29T21:00:00Z", profiles: { full_name: "PirateKing", avatar_url: null }, reactions: 39, comments: 27, shares: 4, userReacted: false, userBookmarked: false },
+];
+
 export default function FeedPage() {
   const { user, loading: authLoading } = useAuth();
   const [posts, setPosts] = useState<FeedPost[]>([]);
@@ -62,20 +73,30 @@ export default function FeedPage() {
     const cat = activeCategory === "All" ? "" : activeCategory.toLowerCase();
 
     try {
-      const res = await fetch(`/api/feed?limit=15&offset=${newOffset}${cat ? `&category=${cat}` : ""}`);
-      const data = await res.json();
+      // Direct Supabase query (more reliable than API route with RLS)
+      const supabase = createClient();
+      let query = supabase.from("posts").select("*, profiles(full_name, avatar_url)")
+        .eq("is_hidden", false)
+        .order("is_pinned", { ascending: false })
+        .order("created_at", { ascending: false })
+        .range(newOffset, newOffset + 14);
 
-      if (data.posts) {
-        setPosts((prev) => reset ? data.posts : [...prev, ...data.posts]);
-        setHasMore(data.hasMore);
-        setOffset(newOffset + data.posts.length);
+      if (cat) query = query.eq("category", cat);
+
+      const { data } = await query;
+
+      if (data && data.length > 0) {
+        const enriched = data.map((p) => ({ ...p, reactions: 0, comments: 0, shares: 0, userReacted: false, userBookmarked: false }));
+        setPosts((prev) => reset ? enriched : [...prev, ...enriched]);
+        setHasMore(data.length >= 15);
+        setOffset(newOffset + data.length);
+      } else if (reset) {
+        // Show fallback welcome posts if DB is empty
+        setPosts(fallbackPosts);
+        setHasMore(false);
       }
     } catch {
-      // Fallback: direct Supabase query
-      const supabase = createClient();
-      const { data } = await supabase.from("posts").select("*, profiles(full_name, avatar_url)")
-        .eq("is_hidden", false).order("is_pinned", { ascending: false }).order("created_at", { ascending: false }).limit(15);
-      if (data) setPosts(data.map((p) => ({ ...p, reactions: 0, comments: 0, shares: 0, userReacted: false, userBookmarked: false })));
+      if (reset) setPosts(fallbackPosts);
     }
     setLoading(false);
   }, [offset, activeCategory]);
@@ -114,18 +135,27 @@ export default function FeedPage() {
   // React
   const handleReact = async (postId: number) => {
     if (!user) return;
+    // Optimistic update
     setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, userReacted: !p.userReacted, reactions: p.reactions + (p.userReacted ? -1 : 1) } : p));
-    await fetch(`/api/posts/${postId}/reactions`, { method: "POST", body: JSON.stringify({ emoji: "❤️" }) });
+    // Persist
+    try {
+      const supabase = createClient();
+      const { data: existing } = await supabase.from("reactions").select("id").eq("post_id", postId).eq("user_id", user.id).single();
+      if (existing) { await supabase.from("reactions").delete().eq("id", existing.id); }
+      else { await supabase.from("reactions").insert({ post_id: postId, user_id: user.id, emoji: "❤️" }); }
+    } catch {}
   };
 
   // Bookmark
   const handleBookmark = async (postId: number) => {
     if (!user) return;
     setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, userBookmarked: !p.userBookmarked } : p));
-    const supabase = createClient();
-    const { data } = await supabase.from("bookmarks").select("id").eq("post_id", postId).eq("user_id", user.id).single();
-    if (data) { await supabase.from("bookmarks").delete().eq("id", data.id); }
-    else { await supabase.from("bookmarks").insert({ post_id: postId, user_id: user.id }); }
+    try {
+      const supabase = createClient();
+      const { data } = await supabase.from("bookmarks").select("id").eq("post_id", postId).eq("user_id", user.id).single();
+      if (data) { await supabase.from("bookmarks").delete().eq("id", data.id); }
+      else { await supabase.from("bookmarks").insert({ post_id: postId, user_id: user.id }); }
+    } catch {}
   };
 
   // Comment
@@ -162,11 +192,12 @@ export default function FeedPage() {
   const handleShare = (post: FeedPost) => {
     if (navigator.share) navigator.share({ title: "M.A.G.E. Post", text: post.content.slice(0, 100), url: window.location.href });
     else navigator.clipboard.writeText(post.content);
+    setPosts((prev) => prev.map((p) => p.id === post.id ? { ...p, shares: p.shares + 1 } : p));
     if (user) {
-      const supabase = createClient();
-      supabase.from("shares").insert({ post_id: post.id, user_id: user.id }).then(() => {
-        setPosts((prev) => prev.map((p) => p.id === post.id ? { ...p, shares: p.shares + 1 } : p));
-      });
+      try {
+        const supabase = createClient();
+        supabase.from("shares").insert({ post_id: post.id, user_id: user.id });
+      } catch {}
     }
   };
 

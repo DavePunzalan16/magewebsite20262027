@@ -34,10 +34,7 @@ export default function AdminPostsPage() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const supabase = createClient();
-    supabase.from("posts").select("id, content, image_url, category, is_pinned, is_hidden, created_at")
-      .order("created_at", { ascending: false }).limit(50)
-      .then(({ data }) => { if (data) setPosts(data); });
+    fetch("/api/admin/posts").then((r) => r.json()).then((d) => { if (d.posts) setPosts(d.posts); });
   }, []);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -55,14 +52,17 @@ export default function AdminPostsPage() {
     if (mediaFile) imageUrl = await uploadFile(mediaFile, "posts");
 
     const fullContent = hashtags ? `${content}\n\n${hashtags.split(",").map((t) => `#${t.trim()}`).join(" ")}` : content;
-    const supabase = createClient();
-    const { data, error } = await supabase.from("posts").insert({
-      user_id: user.id, content: fullContent, image_url: imageUrl, category, is_pinned: category === "announcement",
-    }).select().single();
+
+    const res = await fetch("/api/admin/posts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: fullContent, image_url: imageUrl, category, is_pinned: category === "announcement" }),
+    });
+    const { post } = await res.json();
 
     setPosting(false);
-    if (!error && data) {
-      setPosts((prev) => [data, ...prev]);
+    if (post) {
+      setPosts((prev) => [post, ...prev]);
       setContent(""); setHashtags(""); removeMedia(); setCategory("general");
       setSuccess("Published!");
       setTimeout(() => setSuccess(""), 3000);
