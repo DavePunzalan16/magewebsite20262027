@@ -1038,3 +1038,62 @@ on conflict do nothing;
 ```
 
 **Run it.**
+
+---
+
+## Step 25 — Social Features: Friendships + Comment Reactions
+
+### Friendships table (Facebook/Discord style)
+
+```sql
+create table if not exists friendships (
+  id bigint generated always as identity primary key,
+  requester_id uuid references profiles(id) on delete cascade,
+  receiver_id uuid references profiles(id) on delete cascade,
+  status text default 'pending' check (status in ('pending', 'accepted', 'rejected')),
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  unique(requester_id, receiver_id)
+);
+
+alter table friendships enable row level security;
+
+create policy "friendships_select" on friendships for select using (auth.uid() = requester_id or auth.uid() = receiver_id);
+create policy "friendships_insert" on friendships for insert with check (auth.uid() = requester_id);
+create policy "friendships_update" on friendships for update using (auth.uid() = receiver_id or auth.uid() = requester_id);
+create policy "friendships_delete" on friendships for delete using (auth.uid() = requester_id or auth.uid() = receiver_id);
+
+create index idx_friendships_requester on friendships(requester_id);
+create index idx_friendships_receiver on friendships(receiver_id);
+create index idx_friendships_status on friendships(status);
+```
+
+### Comment reactions table
+
+```sql
+create table if not exists comment_reactions (
+  id bigint generated always as identity primary key,
+  comment_id bigint references comments(id) on delete cascade,
+  user_id uuid references profiles(id) on delete cascade,
+  emoji text default '❤️',
+  created_at timestamptz default now(),
+  unique(comment_id, user_id)
+);
+
+alter table comment_reactions enable row level security;
+
+create policy "cr_select" on comment_reactions for select using (true);
+create policy "cr_insert" on comment_reactions for insert with check (auth.uid() = user_id);
+create policy "cr_delete" on comment_reactions for delete using (auth.uid() = user_id);
+```
+
+### Give admin all badges
+
+```sql
+insert into user_badges (user_id, badge_id)
+select p.id, b.id from profiles p cross join badges b
+where p.role = 'admin'
+on conflict do nothing;
+```
+
+**Run all blocks.**
