@@ -35,15 +35,11 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const [volume, setVolumeState] = useState(0.4);
 
   useEffect(() => {
+    if (audioRef.current) return; // Already created — don't recreate
     const audio = new Audio("/music/mage.mp3");
     audio.loop = true;
     audio.volume = volume;
     audioRef.current = audio;
-
-    return () => {
-      audio.pause();
-      audio.src = "";
-    };
   }, []);
 
   const play = useCallback(() => {

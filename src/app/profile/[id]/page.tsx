@@ -103,7 +103,7 @@ export default function PublicProfilePage() {
 
       <div className="mx-auto max-w-[800px] px-4 md:px-8">
         {/* Header */}
-        <div className="relative -mt-14 mb-6 flex flex-col gap-4 md:flex-row md:items-end md:gap-5">
+        <div className="relative -mt-14 mb-6 flex flex-col gap-4 md:-mt-16 md:flex-row md:items-end md:gap-5">
           <div className="relative shrink-0">
             {profile.avatar_url ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -151,7 +151,7 @@ export default function PublicProfilePage() {
         </div>
 
         {/* Content */}
-        <div className="grid gap-4 pb-10 md:grid-cols-2">
+        <div className="grid gap-4 pb-10 grid-cols-1 md:grid-cols-2">
           {/* Gaming Accounts */}
           {(profile.discord_username || profile.steam_username || profile.valorant_ign) && (
             <div className="rounded-[12px] border border-dark-gray/30 bg-surface/20 p-4">
