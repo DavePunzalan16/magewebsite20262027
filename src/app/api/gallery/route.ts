@@ -1,18 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/server";
+import { GalleryService } from "@/lib/services/gallery";
 
-// GET /api/gallery
+// GET /api/gallery — public list
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const limit = parseInt(searchParams.get("limit") || "30");
-  const category = searchParams.get("category");
+  const category = searchParams.get("category") || undefined;
+  const featured = searchParams.get("featured") === "true";
+  const limit = parseInt(searchParams.get("limit") || "50");
 
-  const supabase = createAdminClient();
-  let query = supabase.from("gallery").select("*").order("created_at", { ascending: false }).limit(limit);
-
-  if (category && category !== "All") query = query.eq("category", category);
-
-  const { data, error } = await query;
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ items: data });
+  try {
+    const service = new GalleryService();
+    const items = await service.getAll({ category, featured: featured || undefined, limit });
+    return NextResponse.json({ items });
+  } catch {
+    return NextResponse.json({ error: "Failed to fetch gallery" }, { status: 500 });
+  }
 }

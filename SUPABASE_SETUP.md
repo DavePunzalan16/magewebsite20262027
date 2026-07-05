@@ -998,3 +998,13 @@ alter table posts add column if not exists pending_approval boolean default fals
 ```
 
 **Run both blocks.** This nukes all conflicting policies and creates clean, working ones.
+
+---
+
+## Step 23 — Gallery: Add featured column
+
+```sql
+alter table gallery add column if not exists is_featured boolean default false;
+```
+
+**Run it.** Enables featured/highlighted gallery items in the CMS.
