@@ -1,24 +1,12 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/server";
+import { createEventSchema, type CreateEventInput } from "@/lib/validators/events";
+import { EventsService } from "@/lib/services/events";
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
 
-const eventSchema = z.object({
-  title: z.string().min(1).max(200),
-  description: z.string().max(2000).optional(),
-  long_description: z.string().max(5000).optional(),
-  date: z.string().optional(),
-  time: z.string().optional(),
-  location: z.string().max(200).optional(),
-  tags: z.array(z.string()).optional(),
-  highlights: z.array(z.string()).optional(),
-  status: z.enum(["upcoming", "ongoing", "completed"]).default("upcoming"),
-  max_slots: z.number().nullable().optional(),
-});
-
-export async function createEvent(input: z.infer<typeof eventSchema> & { created_by: string }) {
-  const validated = eventSchema.parse(input);
+export async function createEvent(input: CreateEventInput & { created_by: string }) {
+  const validated = createEventSchema.parse(input);
   const supabase = createAdminClient();
 
   const { data, error } = await supabase
@@ -33,7 +21,7 @@ export async function createEvent(input: z.infer<typeof eventSchema> & { created
   return { event: data };
 }
 
-export async function updateEvent(id: number, input: Partial<z.infer<typeof eventSchema>>) {
+export async function updateEvent(id: number, input: Partial<CreateEventInput>) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("events")
@@ -52,19 +40,33 @@ export async function deleteEvent(id: number) {
   const supabase = createAdminClient();
   const { error } = await supabase.from("events").delete().eq("id", id);
   if (error) return { error: error.message };
-
   revalidatePath("/dashboard/admin/events");
   revalidatePath("/");
   return { success: true };
 }
 
 export async function getEvents() {
-  const supabase = createAdminClient();
-  const { data, error } = await supabase
-    .from("events")
-    .select("*")
-    .order("created_at", { ascending: false });
+  const service = new EventsService();
+  return service.getAll();
+}
 
-  if (error) return { error: error.message, events: [] };
-  return { events: data || [] };
+export async function rsvpToEvent(eventId: number, userId: string) {
+  const service = new EventsService();
+  return service.rsvp(eventId, userId);
+}
+
+export async function cancelRsvp(eventId: number, userId: string) {
+  const service = new EventsService();
+  await service.cancelRsvp(eventId, userId);
+  return { success: true };
+}
+
+export async function checkInAttendee(eventId: number, userId: string, status: "present" | "late" = "present") {
+  const service = new EventsService();
+  return service.checkIn(eventId, userId, status);
+}
+
+export async function getEventStats(eventId: number) {
+  const service = new EventsService();
+  return service.getEventStats(eventId);
 }
