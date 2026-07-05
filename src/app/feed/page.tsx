@@ -1,29 +1,19 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import Image from "next/image";
 import Link from "next/link";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
+import { uploadFile } from "@/lib/upload";
 import { siteConfig } from "@/data/portfolio";
 import {
-  Heart,
-  MessageCircle,
-  Share2,
-  Send,
-  ImageIcon,
-  MoreHorizontal,
-  Trash2,
-  EyeOff,
-  Pin,
-  ArrowLeft,
-  Flame,
-  Laugh,
-  ThumbsUp,
+  Heart, MessageCircle, Share2, Bookmark, Send, ImageIcon,
+  MoreHorizontal, Trash2, EyeOff, Pin, ArrowLeft, X,
 } from "lucide-react";
 
-interface Post {
+interface FeedPost {
   id: number;
   user_id: string;
   content: string;
@@ -31,348 +21,291 @@ interface Post {
   category: string;
   is_pinned: boolean;
   created_at: string;
-  // Joined
-  author_name?: string;
-  author_avatar?: string;
-  reaction_count?: number;
-  comment_count?: number;
-  user_reacted?: boolean;
+  profiles?: { full_name: string | null; avatar_url: string | null };
+  reactions: number;
+  comments: number;
+  shares: number;
+  userReacted: boolean;
+  userBookmarked: boolean;
 }
 
-interface Comment {
+interface CommentItem {
   id: number;
   content: string;
   created_at: string;
-  author_name?: string;
+  profiles?: { full_name: string | null; avatar_url: string | null };
 }
 
-const categories = ["All", "General", "Artwork", "Gaming", "Anime", "Meme"];
-const reactionEmojis = ["❤️", "🔥", "😂", "👍", "⚔️", "✨"];
-
-// Fallback posts for when DB is empty
-const fallbackPosts: Post[] = [
-  { id: 1, user_id: "", content: "Welcome to the M.A.G.E. Guild Feed! 🎉 Share your thoughts, art, and memes with fellow guild members.", image_url: null, category: "announcement", is_pinned: true, created_at: "2026-07-04T10:00:00Z", author_name: "Guild Master", reaction_count: 12, comment_count: 3, user_reacted: false },
-  { id: 2, user_id: "", content: "Just finished this fanart of our guild emblem in pixel art style! What do you think? ⚔️🎨", image_url: "/images/mageicon.jpg", category: "artwork", is_pinned: false, created_at: "2026-07-03T15:30:00Z", author_name: "ArtMage", reaction_count: 8, comment_count: 5, user_reacted: false },
-  { id: 3, user_id: "", content: "Anyone up for a Valorant custom match tonight? 5v5 guild members only! Drop a 🔥 if you're in.", image_url: null, category: "gaming", is_pinned: false, created_at: "2026-07-03T12:00:00Z", author_name: "GamerNigel", reaction_count: 15, comment_count: 7, user_reacted: false },
-  { id: 4, user_id: "", content: "The new season of Jujutsu Kaisen is absolutely insane. No spoilers but episode 5... 🤯", image_url: null, category: "anime", is_pinned: false, created_at: "2026-07-02T20:00:00Z", author_name: "AnimeFan", reaction_count: 22, comment_count: 11, user_reacted: false },
-];
+const categories = ["All", "General", "Artwork", "Gaming", "Anime", "Meme", "Announcement"];
 
 export default function FeedPage() {
   const { user, loading: authLoading } = useAuth();
-  const [posts, setPosts] = useState<Post[]>(fallbackPosts);
+  const [posts, setPosts] = useState<FeedPost[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(true);
+  const [offset, setOffset] = useState(0);
   const [activeCategory, setActiveCategory] = useState("All");
   const [newPost, setNewPost] = useState("");
-  const [posting, setPosting] = useState(false);
-  const [expandedComments, setExpandedComments] = useState<number | null>(null);
-  const [commentText, setCommentText] = useState("");
-  const [comments, setComments] = useState<Record<number, Comment[]>>({});
-  const [menuOpen, setMenuOpen] = useState<number | null>(null);
-  const [mounted, setMounted] = useState(false);
   const [postFile, setPostFile] = useState<File | null>(null);
   const [postPreview, setPostPreview] = useState<string | null>(null);
-  const feedFileRef = useRef<HTMLInputElement>(null);
+  const [posting, setPosting] = useState(false);
+  const [expandedComments, setExpandedComments] = useState<number | null>(null);
+  const [comments, setComments] = useState<Record<number, CommentItem[]>>({});
+  const [commentText, setCommentText] = useState("");
+  const [menuOpen, setMenuOpen] = useState<number | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { setMounted(true); }, []);
+  // Fetch posts
+  const fetchPosts = useCallback(async (reset = false) => {
+    const newOffset = reset ? 0 : offset;
+    const cat = activeCategory === "All" ? "" : activeCategory.toLowerCase();
 
-  // Fetch posts from Supabase
-  useEffect(() => {
-    if (!mounted) return;
-    const fetchPosts = async () => {
-      try {
-        const supabase = createClient();
-        const { data } = await supabase
-          .from("posts")
-          .select("*")
-          .order("is_pinned", { ascending: false })
-          .order("created_at", { ascending: false })
-          .limit(30);
-        if (data && data.length > 0) setPosts(data);
-      } catch {
-        // Keep fallback data
+    try {
+      const res = await fetch(`/api/feed?limit=15&offset=${newOffset}${cat ? `&category=${cat}` : ""}`);
+      const data = await res.json();
+
+      if (data.posts) {
+        setPosts((prev) => reset ? data.posts : [...prev, ...data.posts]);
+        setHasMore(data.hasMore);
+        setOffset(newOffset + data.posts.length);
       }
-    };
-    fetchPosts();
-  }, [mounted]);
+    } catch {
+      // Fallback: direct Supabase query
+      const supabase = createClient();
+      const { data } = await supabase.from("posts").select("*, profiles(full_name, avatar_url)")
+        .eq("is_hidden", false).order("is_pinned", { ascending: false }).order("created_at", { ascending: false }).limit(15);
+      if (data) setPosts(data.map((p) => ({ ...p, reactions: 0, comments: 0, shares: 0, userReacted: false, userBookmarked: false })));
+    }
+    setLoading(false);
+  }, [offset, activeCategory]);
 
-  const handlePost = useCallback(async () => {
+  useEffect(() => { fetchPosts(true); }, [activeCategory]);
+
+  // Infinite scroll
+  useEffect(() => {
+    if (!loadMoreRef.current || !hasMore) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !loading && hasMore) fetchPosts();
+    }, { threshold: 0.5 });
+    observer.observe(loadMoreRef.current);
+    return () => observer.disconnect();
+  }, [hasMore, loading, fetchPosts]);
+
+  // Post
+  const handlePost = async () => {
     if (!newPost.trim() || !user) return;
     setPosting(true);
 
     let imageUrl: string | null = null;
-    if (postFile) {
-      const { uploadFile } = await import("@/lib/upload");
-      imageUrl = await uploadFile(postFile, "feed");
-    }
+    if (postFile) imageUrl = await uploadFile(postFile, "feed");
 
     const supabase = createClient();
-    const { data, error } = await supabase.from("posts").insert({
-      user_id: user.id,
-      content: newPost,
-      image_url: imageUrl,
-      category: "general",
-    }).select().single();
+    const { data } = await supabase.from("posts").insert({
+      user_id: user.id, content: newPost, image_url: imageUrl, category: "general",
+    }).select("*, profiles(full_name, avatar_url)").single();
 
-    if (!error && data) {
-      setPosts((prev) => [{ ...data, author_name: user.user_metadata?.full_name || user.email?.split("@")[0], reaction_count: 0, comment_count: 0, user_reacted: false }, ...prev]);
+    if (data) {
+      setPosts((prev) => [{ ...data, reactions: 0, comments: 0, shares: 0, userReacted: false, userBookmarked: false }, ...prev]);
     }
+    setNewPost(""); setPostFile(null); setPostPreview(null); setPosting(false);
+  };
 
-    setNewPost("");
-    setPostFile(null);
-    setPostPreview(null);
-    setPosting(false);
-  }, [newPost, user, postFile]);
-
-  const handleReact = useCallback(async (postId: number) => {
+  // React
+  const handleReact = async (postId: number) => {
     if (!user) return;
-    setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, user_reacted: !p.user_reacted, reaction_count: (p.reaction_count || 0) + (p.user_reacted ? -1 : 1) } : p));
+    setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, userReacted: !p.userReacted, reactions: p.reactions + (p.userReacted ? -1 : 1) } : p));
+    await fetch(`/api/posts/${postId}/reactions`, { method: "POST", body: JSON.stringify({ emoji: "❤️" }) });
+  };
 
+  // Bookmark
+  const handleBookmark = async (postId: number) => {
+    if (!user) return;
+    setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, userBookmarked: !p.userBookmarked } : p));
     const supabase = createClient();
-    const existing = await supabase.from("reactions").select("id").eq("post_id", postId).eq("user_id", user.id).single();
-    if (existing.data) {
-      await supabase.from("reactions").delete().eq("id", existing.data.id);
-    } else {
-      await supabase.from("reactions").insert({ post_id: postId, user_id: user.id, emoji: "❤️" });
-    }
-  }, [user]);
+    const { data } = await supabase.from("bookmarks").select("id").eq("post_id", postId).eq("user_id", user.id).single();
+    if (data) { await supabase.from("bookmarks").delete().eq("id", data.id); }
+    else { await supabase.from("bookmarks").insert({ post_id: postId, user_id: user.id }); }
+  };
 
-  const handleComment = useCallback(async (postId: number) => {
+  // Comment
+  const handleComment = async (postId: number) => {
     if (!commentText.trim() || !user) return;
     const supabase = createClient();
-    await supabase.from("comments").insert({ post_id: postId, user_id: user.id, content: commentText });
-    setComments((prev) => ({ ...prev, [postId]: [...(prev[postId] || []), { id: Date.now(), content: commentText, created_at: new Date().toISOString(), author_name: user.user_metadata?.full_name || "You" }] }));
-    setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, comment_count: (p.comment_count || 0) + 1 } : p));
+    const { data } = await supabase.from("comments").insert({ post_id: postId, user_id: user.id, content: commentText })
+      .select("*, profiles(full_name, avatar_url)").single();
+    if (data) {
+      setComments((prev) => ({ ...prev, [postId]: [...(prev[postId] || []), data] }));
+      setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, comments: p.comments + 1 } : p));
+    }
     setCommentText("");
-  }, [commentText, user]);
+  };
 
-  const handleDelete = useCallback(async (postId: number) => {
+  // Load comments
+  const loadComments = async (postId: number) => {
+    if (comments[postId]) return;
+    const supabase = createClient();
+    const { data } = await supabase.from("comments").select("*, profiles(full_name, avatar_url)")
+      .eq("post_id", postId).eq("is_hidden", false).order("created_at", { ascending: true }).limit(30);
+    if (data) setComments((prev) => ({ ...prev, [postId]: data }));
+  };
+
+  // Delete
+  const handleDelete = async (postId: number) => {
     const supabase = createClient();
     await supabase.from("posts").delete().eq("id", postId);
     setPosts((prev) => prev.filter((p) => p.id !== postId));
     setMenuOpen(null);
-  }, []);
-
-  const handleShare = (post: Post) => {
-    if (navigator.share) {
-      navigator.share({ title: "M.A.G.E. Guild Post", text: post.content, url: window.location.href });
-    } else {
-      navigator.clipboard.writeText(post.content);
-    }
   };
 
-  const filtered = activeCategory === "All" ? posts : posts.filter((p) => p.category === activeCategory.toLowerCase());
-
-  if (!mounted) return null;
+  // Share
+  const handleShare = (post: FeedPost) => {
+    if (navigator.share) navigator.share({ title: "M.A.G.E. Post", text: post.content.slice(0, 100), url: window.location.href });
+    else navigator.clipboard.writeText(post.content);
+    if (user) {
+      const supabase = createClient();
+      supabase.from("shares").insert({ post_id: post.id, user_id: user.id }).then(() => {
+        setPosts((prev) => prev.map((p) => p.id === post.id ? { ...p, shares: p.shares + 1 } : p));
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="sticky top-0 z-40 border-b border-dark-gray/20 bg-background/90 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-[700px] items-center justify-between px-4">
-          <div className="flex items-center gap-3">
-            <Link href="/" className="flex h-8 w-8 items-center justify-center rounded-full bg-surface text-offwhite hover:text-white">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-            <div className="flex items-center gap-2">
-              <Image src={siteConfig.iconImage} alt="" width={28} height={28} className="rounded-full" />
-              <h1 className="font-display text-[22px] text-white">Guild Feed</h1>
-            </div>
-          </div>
+      <div className="sticky top-0 z-40 border-b border-dark-gray/20 bg-background/95 backdrop-blur-sm">
+        <div className="mx-auto flex h-14 max-w-[650px] items-center gap-3 px-4">
+          <Link href="/" className="flex h-8 w-8 items-center justify-center rounded-full bg-surface text-offwhite hover:text-white"><ArrowLeft className="h-4 w-4" /></Link>
+          <Image src={siteConfig.iconImage} alt="" width={24} height={24} className="rounded-full" />
+          <h1 className="font-display text-[20px] text-white">Guild Feed</h1>
         </div>
       </div>
 
-      <div className="mx-auto max-w-[700px] px-4 py-6">
-        {/* Post composer */}
+      <div className="mx-auto max-w-[650px] px-4 py-5">
+        {/* Composer */}
         {user && (
-          <motion.div
-            className="mb-6 rounded-[14px] border border-dark-gray/30 bg-surface/20 p-4"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <div className="flex gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/20 font-body text-[13px] font-bold text-primary">
-                {(user.user_metadata?.full_name || user.email || "M").charAt(0).toUpperCase()}
+          <div className="mb-5 rounded-[12px] border border-dark-gray/30 bg-surface/20 p-4">
+            <textarea value={newPost} onChange={(e) => setNewPost(e.target.value)} placeholder="Share something with the guild..." rows={2}
+              className="w-full resize-none bg-transparent font-body text-[13px] text-white placeholder:text-offwhite/30 focus:outline-none" />
+            {postPreview && (
+              <div className="relative mt-2 inline-block">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={postPreview} alt="" className="h-20 w-auto rounded-[6px] object-cover" />
+                <button onClick={() => { setPostFile(null); setPostPreview(null); }} className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[9px] text-white">×</button>
               </div>
-              <div className="flex-1">
-                <textarea
-                  value={newPost}
-                  onChange={(e) => setNewPost(e.target.value)}
-                  placeholder="Share something with the guild..."
-                  className="w-full resize-none rounded-[8px] border-none bg-transparent py-1 font-body text-[14px] text-white placeholder:text-offwhite/30 focus:outline-none"
-                  rows={2}
-                />
-                <div className="mt-2 flex items-center justify-between border-t border-dark-gray/20 pt-2">
-                  <div>
-                    <button onClick={() => feedFileRef.current?.click()} className="flex items-center gap-1.5 rounded-[6px] px-2 py-1 font-body text-[12px] text-offwhite/50 hover:bg-white/5 hover:text-offwhite" type="button">
-                      <ImageIcon className="h-4 w-4" /> Photo
-                    </button>
-                    <input ref={feedFileRef} type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setPostFile(f); setPostPreview(URL.createObjectURL(f)); } }} className="hidden" />
-                  </div>
-                  <button
-                    onClick={handlePost}
-                    disabled={!newPost.trim() || posting}
-                    className="flex items-center gap-1.5 rounded-full bg-primary px-4 py-1.5 font-body text-[12px] font-bold text-black transition-all hover:bg-primary/90 disabled:opacity-40"
-                  >
-                    <Send className="h-3.5 w-3.5" /> {posting ? "Posting..." : "Post"}
-                  </button>
-                </div>
-                {postPreview && (
-                  <div className="relative mt-2 inline-block">
-                    <Image src={postPreview} alt="Preview" width={120} height={80} className="rounded-[6px] object-cover" />
-                    <button onClick={() => { setPostFile(null); setPostPreview(null); }} className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-[10px]">×</button>
-                  </div>
-                )}
-              </div>
+            )}
+            <div className="mt-2 flex items-center justify-between border-t border-dark-gray/20 pt-2">
+              <button onClick={() => fileRef.current?.click()} className="flex items-center gap-1 rounded px-2 py-1 font-body text-[11px] text-offwhite/40 hover:text-offwhite" type="button">
+                <ImageIcon className="h-3.5 w-3.5" /> Photo
+              </button>
+              <input ref={fileRef} type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setPostFile(f); setPostPreview(URL.createObjectURL(f)); } }} className="hidden" />
+              <button onClick={handlePost} disabled={!newPost.trim() || posting} className="flex items-center gap-1 rounded-full bg-primary px-3.5 py-1.5 font-body text-[11px] font-bold text-black disabled:opacity-40">
+                <Send className="h-3 w-3" /> {posting ? "..." : "Post"}
+              </button>
             </div>
-          </motion.div>
+          </div>
         )}
 
-        {/* Category filter */}
-        <div className="mb-5 flex gap-2 overflow-x-auto pb-1">
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
-              className={`shrink-0 rounded-full px-3.5 py-1.5 font-body text-[12px] font-medium transition-all ${
-                activeCategory === cat ? "bg-primary/15 text-primary ring-1 ring-primary/30" : "bg-surface/30 text-offwhite/50 hover:text-offwhite"
-              }`}
-            >
-              {cat}
+        {/* Filters */}
+        <div className="mb-4 flex gap-1.5 overflow-x-auto pb-1">
+          {categories.map((c) => (
+            <button key={c} onClick={() => { setActiveCategory(c); setOffset(0); setLoading(true); }}
+              className={`shrink-0 rounded-full px-3 py-1 font-body text-[11px] font-medium transition-all ${activeCategory === c ? "bg-primary/15 text-primary ring-1 ring-primary/30" : "bg-surface/30 text-offwhite/40 hover:text-offwhite"}`}>
+              {c}
             </button>
           ))}
         </div>
 
-        {/* Posts feed */}
-        <div className="flex flex-col gap-4">
-          {filtered.map((post, i) => (
-            <motion.article
-              key={post.id}
-              className="relative rounded-[14px] border border-dark-gray/30 bg-surface/20 overflow-hidden"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.04 }}
-            >
-              {post.is_pinned && (
-                <div className="flex items-center gap-1.5 bg-primary/5 px-4 py-1.5 border-b border-dark-gray/20">
-                  <Pin className="h-3 w-3 text-primary" />
-                  <span className="font-body text-[10px] font-bold uppercase tracking-wider text-primary">Pinned</span>
-                </div>
-              )}
-
-              <div className="p-4">
-                {/* Author row */}
-                <div className="mb-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/15 font-body text-[12px] font-bold text-primary">
-                      {(post.author_name || "M").charAt(0).toUpperCase()}
+        {/* Posts */}
+        {loading && posts.length === 0 ? (
+          <div className="flex flex-col gap-4">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-40 animate-pulse rounded-[12px] bg-surface/30" />)}</div>
+        ) : posts.length === 0 ? (
+          <p className="py-10 text-center font-body text-[13px] text-offwhite/40">No posts yet. Be the first to share!</p>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {posts.map((post) => (
+              <article key={post.id} className="rounded-[12px] border border-dark-gray/30 bg-surface/20 overflow-hidden">
+                {post.is_pinned && <div className="flex items-center gap-1.5 bg-primary/5 px-4 py-1 border-b border-dark-gray/20"><Pin className="h-3 w-3 text-primary" /><span className="font-body text-[9px] font-bold uppercase tracking-wider text-primary">Pinned</span></div>}
+                <div className="p-4">
+                  {/* Author */}
+                  <div className="mb-2.5 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/15 font-body text-[11px] font-bold text-primary">
+                        {(post.profiles?.full_name || "M").charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="font-body text-[12px] font-semibold text-white">{post.profiles?.full_name || "Guild Member"}</p>
+                        <p className="font-body text-[9px] text-offwhite/35">{new Date(post.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric" })} · <span className="capitalize">{post.category}</span></p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-body text-[13px] font-semibold text-white">{post.author_name || "Guild Member"}</p>
-                      <p className="font-body text-[10px] text-offwhite/40">
-                        {new Date(post.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric" })}
-                        {" · "}
-                        <span className="capitalize">{post.category}</span>
-                      </p>
-                    </div>
-                  </div>
-                  {/* Menu */}
-                  <div className="relative">
-                    <button onClick={() => setMenuOpen(menuOpen === post.id ? null : post.id)} className="rounded-full p-1.5 text-offwhite/30 hover:bg-white/5 hover:text-offwhite">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </button>
-                    <AnimatePresence>
+                    <div className="relative">
+                      <button onClick={() => setMenuOpen(menuOpen === post.id ? null : post.id)} className="rounded-full p-1 text-offwhite/20 hover:text-offwhite"><MoreHorizontal className="h-4 w-4" /></button>
                       {menuOpen === post.id && (
-                        <motion.div className="absolute right-0 top-full z-10 mt-1 w-36 rounded-[8px] border border-dark-gray/30 bg-[#0c0015] p-1 shadow-lg" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}>
-                          {(user?.id === post.user_id || user?.email === "admin@gmail.com") && (
-                            <button onClick={() => handleDelete(post.id)} className="flex w-full items-center gap-2 rounded-[6px] px-3 py-1.5 font-body text-[12px] text-red-400 hover:bg-red-500/10">
-                              <Trash2 className="h-3.5 w-3.5" /> Delete
-                            </button>
-                          )}
-                          <button onClick={() => setMenuOpen(null)} className="flex w-full items-center gap-2 rounded-[6px] px-3 py-1.5 font-body text-[12px] text-offwhite/60 hover:bg-white/5">
-                            <EyeOff className="h-3.5 w-3.5" /> Hide
-                          </button>
-                        </motion.div>
+                        <div className="absolute right-0 top-full z-10 mt-1 w-32 rounded-[8px] border border-dark-gray/30 bg-[#0c0015] p-1 shadow-lg">
+                          {(user?.id === post.user_id || user?.email === "admin@gmail.com") && <button onClick={() => handleDelete(post.id)} className="flex w-full items-center gap-2 rounded px-2 py-1 font-body text-[11px] text-red-400 hover:bg-red-500/10"><Trash2 className="h-3 w-3" />Delete</button>}
+                          <button onClick={() => setMenuOpen(null)} className="flex w-full items-center gap-2 rounded px-2 py-1 font-body text-[11px] text-offwhite/50 hover:bg-white/5"><EyeOff className="h-3 w-3" />Hide</button>
+                        </div>
                       )}
-                    </AnimatePresence>
+                    </div>
                   </div>
-                </div>
 
-                {/* Content */}
-                <p className="mb-3 font-body text-[14px] leading-relaxed text-offwhite/90 whitespace-pre-wrap">{post.content}</p>
-
-                {/* Image */}
-                {post.image_url && (
-                  <div className="mb-3 overflow-hidden rounded-[10px] border border-dark-gray/20">
+                  {/* Content */}
+                  <p className="mb-3 font-body text-[13px] leading-relaxed text-offwhite/85 whitespace-pre-wrap">{post.content}</p>
+                  {post.image_url && <div className="mb-3 overflow-hidden rounded-[8px] border border-dark-gray/20">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={post.image_url} alt="" className="w-full max-h-[400px] object-cover" loading="lazy" />
+                    <img src={post.image_url} alt="" className="w-full max-h-[350px] object-cover" loading="lazy" />
+                  </div>}
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-1 border-t border-dark-gray/20 pt-2.5">
+                    <button onClick={() => handleReact(post.id)} className={`flex items-center gap-1 rounded-full px-2.5 py-1 font-body text-[11px] transition-all ${post.userReacted ? "bg-red-500/10 text-red-400" : "text-offwhite/35 hover:text-offwhite"}`}>
+                      <Heart className={`h-3.5 w-3.5 ${post.userReacted ? "fill-current" : ""}`} />{post.reactions || ""}
+                    </button>
+                    <button onClick={() => { setExpandedComments(expandedComments === post.id ? null : post.id); loadComments(post.id); }} className="flex items-center gap-1 rounded-full px-2.5 py-1 font-body text-[11px] text-offwhite/35 hover:text-offwhite">
+                      <MessageCircle className="h-3.5 w-3.5" />{post.comments || ""}
+                    </button>
+                    <button onClick={() => handleShare(post)} className="flex items-center gap-1 rounded-full px-2.5 py-1 font-body text-[11px] text-offwhite/35 hover:text-offwhite">
+                      <Share2 className="h-3.5 w-3.5" />{post.shares || ""}
+                    </button>
+                    <button onClick={() => handleBookmark(post.id)} className={`ml-auto rounded-full px-2.5 py-1 ${post.userBookmarked ? "text-primary" : "text-offwhite/25 hover:text-offwhite"}`}>
+                      <Bookmark className={`h-3.5 w-3.5 ${post.userBookmarked ? "fill-current" : ""}`} />
+                    </button>
                   </div>
-                )}
 
-                {/* Actions */}
-                <div className="flex items-center gap-1 border-t border-dark-gray/20 pt-3">
-                  <button
-                    onClick={() => handleReact(post.id)}
-                    className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 font-body text-[12px] transition-all ${post.user_reacted ? "bg-red-500/10 text-red-400" : "text-offwhite/40 hover:bg-white/5 hover:text-offwhite"}`}
-                  >
-                    <Heart className={`h-4 w-4 ${post.user_reacted ? "fill-current" : ""}`} />
-                    {(post.reaction_count || 0) > 0 && post.reaction_count}
-                  </button>
-                  <button
-                    onClick={() => setExpandedComments(expandedComments === post.id ? null : post.id)}
-                    className="flex items-center gap-1.5 rounded-full px-3 py-1.5 font-body text-[12px] text-offwhite/40 hover:bg-white/5 hover:text-offwhite"
-                  >
-                    <MessageCircle className="h-4 w-4" />
-                    {(post.comment_count || 0) > 0 && post.comment_count}
-                  </button>
-                  <button onClick={() => handleShare(post)} className="flex items-center gap-1.5 rounded-full px-3 py-1.5 font-body text-[12px] text-offwhite/40 hover:bg-white/5 hover:text-offwhite">
-                    <Share2 className="h-4 w-4" />
-                  </button>
-                </div>
-
-                {/* Comments section */}
-                <AnimatePresence>
+                  {/* Comments */}
                   {expandedComments === post.id && (
-                    <motion.div className="mt-3 border-t border-dark-gray/20 pt-3" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}>
+                    <div className="mt-3 border-t border-dark-gray/20 pt-3">
                       {(comments[post.id] || []).map((c) => (
                         <div key={c.id} className="mb-2 flex gap-2">
-                          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface font-body text-[10px] text-offwhite/60">
-                            {(c.author_name || "?").charAt(0)}
-                          </div>
-                          <div className="rounded-[8px] bg-background/40 px-3 py-1.5">
-                            <p className="font-body text-[11px] font-semibold text-offwhite/80">{c.author_name}</p>
-                            <p className="font-body text-[12px] text-offwhite/60">{c.content}</p>
+                          <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-surface font-body text-[9px] text-offwhite/50">{(c.profiles?.full_name || "?").charAt(0)}</div>
+                          <div className="rounded-[6px] bg-background/30 px-2.5 py-1.5">
+                            <p className="font-body text-[10px] font-semibold text-offwhite/70">{c.profiles?.full_name || "Member"}</p>
+                            <p className="font-body text-[11px] text-offwhite/60">{c.content}</p>
                           </div>
                         </div>
                       ))}
                       {user && (
                         <div className="mt-2 flex gap-2">
-                          <input
-                            type="text"
-                            value={commentText}
-                            onChange={(e) => setCommentText(e.target.value)}
-                            onKeyDown={(e) => e.key === "Enter" && handleComment(post.id)}
-                            placeholder="Write a comment..."
-                            className="flex-1 rounded-full border border-dark-gray/30 bg-background/40 px-3 py-1.5 font-body text-[12px] text-white placeholder:text-offwhite/25 focus:border-primary/30 focus:outline-none"
-                          />
-                          <button onClick={() => handleComment(post.id)} className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/20 text-primary hover:bg-primary/30">
-                            <Send className="h-3 w-3" />
-                          </button>
+                          <input type="text" value={commentText} onChange={(e) => setCommentText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleComment(post.id)}
+                            placeholder="Comment..." className="flex-1 rounded-full border border-dark-gray/30 bg-background/30 px-3 py-1.5 font-body text-[11px] text-white placeholder:text-offwhite/20 focus:border-primary/30 focus:outline-none" />
+                          <button onClick={() => handleComment(post.id)} className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/20 text-primary hover:bg-primary/30"><Send className="h-3 w-3" /></button>
                         </div>
                       )}
-                    </motion.div>
+                    </div>
                   )}
-                </AnimatePresence>
-              </div>
-            </motion.article>
-          ))}
-        </div>
+                </div>
+              </article>
+            ))}
 
-        {/* Login prompt */}
+            {/* Load more trigger */}
+            {hasMore && <div ref={loadMoreRef} className="h-10 flex items-center justify-center"><div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" /></div>}
+          </div>
+        )}
+
         {!user && !authLoading && (
-          <div className="mt-8 rounded-[12px] border border-dark-gray/30 bg-surface/20 p-6 text-center">
-            <p className="font-body text-[14px] text-offwhite/60">Sign in to post, react, and comment.</p>
-            <Link href="/auth/signin" className="mt-3 inline-block rounded-full bg-primary px-5 py-2 font-body text-[13px] font-bold text-black">
-              Sign In
-            </Link>
+          <div className="mt-6 rounded-[12px] border border-dark-gray/30 bg-surface/20 p-5 text-center">
+            <p className="font-body text-[13px] text-offwhite/50">Sign in to post, react, and comment.</p>
+            <Link href="/auth/signin" className="mt-3 inline-block rounded-full bg-primary px-4 py-2 font-body text-[12px] font-bold text-black">Sign In</Link>
           </div>
         )}
       </div>
