@@ -6,7 +6,8 @@ import Link from "next/link";
 import { navLinks, siteConfig } from "@/data/portfolio";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
-import { Menu, X, LogIn, LogOut, Settings, User as UserIcon } from "lucide-react";
+import { useNotifications } from "@/hooks/useNotifications";
+import { Menu, X, LogIn, LogOut, Settings, User as UserIcon, Bell } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function Navbar() {
@@ -35,6 +36,7 @@ export function Navbar() {
 
   const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Mage";
   const [avatarUrl, setAvatarUrl] = useState<string | null>(user?.user_metadata?.avatar_url || null);
+  const { unreadCount } = useNotifications(user?.id);
 
   // Fetch latest avatar from profiles table
   useEffect(() => {
@@ -86,7 +88,18 @@ export function Navbar() {
         {/* Auth area (desktop) */}
         <div className="hidden items-center gap-3 lg:flex">
           {user ? (
-            <div ref={dropdownRef} className="relative">
+            <>
+              {/* Notification bell */}
+              <Link href="/feed" prefetch={false} className="relative flex h-9 w-9 items-center justify-center rounded-full bg-surface/50 text-offwhite transition-colors hover:text-white">
+                <Bell className="h-4 w-4" />
+                {unreadCount > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 font-body text-[9px] font-bold text-white">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+              </Link>
+
+              <div ref={dropdownRef} className="relative">
               <button
                 onClick={() => setProfileOpen(!profileOpen)}
                 className="flex items-center gap-2 rounded-full border border-dark-gray/40 bg-surface/50 py-1.5 pl-1.5 pr-3 transition-all hover:border-primary/30 hover:bg-surface"
@@ -152,6 +165,7 @@ export function Navbar() {
                 )}
               </AnimatePresence>
             </div>
+            </>
           ) : (
             <Link
               href="/auth/signin"

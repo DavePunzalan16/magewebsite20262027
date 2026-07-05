@@ -8,6 +8,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { uploadFile } from "@/lib/upload";
 import { siteConfig } from "@/data/portfolio";
+import { useRealtimeFeed } from "@/hooks/useRealtimeFeed";
 import {
   Heart, MessageCircle, Share2, Bookmark, Send, ImageIcon,
   MoreHorizontal, Trash2, EyeOff, Pin, ArrowLeft, X,
@@ -66,6 +67,22 @@ export default function FeedPage() {
   const [menuOpen, setMenuOpen] = useState<number | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  // Realtime: new posts appear without refresh
+  useRealtimeFeed({
+    onNewPost: useCallback((newPost: Record<string, unknown>) => {
+      setPosts((prev) => {
+        // Deduplicate
+        if (prev.some((p) => p.id === newPost.id)) return prev;
+        return [{ ...newPost, reactions: 0, comments: 0, shares: 0, userReacted: false, userBookmarked: false } as FeedPost, ...prev];
+      });
+    }, []),
+    onReactionChange: useCallback((_reaction: Record<string, unknown>, event: "INSERT" | "DELETE") => {
+      const postId = _reaction.post_id as number;
+      setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, reactions: p.reactions + (event === "INSERT" ? 1 : -1) } : p));
+    }, []),
+    enabled: true,
+  });
 
   // Fetch posts
   const fetchPosts = useCallback(async (reset = false) => {

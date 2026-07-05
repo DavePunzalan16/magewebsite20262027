@@ -1,95 +1,89 @@
-import { createAdminClient } from "@/lib/supabase/server";
-import type { Notification } from "@/lib/types/database";
+import { NotificationRepository } from "@/lib/repositories/notifications";
 
 export class NotificationService {
-  private db = createAdminClient();
+  private repo: NotificationRepository;
 
-  async create(params: {
-    userId: string;
-    type: Notification["type"];
-    title: string;
-    body?: string;
-    entityType?: string;
-    entityId?: string;
-    actorId?: string;
-  }) {
-    // Don't notify yourself
-    if (params.actorId && params.actorId === params.userId) return null;
-
-    const { data, error } = await this.db.from("notifications").insert({
-      user_id: params.userId,
-      type: params.type,
-      title: params.title,
-      body: params.body || null,
-      entity_type: params.entityType || null,
-      entity_id: params.entityId || null,
-      actor_id: params.actorId || null,
-    }).select().single();
-
-    if (error) return null;
-    return data;
+  constructor() {
+    this.repo = new NotificationRepository();
   }
 
-  async getByUser(userId: string, limit = 20, offset = 0) {
-    const { data, error, count } = await this.db
-      .from("notifications")
-      .select("*, profiles:actor_id(full_name, avatar_url)", { count: "exact" })
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .range(offset, offset + limit - 1);
+  // === Business logic methods (design spec) ===
 
-    if (error) throw new Error(error.message);
-    return { notifications: data || [], total: count || 0 };
-  }
-
-  async getUnreadCount(userId: string): Promise<number> {
-    const { count } = await this.db
-      .from("notifications")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .eq("is_read", false);
-    return count || 0;
-  }
-
-  async markAsRead(notificationId: number, userId: string) {
-    await this.db.from("notifications").update({ is_read: true }).eq("id", notificationId).eq("user_id", userId);
-  }
-
-  async markAllAsRead(userId: string) {
-    await this.db.from("notifications").update({ is_read: true }).eq("user_id", userId).eq("is_read", false);
-  }
-
-  // Notification creators for specific events
-  async onComment(postAuthorId: string, actorId: string, postId: number, actorName: string) {
-    return this.create({
+  async notifyComment(postAuthorId: string, actorId: string, postId: number, commentPreview: string): Promise<void> {
+    if (postAuthorId === actorId) return; // Don't self-notify
+    await this.repo.create({
       userId: postAuthorId,
       type: "comment",
       title: "New comment on your post",
-      body: `${actorName} commented on your post`,
+      body: commentPreview.slice(0, 100),
       entityType: "post",
       entityId: String(postId),
       actorId,
     });
   }
 
-  async onReaction(postAuthorId: string, actorId: string, postId: number, actorName: string) {
-    return this.create({
+  async notifyReaction(postAuthorId: string, actorId: string, postId: number): Promise<void> {
+    if (postAuthorId === actorId) return; // Don't self-notify
+    await this.repo.create({
       userId: postAuthorId,
       type: "reaction",
       title: "Someone reacted to your post",
-      body: `${actorName} reacted to your post`,
+      body: "Your post received a new reaction",
       entityType: "post",
       entityId: String(postId),
       actorId,
     });
   }
 
-  async onModeration(postAuthorId: string, action: string, reason?: string) {
-    return this.create({
+  async notifyModeration(postAuthorId: string, adminId: string, postId: number, action: string, reason?: string): Promise<void> {
+    // No self-notification prevention for moderation - admin actions always notify
+    await this.repo.create({
       userId: postAuthorId,
       type: "moderation",
       title: `Your post was ${action}`,
-      body: reason || `An admin has ${action} your post`,
+      body: reason || `An admin has ${action} your post.`,
+      entityType: "post",
+      entityId: String(postId),
+      actorId: adminId,
+    });
+  }
+
+  // === Legacy methods (used by existing API routes, will be refactored in later tasks) ===
+
+  async getByUser(userId: string, limit = 20, offset = 0) {
+    const notifications = await this.repo.findByUser({ userId, limit, offset });
+    return { notifications, total: notifications.length };
+  }
+
+  async getUnreadCount(userId: string): Promise<number> {
+    return this.repo.getUnreadCount(userId);
+  }
+
+  async markAsRead(notificationId: number, userId: string): Promise<void> {
+    await this.repo.markAsRead(notificationId, userId);
+  }
+
+  async markAllAsRead(userId: string): Promise<void> {
+    await this.repo.markAllAsRead(userId);
+  }
+
+  /** @deprecated Use notifyReaction() instead */
+  async onReaction(postAuthorId: string, actorId: string, postId: number, _actorName: string): Promise<void> {
+    await this.notifyReaction(postAuthorId, actorId, postId);
+  }
+
+  /** @deprecated Use notifyComment() instead */
+  async onComment(postAuthorId: string, actorId: string, postId: number, actorName: string): Promise<void> {
+    await this.notifyComment(postAuthorId, actorId, postId, actorName);
+  }
+
+  /** @deprecated Use notifyModeration() instead */
+  async onModeration(postAuthorId: string, action: string, reason?: string): Promise<void> {
+    await this.repo.create({
+      userId: postAuthorId,
+      type: "moderation",
+      title: `Your post was ${action}`,
+      body: reason || `An admin has ${action} your post.`,
       entityType: "moderation",
     });
   }

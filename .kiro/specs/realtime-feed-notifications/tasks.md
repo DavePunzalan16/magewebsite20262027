@@ -42,33 +42,33 @@ This plan implements realtime feed subscriptions, a notifications system, admin 
     - _Requirements: 10.5_
 
 - [ ] 3. Repository layer
-  - [~] 3.1 Create NotificationRepository extending BaseRepository
+  - [x] 3.1 Create NotificationRepository extending BaseRepository
     - Create `src/lib/repositories/notifications.ts`
     - Implement create(), findByUser() with pagination, markAsRead(), markAllAsRead(), getUnreadCount()
     - _Requirements: 2.6, 10.2_
 
-  - [~] 3.2 Write property tests for NotificationRepository
+  - [-] 3.2 Write property tests for NotificationRepository
     - **Property 4: Notification ordering and pagination**
     - **Property 5: Mark-all-read completeness**
     - **Property 6: Unread count accuracy**
     - **Validates: Requirements 3.1, 3.3, 3.4**
 
-  - [~] 3.3 Create ReportRepository extending BaseRepository
+  - [x] 3.3 Create ReportRepository extending BaseRepository
     - Create `src/lib/repositories/reports.ts`
     - Implement create(), findPending() with joined post/profile data, review()
     - _Requirements: 6.1, 6.2, 6.3_
 
-  - [~] 3.4 Write property test for ReportRepository
+  - [-] 3.4 Write property test for ReportRepository
     - **Property 10: Report creation invariant**
     - **Validates: Requirements 6.2**
 
-  - [~] 3.5 Extend PostRepository with softDelete and unhide methods
+  - [x] 3.5 Extend PostRepository with softDelete and unhide methods
     - Add softDelete(id, userId) method that sets deleted_at timestamp and logs activity
     - Add unhide(id, userId) method that sets is_hidden=false and logs activity
     - Update findMany() to exclude posts where deleted_at IS NOT NULL
     - _Requirements: 6.5, 6.6, 6.7, 6.8_
 
-  - [~] 3.6 Write property tests for moderation state transitions
+  - [-] 3.6 Write property tests for moderation state transitions
     - **Property 9: Moderation state transition with audit trail**
     - **Validates: Requirements 6.4, 6.5, 6.6, 6.8**
 
@@ -76,7 +76,7 @@ This plan implements realtime feed subscriptions, a notifications system, admin 
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 5. Service layer
-  - [~] 5.1 Create NotificationService with business logic
+  - [-] 5.1 Create NotificationService with business logic
     - Create `src/lib/services/notifications.ts`
     - Implement notifyComment(), notifyReaction(), notifyModeration()
     - Enforce self-notification prevention (actor_id === recipient → no-op)
@@ -143,7 +143,7 @@ This plan implements realtime feed subscriptions, a notifications system, admin 
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 9. Client-side realtime hooks and cache utilities
-  - [-] 9.1 Install fast-check dependency
+  - [x] 9.1 Install fast-check dependency
     - Add fast-check as a devDependency
     - _Requirements: (testing infrastructure)_
 

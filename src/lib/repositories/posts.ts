@@ -23,6 +23,7 @@ export class PostRepository extends BaseRepository {
       .from("posts")
       .select("*, profiles(full_name, avatar_url)", { count: "exact" })
       .eq("is_hidden", false)
+      .is("deleted_at", null)
       .order("is_pinned", { ascending: false })
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
@@ -79,6 +80,24 @@ export class PostRepository extends BaseRepository {
     const { error } = await this.db.from("posts").delete().eq("id", id);
     if (error) throw new Error(error.message);
     await this.logActivity(userId, "delete", "post", String(id));
+  }
+
+  async softDelete(id: number, userId: string): Promise<void> {
+    const { error } = await this.db
+      .from("posts")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", id);
+    if (error) throw new Error(error.message);
+    await this.logActivity(userId, "soft_delete", "moderation", String(id));
+  }
+
+  async unhide(id: number, userId: string): Promise<void> {
+    const { error } = await this.db
+      .from("posts")
+      .update({ is_hidden: false })
+      .eq("id", id);
+    if (error) throw new Error(error.message);
+    await this.logActivity(userId, "unhide", "moderation", String(id));
   }
 
   async getReactionCount(postId: number): Promise<number> {
