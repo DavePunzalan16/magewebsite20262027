@@ -15,6 +15,9 @@ interface ProfileData {
   avatar_url?: string;
   bio?: string;
   role?: string;
+  xp?: number;
+  level?: number;
+  mana?: number;
   favorite_anime?: string;
   favorite_game?: string;
   favorite_manga?: string;
@@ -163,6 +166,43 @@ export default function ProfilePage() {
 
           {/* Right column — Badges + Genres */}
           <div className="flex flex-col gap-4 md:col-span-2">
+            {/* XP / Level / Mana */}
+            <div className="rounded-[12px] border border-dark-gray/30 bg-surface/20 p-5">
+              <h2 className="mb-4 flex items-center gap-2 font-body text-[14px] font-semibold text-white"><Sparkles className="h-4 w-4 text-primary" /> Guild Progress</h2>
+              <div className="mb-4 grid grid-cols-3 gap-3">
+                <div className="rounded-[8px] bg-background/20 p-3 text-center">
+                  <p className="font-display text-[22px] text-yellow-400">{profile?.level || 1}</p>
+                  <p className="font-body text-[9px] uppercase tracking-wider text-offwhite/35">Level</p>
+                </div>
+                <div className="rounded-[8px] bg-background/20 p-3 text-center">
+                  <p className="font-display text-[22px] text-primary">{profile?.xp || 0}</p>
+                  <p className="font-body text-[9px] uppercase tracking-wider text-offwhite/35">XP</p>
+                </div>
+                <div className="rounded-[8px] bg-background/20 p-3 text-center">
+                  <p className="font-display text-[22px] text-blue-400">{profile?.mana || 0}</p>
+                  <p className="font-body text-[9px] uppercase tracking-wider text-offwhite/35">Mana</p>
+                </div>
+              </div>
+              {/* XP Progress bar */}
+              {(() => {
+                const xp = profile?.xp || 0;
+                const level = profile?.level || 1;
+                const xpForNext = Math.floor(100 * Math.pow(1.5, level - 1));
+                const progress = Math.min(Math.round((xp / xpForNext) * 100), 100);
+                return (
+                  <div>
+                    <div className="mb-1 flex items-center justify-between">
+                      <span className="font-body text-[10px] text-offwhite/40">Lv.{level} → Lv.{level + 1}</span>
+                      <span className="font-body text-[10px] text-primary">{progress}%</span>
+                    </div>
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-dark-gray/30">
+                      <div className="h-full rounded-full bg-gradient-to-r from-primary/70 to-primary transition-all duration-700" style={{ width: `${progress}%` }} />
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
             {/* Badges — 3D cards */}
             <div className="rounded-[12px] border border-dark-gray/30 bg-surface/20 p-5">
               <h2 className="mb-4 flex items-center gap-2 font-body text-[14px] font-semibold text-white"><Trophy className="h-4 w-4 text-primary" /> Badges</h2>
