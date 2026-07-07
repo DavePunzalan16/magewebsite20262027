@@ -80,6 +80,7 @@ export default function DashboardLayout({
 
   const memberLinks = [
     { href: "/dashboard/member", label: "My Dashboard", icon: LayoutDashboard },
+    { href: "/dashboard/member/xp", label: "XP & Quests", icon: BarChart3 },
     { href: "/dashboard/member/id", label: "My QR ID", icon: QrCode },
     { href: "/dashboard/member/attendance", label: "Attendance", icon: CheckSquare },
     { href: "/dashboard/member/events", label: "Events", icon: Calendar },
