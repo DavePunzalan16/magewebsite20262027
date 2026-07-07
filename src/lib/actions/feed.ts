@@ -6,6 +6,17 @@ import { createPostSchema } from "@/lib/validators/posts";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 
+// Lazy import XP to avoid circular deps
+async function trackXP(userId: string, action: string, sourceType?: string, sourceId?: string) {
+  try {
+    const { XPService, QuestService } = await import("@/lib/services/xp");
+    const xp = new XPService();
+    await xp.awardXP(userId, action, sourceType, sourceId);
+    const quests = new QuestService();
+    await quests.trackProgress(userId, action);
+  } catch {}
+}
+
 const commentSchema = z.object({
   content: z.string().min(1).max(1000),
 });
@@ -23,6 +34,10 @@ export async function createFeedPost(userId: string, input: { content: string; i
   const repo = new PostRepository();
   const post = await repo.create(userId, validated);
   revalidatePath("/feed");
+
+  // Award XP for posting
+  await trackXP(userId, "post", "post", String(post.id));
+
   return { post };
 }
 
@@ -68,6 +83,9 @@ export async function toggleReaction(postId: number, userId: string, emoji = "‚ù
     } catch {}
   }
 
+  // Award XP for reaction
+  if (result === "added") await trackXP(userId, "reaction", "post", String(postId));
+
   return { action: result };
 }
 
@@ -90,6 +108,9 @@ export async function addComment(postId: number, userId: string, content: string
       await notifService.onComment(post.user_id, userId, postId, actor?.full_name || "Someone");
     }
   } catch {}
+
+  // Award XP for commenting
+  await trackXP(userId, "comment", "post", String(postId));
 
   return { comment };
 }

@@ -1097,3 +1097,104 @@ on conflict do nothing;
 ```
 
 **Run all blocks.**
+
+---
+
+## Step 26 — Sprint 51: XP Engine + Levels
+
+### Add XP columns to profiles
+
+```sql
+alter table profiles add column if not exists xp integer default 0;
+alter table profiles add column if not exists level integer default 1;
+alter table profiles add column if not exists mana integer default 0;
+```
+
+### XP Transactions table (audit trail)
+
+```sql
+create table if not exists xp_transactions (
+  id bigint generated always as identity primary key,
+  user_id uuid references profiles(id) on delete cascade,
+  amount integer not null,
+  reason text not null,
+  source_type text,
+  source_id text,
+  created_at timestamptz default now()
+);
+
+alter table xp_transactions enable row level security;
+
+create policy "xp_select" on xp_transactions for select using (auth.uid() = user_id or public.is_admin());
+create policy "xp_insert" on xp_transactions for insert with check (true);
+
+create index idx_xp_user on xp_transactions(user_id);
+create index idx_xp_created on xp_transactions(created_at desc);
+```
+
+### Mana Transactions table
+
+```sql
+create table if not exists mana_transactions (
+  id bigint generated always as identity primary key,
+  user_id uuid references profiles(id) on delete cascade,
+  amount integer not null,
+  reason text not null,
+  source_type text,
+  source_id text,
+  created_at timestamptz default now()
+);
+
+alter table mana_transactions enable row level security;
+
+create policy "mana_select" on mana_transactions for select using (auth.uid() = user_id or public.is_admin());
+create policy "mana_insert" on mana_transactions for insert with check (true);
+```
+
+### Quests table
+
+```sql
+create table if not exists quests (
+  id bigint generated always as identity primary key,
+  title text not null,
+  description text,
+  type text default 'daily' check (type in ('daily', 'weekly', 'special')),
+  xp_reward integer default 10,
+  mana_reward integer default 5,
+  requirement_type text not null,
+  requirement_count integer default 1,
+  is_active boolean default true,
+  created_at timestamptz default now()
+);
+
+create table if not exists user_quests (
+  id bigint generated always as identity primary key,
+  user_id uuid references profiles(id) on delete cascade,
+  quest_id bigint references quests(id) on delete cascade,
+  progress integer default 0,
+  completed boolean default false,
+  completed_at timestamptz,
+  created_at timestamptz default now(),
+  unique(user_id, quest_id)
+);
+
+alter table quests enable row level security;
+alter table user_quests enable row level security;
+
+create policy "quests_select" on quests for select using (true);
+create policy "quests_admin" on quests for all using (public.is_admin());
+create policy "user_quests_select" on user_quests for select using (auth.uid() = user_id);
+create policy "user_quests_insert" on user_quests for insert with check (auth.uid() = user_id);
+create policy "user_quests_update" on user_quests for update using (auth.uid() = user_id);
+
+-- Seed daily quests
+insert into quests (title, description, type, xp_reward, mana_reward, requirement_type, requirement_count) values
+  ('First Post', 'Create a post in the guild feed', 'daily', 15, 5, 'post', 1),
+  ('Social Mage', 'React to 3 posts', 'daily', 10, 3, 'reaction', 3),
+  ('Commenter', 'Leave 2 comments', 'daily', 10, 3, 'comment', 2),
+  ('Weekly Warrior', 'Post 5 times this week', 'weekly', 50, 20, 'post', 5),
+  ('Community Builder', 'Add 2 friends', 'weekly', 30, 15, 'friend', 2),
+  ('Event Goer', 'Register for an event', 'special', 25, 10, 'rsvp', 1);
+```
+
+**Run all blocks.**
