@@ -5,7 +5,9 @@ import { LenisProvider } from "@/components/providers/LenisProvider";
 import { AudioProvider } from "@/components/providers/AudioProvider";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { QueryProvider } from "@/components/providers/QueryProvider";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { SkipToContent } from "@/components/ui/SkipToContent";
+import { ThemeSelector } from "@/components/ui/ThemeSelector";
 
 const bebasNeue = Bebas_Neue({
   weight: "400",
@@ -131,13 +133,16 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen bg-background text-foreground">
         <SkipToContent />
-        <QueryProvider>
-          <AuthProvider>
-            <AudioProvider>
-              <LenisProvider>{children}</LenisProvider>
-            </AudioProvider>
-          </AuthProvider>
-        </QueryProvider>
+        <ThemeProvider>
+          <QueryProvider>
+            <AuthProvider>
+              <AudioProvider>
+                <LenisProvider>{children}</LenisProvider>
+              </AudioProvider>
+            </AuthProvider>
+          </QueryProvider>
+          <ThemeSelector />
+        </ThemeProvider>
       </body>
     </html>
   );
