@@ -477,6 +477,9 @@ export default function FeedPage() {
             </div>
           </div>
 
+          {/* Friend Requests */}
+          <FriendRequestsSidebar userId={user?.id} />
+
           {/* Online (placeholder) */}
           <MembersSidebar currentUserId={user?.id} />
         </aside>
@@ -528,6 +531,152 @@ function MembersSidebar({ currentUserId }: { currentUserId?: string }) {
               {member.id === currentUserId && <span className="font-body text-[8px] text-primary">you</span>}
             </Link>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Friend Requests sidebar — realtime
+function FriendRequestsSidebar({ userId }: { userId?: string }) {
+  const [requests, setRequests] = useState<{ id: number; requester_id: string; name: string; avatar: string | null; created_at: string }[]>([]);
+  const [friends, setFriends] = useState<{ id: string; full_name: string | null; avatar_url: string | null }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!userId) return;
+    const fetchData = async () => {
+      const supabase = createClient();
+
+      // Get pending requests where I'm the receiver
+      const { data: pending } = await supabase.from("friendships")
+        .select("id, requester_id, created_at")
+        .eq("receiver_id", userId)
+        .eq("status", "pending");
+
+      if (pending && pending.length > 0) {
+        const requesterIds = pending.map((p) => p.requester_id);
+        const { data: profiles } = await supabase.from("profiles").select("id, full_name, avatar_url").in("id", requesterIds);
+        const profileMap = new Map(profiles?.map((p) => [p.id, p]) || []);
+
+        setRequests(pending.map((p) => ({
+          id: p.id,
+          requester_id: p.requester_id,
+          name: profileMap.get(p.requester_id)?.full_name || "Member",
+          avatar: profileMap.get(p.requester_id)?.avatar_url || null,
+          created_at: p.created_at,
+        })));
+      }
+
+      // Get accepted friends
+      const { data: friendships } = await supabase.from("friendships")
+        .select("requester_id, receiver_id")
+        .eq("status", "accepted")
+        .or(`requester_id.eq.${userId},receiver_id.eq.${userId}`);
+
+      if (friendships && friendships.length > 0) {
+        const friendIds = friendships.map((f) => f.requester_id === userId ? f.receiver_id : f.requester_id);
+        const { data: friendProfiles } = await supabase.from("profiles").select("id, full_name, avatar_url").in("id", friendIds);
+        if (friendProfiles) setFriends(friendProfiles);
+      }
+
+      setLoading(false);
+    };
+    fetchData();
+
+    // Realtime subscription for new friend requests
+    const supabase = createClient();
+    const channel = supabase.channel(`friends-${userId}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "friendships", filter: `receiver_id=eq.${userId}` },
+        (payload) => {
+          if (payload.new && (payload.new as any).status === "pending") {
+            // Fetch requester profile
+            supabase.from("profiles").select("id, full_name, avatar_url").eq("id", (payload.new as any).requester_id).single()
+              .then(({ data: profile }) => {
+                if (profile) {
+                  setRequests((prev) => [{
+                    id: (payload.new as any).id,
+                    requester_id: (payload.new as any).requester_id,
+                    name: profile.full_name || "Member",
+                    avatar: profile.avatar_url,
+                    created_at: (payload.new as any).created_at,
+                  }, ...prev]);
+                }
+              });
+          }
+        })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [userId]);
+
+  const handleAccept = async (friendshipId: number) => {
+    const supabase = createClient();
+    await supabase.from("friendships").update({ status: "accepted", updated_at: new Date().toISOString() }).eq("id", friendshipId);
+    const accepted = requests.find((r) => r.id === friendshipId);
+    setRequests((prev) => prev.filter((r) => r.id !== friendshipId));
+    if (accepted) setFriends((prev) => [...prev, { id: accepted.requester_id, full_name: accepted.name, avatar_url: accepted.avatar }]);
+  };
+
+  const handleReject = async (friendshipId: number) => {
+    const supabase = createClient();
+    await supabase.from("friendships").update({ status: "rejected", updated_at: new Date().toISOString() }).eq("id", friendshipId);
+    setRequests((prev) => prev.filter((r) => r.id !== friendshipId));
+  };
+
+  if (!userId || loading) return null;
+  if (requests.length === 0 && friends.length === 0) return null;
+
+  return (
+    <div className="rounded-[12px] border border-dark-gray/30 bg-surface/20 p-4">
+      {/* Pending Requests */}
+      {requests.length > 0 && (
+        <div className="mb-4">
+          <h3 className="mb-2 font-body text-[11px] font-semibold uppercase tracking-wider text-offwhite/40">
+            Friend Requests ({requests.length})
+          </h3>
+          <div className="flex flex-col gap-2">
+            {requests.map((req) => (
+              <div key={req.id} className="flex items-center gap-2 rounded-[6px] bg-background/20 p-2">
+                {req.avatar ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={req.avatar} alt="" className="h-7 w-7 rounded-full object-cover" />
+                ) : (
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/15 font-body text-[9px] text-primary">{req.name.charAt(0)}</div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="truncate font-body text-[10px] font-medium text-white">{req.name}</p>
+                </div>
+                <div className="flex gap-1">
+                  <button onClick={() => handleAccept(req.id)} className="rounded bg-green-500/10 px-2 py-0.5 font-body text-[9px] font-medium text-green-400 hover:bg-green-500/20">✓</button>
+                  <button onClick={() => handleReject(req.id)} className="rounded bg-red-500/10 px-2 py-0.5 font-body text-[9px] font-medium text-red-400 hover:bg-red-500/20">✗</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Friends list */}
+      {friends.length > 0 && (
+        <div>
+          <h3 className="mb-2 font-body text-[11px] font-semibold uppercase tracking-wider text-offwhite/40">
+            Friends ({friends.length})
+          </h3>
+          <div className="flex flex-col gap-1.5 max-h-[150px] overflow-y-auto">
+            {friends.map((f) => (
+              <Link key={f.id} href={`/profile/${f.id}`} prefetch={false} className="flex items-center gap-2 rounded-[6px] px-2 py-1.5 hover:bg-white/5">
+                {f.avatar_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={f.avatar_url} alt="" className="h-5 w-5 rounded-full object-cover" />
+                ) : (
+                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/15 font-body text-[8px] text-primary">{(f.full_name || "M").charAt(0)}</div>
+                )}
+                <span className="truncate font-body text-[10px] text-offwhite/60">{f.full_name || "Member"}</span>
+                <div className="ml-auto h-1.5 w-1.5 rounded-full bg-green-400" />
+              </Link>
+            ))}
+          </div>
         </div>
       )}
     </div>
