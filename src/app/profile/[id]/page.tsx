@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { PremiumFooter } from "@/components/sections/Footer";
+import { ProfileGallery } from "@/components/ui/ProfileGallery";
 import { ArrowLeft, Gamepad2, Heart, Shield, Trophy, Sparkles, UserPlus, Check, Clock, Globe } from "lucide-react";
 
 interface PublicProfile {
@@ -254,6 +255,7 @@ export default function PublicProfilePage() {
           )}
 
           {/* Guild QR ID */}
+          <ProfileGallery userId={profileId} isOwner={isOwnProfile} />
           <PublicQRCard userId={profileId} displayName={displayName} />
         </div>
       </div>

@@ -9,6 +9,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { PremiumFooter } from "@/components/sections/Footer";
 import { Edit3, Gamepad2, Tv, BookOpen, Heart, Star, Trophy, Shield, Sparkles, Globe, MessageSquare, QrCode } from "lucide-react";
+import { ProfileGallery } from "@/components/ui/ProfileGallery";
 
 interface ProfileData {
   full_name?: string;
@@ -164,6 +165,7 @@ export default function ProfilePage() {
             </Card>
 
             {/* QR Guild ID */}
+            <ProfileGallery userId={user.id} isOwner={true} />
             <GuildQRCard userId={user.id} displayName={displayName} />
           </div>
 
