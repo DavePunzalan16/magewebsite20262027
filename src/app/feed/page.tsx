@@ -237,7 +237,6 @@ export default function FeedPage() {
       // Award XP for commenting
       awardClientXP(user.id, "comment");
     }
-    }
     setCommentText("");
   };
 
