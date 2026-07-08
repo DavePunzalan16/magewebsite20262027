@@ -26,6 +26,9 @@ interface PublicProfile {
   discord_username: string | null;
   steam_username: string | null;
   valorant_ign: string | null;
+  xp: number | null;
+  level: number | null;
+  mana: number | null;
   created_at: string;
 }
 
@@ -149,6 +152,55 @@ export default function PublicProfilePage() {
             </Link>
           )}
         </div>
+
+        {/* Gamification Stats — MMORPG style */}
+        <motion.div
+          className="mb-6 overflow-hidden rounded-[14px] border border-primary/20 bg-gradient-to-r from-[#0c0020] via-surface/30 to-[#0c0020] p-5"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+        >
+          <div className="grid grid-cols-3 gap-4 mb-4">
+            <motion.div className="text-center" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.3, type: "spring" }}>
+              <div className="relative inline-flex">
+                <span className="font-display text-[28px] text-yellow-400">{profile.level || 1}</span>
+              </div>
+              <p className="font-body text-[9px] uppercase tracking-widest text-yellow-400/60">Level</p>
+            </motion.div>
+            <motion.div className="text-center" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.4, type: "spring" }}>
+              <span className="font-display text-[28px] text-primary">{profile.xp || 0}</span>
+              <p className="font-body text-[9px] uppercase tracking-widest text-primary/60">XP</p>
+            </motion.div>
+            <motion.div className="text-center" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.5, type: "spring" }}>
+              <span className="font-display text-[28px] text-blue-400">{profile.mana || 0}</span>
+              <p className="font-body text-[9px] uppercase tracking-widest text-blue-400/60">Mana</p>
+            </motion.div>
+          </div>
+          {/* XP Bar */}
+          {(() => {
+            const xp = profile.xp || 0;
+            const level = profile.level || 1;
+            const xpForNext = Math.floor(100 * Math.pow(1.5, level - 1));
+            const progress = Math.min(Math.round((xp / xpForNext) * 100), 100);
+            return (
+              <div>
+                <div className="mb-1 flex justify-between">
+                  <span className="font-body text-[9px] text-offwhite/30">Lv.{level}</span>
+                  <span className="font-body text-[9px] text-offwhite/30">Lv.{level + 1}</span>
+                </div>
+                <div className="h-2.5 w-full overflow-hidden rounded-full bg-dark-gray/40">
+                  <motion.div
+                    className="h-full rounded-full bg-gradient-to-r from-primary via-purple-400 to-blue-400"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${progress}%` }}
+                    transition={{ duration: 1.2, ease: "easeOut", delay: 0.6 }}
+                  />
+                </div>
+                <p className="mt-1 text-center font-body text-[9px] text-offwhite/30">{xp} / {xpForNext} XP</p>
+              </div>
+            );
+          })()}
+        </motion.div>
 
         {/* Content */}
         <div className="grid gap-4 pb-10 grid-cols-1 md:grid-cols-2">
