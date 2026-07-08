@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { QrCode, CheckCircle2, XCircle, ArrowLeft, Search } from "lucide-react";
+import { QrCode, CheckCircle2, XCircle, ArrowLeft, Search, Camera } from "lucide-react";
 
 interface EventItem { id: number; title: string; date: string | null; }
 
@@ -16,6 +16,9 @@ export default function CheckInPage() {
   const [userId, setUserId] = useState("");
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
   const [loading, setLoading] = useState(false);
+  const [cameraActive, setCameraActive] = useState(false);
+  const scannerRef = useRef<HTMLDivElement>(null);
+  const scannerInstanceRef = useRef<any>(null);
   const [recentCheckins, setRecentCheckins] = useState<{ name: string; time: string }[]>([]);
 
   // Only admin can access
@@ -26,6 +29,42 @@ export default function CheckInPage() {
     supabase.from("events").select("id, title, date").order("created_at", { ascending: false }).limit(10)
       .then(({ data }) => { if (data) setEvents(data); });
   }, []);
+
+  // Camera QR scanner
+  const startCamera = useCallback(async () => {
+    if (!scannerRef.current) return;
+    try {
+      const { Html5Qrcode } = await import("html5-qrcode");
+      const scanner = new Html5Qrcode("qr-scanner-region");
+      scannerInstanceRef.current = scanner;
+      setCameraActive(true);
+      await scanner.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        (decodedText) => {
+          setUserId(decodedText);
+          stopCamera();
+        },
+        () => {} // ignore errors during scanning
+      );
+    } catch (err) {
+      setResult({ success: false, message: "Camera access denied or not available." });
+    }
+  }, []);
+
+  const stopCamera = useCallback(async () => {
+    if (scannerInstanceRef.current) {
+      try {
+        await scannerInstanceRef.current.stop();
+        scannerInstanceRef.current.clear();
+      } catch {}
+      scannerInstanceRef.current = null;
+    }
+    setCameraActive(false);
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => { return () => { stopCamera(); }; }, [stopCamera]);
 
   const handleCheckIn = async () => {
     if (!selectedEvent || !userId.trim()) return;
@@ -139,6 +178,24 @@ export default function CheckInPage() {
               {loading ? "..." : "Check In"}
             </button>
           </div>
+        </div>
+
+        {/* Camera Scanner */}
+        <div className="mb-5">
+          <button
+            onClick={cameraActive ? stopCamera : startCamera}
+            className={`flex w-full items-center justify-center gap-2 rounded-[8px] border px-4 py-3 font-body text-[13px] font-medium transition-all ${
+              cameraActive ? "border-red-500/30 bg-red-500/5 text-red-400 hover:bg-red-500/10" : "border-primary/30 bg-primary/5 text-primary hover:bg-primary/10"
+            }`}
+          >
+            <Camera className="h-4 w-4" />
+            {cameraActive ? "Stop Camera" : "📷 Scan QR with Camera"}
+          </button>
+          {cameraActive && (
+            <div className="mt-3 overflow-hidden rounded-[10px] border border-dark-gray/30">
+              <div id="qr-scanner-region" ref={scannerRef} className="w-full" />
+            </div>
+          )}
         </div>
 
         {/* Result */}
