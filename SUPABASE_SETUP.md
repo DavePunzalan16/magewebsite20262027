@@ -1198,3 +1198,13 @@ insert into quests (title, description, type, xp_reward, mana_reward, requiremen
 ```
 
 **Run all blocks.**
+
+---
+
+## Step 27 — Set admin to max level
+
+```sql
+update profiles set level = 99, xp = 99999 where role = 'admin';
+```
+
+**Run it.** Admin will show as Level 99 on their profile.

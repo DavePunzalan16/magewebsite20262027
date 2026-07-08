@@ -89,15 +89,8 @@ export function Navbar() {
         <div className="hidden items-center gap-3 lg:flex">
           {user ? (
             <>
-              {/* Notification bell */}
-              <Link href="/feed" prefetch={false} className="relative flex h-9 w-9 items-center justify-center rounded-full bg-surface/50 text-offwhite transition-colors hover:text-white">
-                <Bell className="h-4 w-4" />
-                {unreadCount > 0 && (
-                  <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 font-body text-[9px] font-bold text-white">
-                    {unreadCount > 9 ? "9+" : unreadCount}
-                  </span>
-                )}
-              </Link>
+              {/* Notification bell + dropdown */}
+              <NotificationDropdown unreadCount={unreadCount} userId={user.id} />
 
               <div ref={dropdownRef} className="relative">
               <button
@@ -232,5 +225,101 @@ export function Navbar() {
         )}
       </AnimatePresence>
     </motion.nav>
+  );
+}
+
+
+// Notification Dropdown (realtime via useNotifications hook)
+function NotificationDropdown({ unreadCount, userId }: { unreadCount: number; userId: string }) {
+  const [open, setOpen] = useState(false);
+  const [notifications, setNotifications] = useState<{ id: number; title: string; body: string | null; type: string; is_read: boolean; created_at: string }[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Close on outside click
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  // Fetch notifications when opened
+  useEffect(() => {
+    if (!open || loaded) return;
+    const supabase = createClient();
+    supabase.from("notifications").select("id, title, body, type, is_read, created_at")
+      .eq("user_id", userId).order("created_at", { ascending: false }).limit(10)
+      .then(({ data }) => { if (data) setNotifications(data); setLoaded(true); });
+  }, [open, loaded, userId]);
+
+  // Realtime: listen for new notifications
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase.channel(`notif-dropdown-${userId}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
+        (payload) => {
+          if (payload.new) setNotifications((prev) => [payload.new as any, ...prev].slice(0, 10));
+        })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [userId]);
+
+  const markAllRead = async () => {
+    const supabase = createClient();
+    await supabase.from("notifications").update({ is_read: true }).eq("user_id", userId).eq("is_read", false);
+    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+  };
+
+  const typeEmoji: Record<string, string> = { comment: "💬", reaction: "❤️", post: "📝", moderation: "⚠️", mention: "@" };
+
+  return (
+    <div ref={ref} className="relative">
+      <button onClick={() => setOpen(!open)} className="relative flex h-9 w-9 items-center justify-center rounded-full bg-surface/50 text-offwhite transition-colors hover:text-white">
+        <Bell className="h-4 w-4" />
+        {unreadCount > 0 && (
+          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 font-body text-[9px] font-bold text-white">
+            {unreadCount > 9 ? "9+" : unreadCount}
+          </span>
+        )}
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            className="absolute right-0 top-full mt-2 w-[300px] overflow-hidden rounded-[12px] border border-dark-gray/40 bg-[#0c0015]/95 shadow-xl backdrop-blur-md"
+            initial={{ opacity: 0, y: -5, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -5, scale: 0.95 }}
+            transition={{ duration: 0.15 }}
+          >
+            <div className="flex items-center justify-between border-b border-dark-gray/30 px-4 py-3">
+              <h3 className="font-body text-[13px] font-semibold text-white">Notifications</h3>
+              {unreadCount > 0 && (
+                <button onClick={markAllRead} className="font-body text-[10px] text-primary hover:text-primary/80">Mark all read</button>
+              )}
+            </div>
+            <div className="max-h-[320px] overflow-y-auto">
+              {notifications.length === 0 ? (
+                <p className="px-4 py-6 text-center font-body text-[12px] text-offwhite/30">No notifications yet</p>
+              ) : (
+                notifications.map((n) => (
+                  <div key={n.id} className={`flex items-start gap-2.5 border-b border-dark-gray/10 px-4 py-3 last:border-0 ${!n.is_read ? "bg-primary/[0.03]" : ""}`}>
+                    <span className="mt-0.5 text-[14px]">{typeEmoji[n.type] || "🔔"}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-body text-[11px] font-medium text-white">{n.title}</p>
+                      {n.body && <p className="font-body text-[10px] text-offwhite/50 truncate">{n.body}</p>}
+                      <p className="mt-0.5 font-body text-[9px] text-offwhite/25">{new Date(n.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
+                    </div>
+                    {!n.is_read && <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />}
+                  </div>
+                ))
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
