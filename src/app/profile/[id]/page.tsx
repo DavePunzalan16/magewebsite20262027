@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -252,6 +252,9 @@ export default function PublicProfilePage() {
               </div>
             </div>
           )}
+
+          {/* Guild QR ID */}
+          <PublicQRCard userId={profileId} displayName={displayName} />
         </div>
       </div>
       <PremiumFooter />
@@ -267,6 +270,29 @@ function AccountRow({ emoji, label, value }: { emoji: string; label: string; val
         <p className="font-body text-[10px] uppercase tracking-wider text-offwhite/30">{label}</p>
         <p className="font-body text-[12px] text-offwhite/70">{value}</p>
       </div>
+    </div>
+  );
+}
+
+function PublicQRCard({ userId, displayName }: { userId: string; displayName: string }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    if (!canvasRef.current) return;
+    import("qrcode").then((QRCode) => {
+      QRCode.toCanvas(canvasRef.current!, JSON.stringify({
+        guild: "MAGE", user_id: userId, name: displayName, type: "member_id",
+      }), { width: 120, margin: 2, color: { dark: "#C3B1FF", light: "#1A1A1A" } });
+    });
+  }, [userId, displayName]);
+
+  return (
+    <div className="rounded-[12px] border border-dark-gray/30 bg-surface/20 p-4 text-center">
+      <h2 className="mb-2 font-body text-[12px] font-semibold text-white">Guild ID</h2>
+      <div className="inline-block rounded-[6px] border border-dark-gray/30 bg-background/30 p-1.5">
+        <canvas ref={canvasRef} />
+      </div>
+      <p className="mt-1.5 font-mono text-[9px] text-primary/50">{userId.slice(0, 8).toUpperCase()}</p>
     </div>
   );
 }
