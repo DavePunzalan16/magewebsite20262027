@@ -10,6 +10,7 @@ import { uploadFile } from "@/lib/upload";
 import { siteConfig } from "@/data/portfolio";
 import { useRealtimeFeed } from "@/hooks/useRealtimeFeed";
 import { PremiumFooter } from "@/components/sections/Footer";
+import { awardClientXP } from "@/lib/xp-client";
 import {
   Heart, MessageCircle, Share2, Bookmark, Send, ImageIcon,
   MoreHorizontal, Trash2, EyeOff, Pin, ArrowLeft, Users,
@@ -191,6 +192,8 @@ export default function FeedPage() {
         author_avatar: userProfile?.avatar_url || user.user_metadata?.avatar_url || null,
         reactions: 0, comments: 0, shares: 0, userReacted: false, userBookmarked: false,
       }, ...prev]);
+      // Award XP for posting
+      awardClientXP(user.id, "post");
     }
     setNewPost(""); setPostFile(null); setPostPreview(null); setPosting(false);
   };
@@ -203,7 +206,11 @@ export default function FeedPage() {
       const supabase = createClient();
       const { data: existing } = await supabase.from("reactions").select("id").eq("post_id", postId).eq("user_id", user.id).single();
       if (existing) await supabase.from("reactions").delete().eq("id", existing.id);
-      else await supabase.from("reactions").insert({ post_id: postId, user_id: user.id, emoji: "❤️" });
+      else {
+        await supabase.from("reactions").insert({ post_id: postId, user_id: user.id, emoji: "❤️" });
+        // Award XP for reacting
+        awardClientXP(user.id, "reaction");
+      }
     } catch {}
   };
 
@@ -227,6 +234,9 @@ export default function FeedPage() {
     if (data) {
       setComments((prev) => ({ ...prev, [postId]: [...(prev[postId] || []), { ...data, author_name: userProfile?.full_name || "You", author_avatar: userProfile?.avatar_url || null }] }));
       setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, comments: p.comments + 1 } : p));
+      // Award XP for commenting
+      awardClientXP(user.id, "comment");
+    }
     }
     setCommentText("");
   };

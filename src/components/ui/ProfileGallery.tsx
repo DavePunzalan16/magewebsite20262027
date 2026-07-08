@@ -132,8 +132,16 @@ function GalleryModal({ images, index, onClose, onPrev, onNext, isOwner, onDelet
   images: GalleryImage[]; index: number; onClose: () => void; onPrev: () => void; onNext: () => void; isOwner: boolean; onDelete: (id: number) => void; currentUserId?: string;
 }) {
   const img = images[index];
-  const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(0);
+  const [likedMap, setLikedMap] = useState<Record<number, boolean>>({});
+  const [likeCountMap, setLikeCountMap] = useState<Record<number, number>>({});
+
+  const liked = likedMap[img.id] || false;
+  const likeCount = likeCountMap[img.id] || 0;
+
+  const toggleLike = () => {
+    setLikedMap((prev) => ({ ...prev, [img.id]: !prev[img.id] }));
+    setLikeCountMap((prev) => ({ ...prev, [img.id]: (prev[img.id] || 0) + (liked ? -1 : 1) }));
+  };
 
   return (
     <motion.div className="fixed inset-0 z-[100] flex items-center justify-center p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -159,7 +167,7 @@ function GalleryModal({ images, index, onClose, onPrev, onNext, isOwner, onDelet
 
         {/* Actions */}
         <div className="flex items-center gap-3 border-t border-dark-gray/20 pt-3">
-          <button onClick={() => { setLiked(!liked); setLikeCount((c) => liked ? c - 1 : c + 1); }}
+          <button onClick={toggleLike}
             className={`flex items-center gap-1 rounded-full px-3 py-1 font-body text-[11px] ${liked ? "bg-red-500/10 text-red-400" : "text-offwhite/40 hover:text-offwhite"}`}>
             <Heart className={`h-3.5 w-3.5 ${liked ? "fill-current" : ""}`} /> {likeCount || ""}
           </button>
