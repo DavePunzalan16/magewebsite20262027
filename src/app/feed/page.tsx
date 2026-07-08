@@ -108,16 +108,31 @@ export default function FeedPage() {
 
       const profileMap = new Map(profiles?.map((p) => [p.id, p]) || []);
 
+      // Fetch real reaction + comment counts for these posts
+      const postIds = postsData.map((p) => p.id);
+      const [reactionsData, commentsData, userReactionsData] = await Promise.all([
+        supabase.from("reactions").select("post_id").in("post_id", postIds),
+        supabase.from("comments").select("post_id").in("post_id", postIds).eq("is_hidden", false),
+        user ? supabase.from("reactions").select("post_id").in("post_id", postIds).eq("user_id", user.id) : { data: [] },
+      ]);
+
+      // Count per post
+      const reactionCounts: Record<number, number> = {};
+      (reactionsData.data || []).forEach((r) => { reactionCounts[r.post_id] = (reactionCounts[r.post_id] || 0) + 1; });
+      const commentCounts: Record<number, number> = {};
+      (commentsData.data || []).forEach((c) => { commentCounts[c.post_id] = (commentCounts[c.post_id] || 0) + 1; });
+      const userReactedSet = new Set((userReactionsData.data || []).map((r) => r.post_id));
+
       const enriched: FeedPost[] = postsData.map((p) => {
         const profile = profileMap.get(p.user_id);
         return {
           ...p,
           author_name: profile?.full_name || "Guild Member",
           author_avatar: profile?.avatar_url || null,
-          reactions: 0,
-          comments: 0,
+          reactions: reactionCounts[p.id] || 0,
+          comments: commentCounts[p.id] || 0,
           shares: 0,
-          userReacted: false,
+          userReacted: userReactedSet.has(p.id),
           userBookmarked: false,
         };
       });
