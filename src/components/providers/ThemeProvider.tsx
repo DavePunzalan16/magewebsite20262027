@@ -20,20 +20,28 @@ export function useTheme() {
 
 function applyTheme(theme: Theme) {
   const root = document.documentElement;
+  // Core variables used by Tailwind via @theme inline → var(--xxx)
+  root.style.setProperty("--primary", theme.colors.primary);
+  root.style.setProperty("--background", theme.colors.background);
+  root.style.setProperty("--card", theme.colors.surface);
+  root.style.setProperty("--popover", theme.colors.surface);
+  root.style.setProperty("--secondary", theme.colors.surface);
+  root.style.setProperty("--muted", theme.colors.surface);
+  root.style.setProperty("--muted-foreground", theme.colors.offwhite);
+  root.style.setProperty("--accent", theme.colors.accent);
+  root.style.setProperty("--ring", theme.colors.primary);
+  root.style.setProperty("--border", theme.colors.darkGray);
+  root.style.setProperty("--input", theme.colors.surface);
+  root.style.setProperty("--sidebar", theme.colors.surface);
+  root.style.setProperty("--sidebar-primary", theme.colors.primary);
+  root.style.setProperty("--sidebar-border", theme.colors.darkGray);
+  root.style.setProperty("--sidebar-ring", theme.colors.primary);
+  // Direct Tailwind token overrides
   root.style.setProperty("--color-primary", theme.colors.primary);
   root.style.setProperty("--color-background", theme.colors.background);
   root.style.setProperty("--color-surface", theme.colors.surface);
   root.style.setProperty("--color-offwhite", theme.colors.offwhite);
   root.style.setProperty("--color-dark-gray", theme.colors.darkGray);
-  // Also update CSS variables used by the existing design system
-  root.style.setProperty("--background", theme.colors.background);
-  root.style.setProperty("--primary", theme.colors.primary);
-  root.style.setProperty("--accent", theme.colors.accent);
-  root.style.setProperty("--ring", theme.colors.primary);
-  root.style.setProperty("--card", theme.colors.surface);
-  root.style.setProperty("--muted", theme.colors.surface);
-  root.style.setProperty("--border", theme.colors.darkGray);
-  root.style.setProperty("--input", theme.colors.surface);
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {

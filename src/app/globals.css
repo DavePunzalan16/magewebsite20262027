@@ -5,15 +5,15 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  /* Portfolio Design Tokens */
-  --color-primary: #C3B1FF;
-  --color-background: #1E0031;
-  --color-surface: #1A1A1A;
-  --color-icon-bg: #222222;
+  /* Portfolio Design Tokens - reference CSS custom props for theme switching */
+  --color-primary: var(--primary);
+  --color-background: var(--background);
+  --color-surface: var(--card);
+  --color-icon-bg: var(--secondary);
   --color-white: #FFFFFF;
-  --color-offwhite: #C7C7C7;
+  --color-offwhite: var(--muted-foreground);
   --color-black: #0A0A0A;
-  --color-dark-gray: #484848;
+  --color-dark-gray: var(--border);
 
   /* Fonts */
   --font-display: var(--font-bebas-neue), cursive;
