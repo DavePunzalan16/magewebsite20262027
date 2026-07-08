@@ -8,7 +8,7 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { PremiumFooter } from "@/components/sections/Footer";
-import { Edit3, Gamepad2, Tv, BookOpen, Heart, Star, Trophy, Shield, Sparkles, Globe, MessageSquare } from "lucide-react";
+import { Edit3, Gamepad2, Tv, BookOpen, Heart, Star, Trophy, Shield, Sparkles, Globe, MessageSquare, QrCode } from "lucide-react";
 
 interface ProfileData {
   full_name?: string;
@@ -162,6 +162,9 @@ export default function ProfilePage() {
               <StatRow label="Role" value={isAdmin ? "Admin" : profile?.role || "Member"} />
               <StatRow label="Since" value="A.Y. 2026-2027" />
             </Card>
+
+            {/* QR Guild ID */}
+            <GuildQRCard userId={user.id} displayName={displayName} />
           </div>
 
           {/* Right column — Badges + Genres */}
@@ -311,6 +314,42 @@ function GenreRow({ label, genres, color }: { label: string; genres: string[]; c
       <p className="mb-1.5 font-body text-[10px] uppercase tracking-wider text-offwhite/40">{label}</p>
       <div className="flex flex-wrap gap-1.5">
         {genres.map((g) => <span key={g} className={`rounded-full bg-${color}/10 px-2.5 py-0.5 font-body text-[10px] text-${color}`}>{g}</span>)}
+      </div>
+    </div>
+  );
+}
+
+// QR Guild ID Card
+function GuildQRCard({ userId, displayName }: { userId: string; displayName: string }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    if (!canvasRef.current) return;
+    import("qrcode").then((QRCode) => {
+      QRCode.toCanvas(canvasRef.current!, JSON.stringify({
+        guild: "MAGE",
+        user_id: userId,
+        name: displayName,
+        type: "member_id",
+      }), {
+        width: 140,
+        margin: 2,
+        color: { dark: "#C3B1FF", light: "#1A1A1A" },
+      });
+    });
+  }, [userId, displayName]);
+
+  return (
+    <div className="rounded-[12px] border border-dark-gray/30 bg-surface/20 p-4">
+      <h2 className="mb-3 flex items-center gap-2 font-body text-[13px] font-semibold text-white">
+        <QrCode className="h-4 w-4 text-primary" /> Guild ID
+      </h2>
+      <div className="flex flex-col items-center gap-2">
+        <div className="rounded-[8px] border border-dark-gray/30 bg-background/30 p-2">
+          <canvas ref={canvasRef} />
+        </div>
+        <p className="font-body text-[9px] text-offwhite/30">Scan at events for attendance</p>
+        <p className="font-mono text-[10px] text-primary/60">{userId.slice(0, 8).toUpperCase()}</p>
       </div>
     </div>
   );
