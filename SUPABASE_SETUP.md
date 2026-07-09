@@ -1248,3 +1248,29 @@ create policy "gr_delete" on gallery_reactions for delete using (auth.uid() = us
 ```
 
 **Run it.**
+
+---
+
+## Step 30 — Fix notifications + user_badges RLS
+
+```sql
+-- Notifications: ensure users can read their own
+drop policy if exists "Users can view own notifications" on notifications;
+drop policy if exists "notifications_select" on notifications;
+create policy "notifications_select" on notifications for select using (auth.uid() = user_id);
+
+-- Ensure insert works for system
+drop policy if exists "Service can insert notifications" on notifications;
+create policy "notifications_insert" on notifications for insert with check (true);
+
+-- User badges: ensure users can see their own + public can see others'
+drop policy if exists "Anyone can view user badges" on user_badges;
+create policy "user_badges_select" on user_badges for select using (true);
+
+-- Ensure admin can insert user_badges
+drop policy if exists "Admins can award badges" on user_badges;
+create policy "user_badges_insert" on user_badges for insert with check (true);
+create policy "user_badges_delete" on user_badges for delete using (public.is_admin());
+```
+
+**Run it.** Fixes notification bell + badge assignment.

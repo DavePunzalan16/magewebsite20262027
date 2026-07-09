@@ -77,7 +77,13 @@ export default function ProfilePage() {
     const supabase = createClient();
     supabase.from("profiles").select("*").eq("id", user.id).single()
       .then(({ data }) => { if (data) setProfile(data as ProfileData); });
-    supabase.from("badges").select("*").then(({ data }) => { if (data) setBadges(data); });
+    supabase.from("user_badges").select("badges(id, name, description, icon, rarity)").eq("user_id", user.id)
+      .then(({ data }) => {
+        if (data) {
+          const assigned = data.map((ub: any) => ub.badges).filter(Boolean).slice(0, 6);
+          setBadges(assigned);
+        }
+      });
     // Fetch bookmarked posts
     supabase.from("bookmarks").select("post_id").eq("user_id", user.id).then(async ({ data: bmarks }) => {
       if (bmarks && bmarks.length > 0) {
@@ -235,12 +241,11 @@ export default function ProfilePage() {
             {/* Badges — 3D cards */}
             <div className="rounded-[12px] border border-dark-gray/30 bg-surface/20 p-5">
               <h2 className="mb-4 flex items-center gap-2 font-body text-[14px] font-semibold text-white"><Trophy className="h-4 w-4 text-primary" /> Badges</h2>
+              {badges.length === 0 ? (
+                <p className="font-body text-[12px] text-offwhite/30 italic">No badges yet — earn them through guild activities!</p>
+              ) : (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                {(badges.length > 0 ? badges : [
-                  { id: 1, name: "Founding Mage", description: "Joined founding year", icon: "⚔️", rarity: "legendary" },
-                  { id: 2, name: "First Event", description: "Attended first event", icon: "🎉", rarity: "common" },
-                  { id: 3, name: "Art Wizard", description: "Submitted artwork", icon: "🎨", rarity: "rare" },
-                ]).map((badge) => (
+                {badges.map((badge) => (
                   <motion.div
                     key={badge.id}
                     className={`group relative cursor-default overflow-hidden rounded-[10px] border bg-gradient-to-br p-3 transition-transform duration-200 hover:scale-[1.03] hover:-translate-y-0.5 ${rarityColors[badge.rarity]}`}
@@ -263,6 +268,7 @@ export default function ProfilePage() {
                   </motion.div>
                 ))}
               </div>
+              )}
             </div>
 
             {/* Genres */}

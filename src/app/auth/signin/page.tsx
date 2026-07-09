@@ -185,13 +185,29 @@ export default function SignInPage() {
             <div className="h-px flex-1 bg-dark-gray/30" />
           </div>
 
-          {/* Sign up link */}
-          <p className="text-center font-body text-[14px] text-offwhite/60">
-            New to the guild?{" "}
-            <Link href="/auth/signup" className="font-semibold text-primary transition-colors hover:text-primary/80">
-              Create your scroll
-            </Link>
-          </p>
+          {/* Sign up + forgot password */}
+          <div className="flex flex-col items-center gap-2">
+            <button
+              type="button"
+              onClick={async () => {
+                if (!email) { setError("Enter your email first"); return; }
+                const { createClient } = await import("@/lib/supabase/client");
+                const supabase = createClient();
+                const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + "/auth/signin" });
+                if (error) setError(error.message);
+                else setError(""); alert("Password reset link sent to " + email);
+              }}
+              className="font-body text-[12px] text-offwhite/40 hover:text-primary"
+            >
+              Forgot password?
+            </button>
+            <p className="text-center font-body text-[14px] text-offwhite/60">
+              New to the guild?{" "}
+              <Link href="/auth/signup" className="font-semibold text-primary transition-colors hover:text-primary/80">
+                Create your scroll
+              </Link>
+            </p>
+          </div>
         </div>
       </motion.div>
     </div>
