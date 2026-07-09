@@ -67,6 +67,7 @@ export default function DashboardLayout({
     { href: "/dashboard/admin/events", label: "Events", icon: Calendar },
     { href: "/dashboard/admin/gallery", label: "Gallery", icon: ImageIcon },
     { href: "/dashboard/admin/announcements", label: "Announcements", icon: Megaphone },
+    { href: "/dashboard/admin/badges", label: "Badges", icon: BarChart3 },
     { href: "/dashboard/admin/members", label: "Members", icon: Users },
     { href: "/dashboard/admin/analytics", label: "Analytics", icon: BarChart3 },
   ];
