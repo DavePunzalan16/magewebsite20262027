@@ -1208,3 +1208,18 @@ update profiles set level = 99, xp = 99999 where role = 'admin';
 ```
 
 **Run it.** Admin will show as Level 99 on their profile.
+
+---
+
+## Step 28 — Fix XP transactions RLS + Set admin level
+
+```sql
+-- Fix XP transactions: allow any authenticated user to insert (XP is awarded by the system)
+drop policy if exists "xp_insert" on xp_transactions;
+create policy "xp_insert" on xp_transactions for insert with check (true);
+
+-- Set admin to max level
+update profiles set level = 99, xp = 99999, mana = 9999 where role = 'admin';
+```
+
+**Run it.** Admin shows Level 99, and XP awards work for all users.

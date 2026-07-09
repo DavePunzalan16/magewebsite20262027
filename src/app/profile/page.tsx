@@ -8,7 +8,7 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { PremiumFooter } from "@/components/sections/Footer";
-import { Edit3, Gamepad2, Tv, BookOpen, Heart, Star, Trophy, Shield, Sparkles, Globe, MessageSquare, QrCode } from "lucide-react";
+import { Edit3, Gamepad2, Tv, BookOpen, Heart, Star, Trophy, Shield, Sparkles, Globe, MessageSquare, QrCode, Bookmark } from "lucide-react";
 import { ProfileGallery } from "@/components/ui/ProfileGallery";
 
 interface ProfileData {
@@ -60,6 +60,7 @@ export default function ProfilePage() {
   const [mounted, setMounted] = useState(false);
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [badges, setBadges] = useState<Badge[]>([]);
+  const [savedPosts, setSavedPosts] = useState<{ id: number; content: string; created_at: string }[]>([]);
   const heroRef = useRef<HTMLDivElement>(null);
 
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
@@ -77,6 +78,14 @@ export default function ProfilePage() {
     supabase.from("profiles").select("*").eq("id", user.id).single()
       .then(({ data }) => { if (data) setProfile(data as ProfileData); });
     supabase.from("badges").select("*").then(({ data }) => { if (data) setBadges(data); });
+    // Fetch bookmarked posts
+    supabase.from("bookmarks").select("post_id").eq("user_id", user.id).then(async ({ data: bmarks }) => {
+      if (bmarks && bmarks.length > 0) {
+        const postIds = bmarks.map((b) => b.post_id);
+        const { data: posts } = await supabase.from("posts").select("id, content, created_at").in("id", postIds).order("created_at", { ascending: false });
+        if (posts) setSavedPosts(posts);
+      }
+    });
   }, [user]);
 
   if (!mounted || authLoading || !user) {
@@ -166,6 +175,21 @@ export default function ProfilePage() {
 
             {/* QR Guild ID */}
             <ProfileGallery userId={user.id} isOwner={true} />
+
+            {/* Saved Posts (bookmarks) — private, only you can see */}
+            {savedPosts.length > 0 && (
+              <Card title="Saved Posts" icon={Bookmark}>
+                <div className="flex flex-col gap-1.5 max-h-[200px] overflow-y-auto">
+                  {savedPosts.map((post) => (
+                    <div key={post.id} className="rounded-[6px] bg-background/20 px-3 py-2">
+                      <p className="font-body text-[11px] text-offwhite/70 line-clamp-2">{post.content}</p>
+                      <p className="mt-0.5 font-body text-[9px] text-offwhite/25">{new Date(post.created_at).toLocaleDateString()}</p>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+
             <GuildQRCard userId={user.id} displayName={displayName} />
           </div>
 
