@@ -168,3 +168,44 @@ html.lenis body {
   background-color: rgba(195, 177, 255, 0.3);
   color: #ffffff;
 }
+
+/* Mage floating particles - CSS only, zero JS, zero GPU impact */
+@keyframes float-up {
+  0% { transform: translateY(0) translateX(0); opacity: 0; }
+  10% { opacity: 0.4; }
+  90% { opacity: 0.2; }
+  100% { transform: translateY(-100vh) translateX(20px); opacity: 0; }
+}
+
+.mage-particles::before,
+.mage-particles::after {
+  content: "";
+  position: fixed;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--primary);
+  opacity: 0.15;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.mage-particles::before {
+  left: 10%;
+  bottom: -10px;
+  animation: float-up 18s linear infinite;
+}
+
+.mage-particles::after {
+  left: 80%;
+  bottom: -10px;
+  animation: float-up 24s linear infinite 6s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mage-particles::before,
+  .mage-particles::after {
+    animation: none;
+    display: none;
+  }
+}

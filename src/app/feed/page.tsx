@@ -69,6 +69,7 @@ export default function FeedPage() {
   const [comments, setComments] = useState<Record<number, CommentItem[]>>({});
   const [commentText, setCommentText] = useState("");
   const [menuOpen, setMenuOpen] = useState<number | null>(null);
+  const [commentReactions, setCommentReactions] = useState<Record<number, { count: number; liked: boolean }>>({});
   const [userProfile, setUserProfile] = useState<{ full_name: string; avatar_url: string | null } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -238,6 +239,19 @@ export default function FeedPage() {
       awardClientXP(user.id, "comment");
     }
     setCommentText("");
+  };
+
+  // Comment reaction toggle
+  const handleCommentReact = async (commentId: number) => {
+    if (!user) return;
+    const current = commentReactions[commentId] || { count: 0, liked: false };
+    setCommentReactions((prev) => ({ ...prev, [commentId]: { count: current.liked ? current.count - 1 : current.count + 1, liked: !current.liked } }));
+    const supabase = createClient();
+    if (current.liked) {
+      await supabase.from("comment_reactions").delete().eq("comment_id", commentId).eq("user_id", user.id);
+    } else {
+      await supabase.from("comment_reactions").insert({ comment_id: commentId, user_id: user.id });
+    }
   };
 
   const loadComments = async (postId: number) => {
@@ -414,10 +428,13 @@ export default function FeedPage() {
                             ) : (
                               <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface font-body text-[9px] text-offwhite/50">{c.author_name.charAt(0)}</div>
                             )}
-                            <div className="rounded-[6px] bg-background/30 px-2.5 py-1.5">
+                            <div className="flex-1 rounded-[6px] bg-background/30 px-2.5 py-1.5">
                               <p className="font-body text-[10px] font-semibold text-offwhite/70">{c.author_name}</p>
                               <p className="font-body text-[11px] text-offwhite/60">{c.content}</p>
                             </div>
+                            <button onClick={() => handleCommentReact(c.id)} className={`shrink-0 self-center rounded-full p-1 ${(commentReactions[c.id]?.liked) ? "text-red-400" : "text-offwhite/20 hover:text-offwhite/50"}`}>
+                              <Heart className={`h-3 w-3 ${(commentReactions[c.id]?.liked) ? "fill-current" : ""}`} />
+                            </button>
                           </div>
                         ))}
                         {user && (
