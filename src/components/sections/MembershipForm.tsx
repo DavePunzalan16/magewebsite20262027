@@ -180,12 +180,13 @@ export function MembershipForm() {
               <CheckCircle2 className="h-10 w-10 text-primary" />
             </motion.div>
             <h2 className="font-display text-[36px] text-white md:text-[48px]">
-              Welcome, Mage!
+              Thank You!
             </h2>
             <p className="font-body text-[16px] text-offwhite">
-              Your application has been submitted. Our Membership department
-              will review it and get back to you via email. Prepare yourself for
-              the adventure ahead!
+              Your application has been submitted successfully! Please wait for the admin to review and confirm your membership in the Members panel. You&apos;ll be notified once approved.
+            </p>
+            <p className="mt-3 font-body text-[13px] text-offwhite/50">
+              The Guild Master will review your information shortly. ⚔️
             </p>
           </motion.div>
         </Container>
