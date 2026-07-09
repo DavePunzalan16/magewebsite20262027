@@ -222,20 +222,35 @@ export default function ProfilePage() {
               {(() => {
                 const xp = profile?.xp || 0;
                 const level = profile?.level || 1;
-                const xpForNext = Math.floor(100 * Math.pow(1.5, level - 1));
-                const progress = Math.min(Math.round((xp / xpForNext) * 100), 100);
+                const isMaxLevel = level >= 99;
+                const xpForNext = isMaxLevel ? xp : Math.floor(100 * Math.pow(1.5, level - 1));
+                const progress = isMaxLevel ? 100 : Math.min(Math.round((xp / xpForNext) * 100), 100);
                 return (
                   <div>
                     <div className="mb-1 flex items-center justify-between">
-                      <span className="font-body text-[10px] text-offwhite/40">Lv.{level} → Lv.{level + 1}</span>
-                      <span className="font-body text-[10px] text-primary">{progress}%</span>
+                      <span className="font-body text-[10px] text-offwhite/40">{isMaxLevel ? "✨ MAX LEVEL" : `Lv.${level} → Lv.${level + 1}`}</span>
+                      <span className="font-body text-[10px] text-cyan-400">{progress}%</span>
                     </div>
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-dark-gray/30">
-                      <div className="h-full rounded-full bg-gradient-to-r from-primary/70 to-primary transition-all duration-700" style={{ width: `${progress}%` }} />
+                    <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-dark-gray/30">
+                      <div className={`h-full rounded-full transition-all duration-700 ${isMaxLevel ? "bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 animate-pulse" : "bg-gradient-to-r from-cyan-500/70 to-cyan-400"}`} style={{ width: `${progress}%` }} />
+                      {/* Glow effect */}
+                      {progress > 0 && <div className="absolute inset-y-0 left-0 rounded-full opacity-40" style={{ width: `${progress}%`, boxShadow: "0 0 8px 2px rgba(34,211,238,0.4)" }} />}
                     </div>
                   </div>
                 );
               })()}
+
+              {/* Task list for leveling up */}
+              <div className="mt-4 border-t border-dark-gray/20 pt-3">
+                <p className="mb-2 font-body text-[10px] font-semibold uppercase tracking-wider text-offwhite/40">Level-Up Tasks</p>
+                <div className="flex flex-col gap-1.5">
+                  <TaskItem label="React to 10 posts" emoji="❤️" target={10} action="reaction" />
+                  <TaskItem label="Comment on 10 posts" emoji="💬" target={10} action="comment" />
+                  <TaskItem label="Create 5 posts" emoji="📝" target={5} action="post" />
+                  <TaskItem label="Add 3 friends" emoji="👥" target={3} action="friend" />
+                  <TaskItem label="Upload gallery image" emoji="🖼️" target={1} action="gallery" />
+                </div>
+              </div>
             </div>
 
             {/* Badges — 3D cards */}
@@ -383,6 +398,16 @@ function GuildQRCard({ userId, displayName }: { userId: string; displayName: str
         <p className="font-body text-[9px] text-offwhite/30">Scan at events for attendance</p>
         <p className="font-mono text-[10px] text-primary/60">{userId.slice(0, 8).toUpperCase()}</p>
       </div>
+    </div>
+  );
+}
+
+function TaskItem({ label, emoji, target, action }: { label: string; emoji: string; target: number; action: string }) {
+  return (
+    <div className="flex items-center gap-2 rounded-[6px] bg-background/15 px-3 py-1.5">
+      <span className="text-[12px]">{emoji}</span>
+      <span className="flex-1 font-body text-[10px] text-offwhite/60">{label}</span>
+      <span className="font-body text-[9px] text-cyan-400/60">+{target * 5} XP</span>
     </div>
   );
 }
