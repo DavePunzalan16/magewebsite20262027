@@ -138,9 +138,24 @@ function GalleryModal({ images, index, onClose, onPrev, onNext, isOwner, onDelet
   const liked = likedMap[img.id] || false;
   const likeCount = likeCountMap[img.id] || 0;
 
-  const toggleLike = () => {
+  const toggleLike = async () => {
     setLikedMap((prev) => ({ ...prev, [img.id]: !prev[img.id] }));
     setLikeCountMap((prev) => ({ ...prev, [img.id]: (prev[img.id] || 0) + (liked ? -1 : 1) }));
+
+    // Persist to Supabase
+    if (currentUserId) {
+      try {
+        const supabase = (await import("@/lib/supabase/client")).createClient();
+        if (liked) {
+          await supabase.from("gallery_reactions").delete().eq("gallery_item_id", img.id).eq("user_id", currentUserId);
+        } else {
+          await supabase.from("gallery_reactions").insert({ gallery_item_id: img.id, user_id: currentUserId });
+          // Award XP
+          const { awardClientXP } = await import("@/lib/xp-client");
+          awardClientXP(currentUserId, "reaction");
+        }
+      } catch {}
+    }
   };
 
   return (

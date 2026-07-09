@@ -1223,3 +1223,28 @@ update profiles set level = 99, xp = 99999, mana = 9999 where role = 'admin';
 ```
 
 **Run it.** Admin shows Level 99, and XP awards work for all users.
+
+---
+
+## Step 29 — Event images + Gallery reactions
+
+```sql
+-- Event images (up to 5 per event)
+alter table events add column if not exists images text[];
+
+-- Gallery reactions (persist likes on profile gallery images)
+create table if not exists gallery_reactions (
+  id bigint generated always as identity primary key,
+  gallery_item_id bigint references profile_gallery(id) on delete cascade,
+  user_id uuid references profiles(id) on delete cascade,
+  created_at timestamptz default now(),
+  unique(gallery_item_id, user_id)
+);
+
+alter table gallery_reactions enable row level security;
+create policy "gr_select" on gallery_reactions for select using (true);
+create policy "gr_insert" on gallery_reactions for insert with check (auth.uid() = user_id);
+create policy "gr_delete" on gallery_reactions for delete using (auth.uid() = user_id);
+```
+
+**Run it.**

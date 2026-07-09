@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { Plus, Trash2, Calendar } from "lucide-react";
+import { uploadFile } from "@/lib/upload";
+import { Plus, Trash2, Calendar, ImageIcon } from "lucide-react";
 
-interface EventItem { id: number; title: string; description: string | null; date: string | null; time: string | null; location: string | null; status: string; created_at: string; }
+interface EventItem { id: number; title: string; description: string | null; date: string | null; time: string | null; location: string | null; status: string; images: string[] | null; created_at: string; }
 
 export default function AdminEventsPage() {
   const { user } = useAuth();
@@ -18,7 +19,9 @@ export default function AdminEventsPage() {
   const [time, setTime] = useState("");
   const [location, setLocation] = useState("");
   const [postToFeed, setPostToFeed] = useState(false);
+  const [eventImages, setEventImages] = useState<File[]>([]);
   const [loading, setLoading] = useState(true);
+  const imageRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const supabase = createClient();
@@ -29,23 +32,30 @@ export default function AdminEventsPage() {
   const addEvent = async () => {
     if (!title || !user) return;
     const supabase = createClient();
+
+    // Upload images (max 5)
+    let imageUrls: string[] = [];
+    for (const file of eventImages.slice(0, 5)) {
+      const url = await uploadFile(file, "events");
+      if (url) imageUrls.push(url);
+    }
+
     const { data, error } = await supabase.from("events").insert({
       title, description: description || null, date: date || null, time: time || null,
       location: location || null, status: "upcoming", created_by: user.id,
+      images: imageUrls.length > 0 ? imageUrls : null,
     }).select().single();
 
     if (!error && data) {
       setEvents((prev) => [data, ...prev]);
-      // Also post to feed if checked
       if (postToFeed) {
         await supabase.from("posts").insert({
           user_id: user.id,
           content: `📅 New Event: ${title}\n${description ? description + "\n" : ""}${date ? `Date: ${date}` : ""} ${time ? `| ${time}` : ""}\n${location ? `📍 ${location}` : ""}`,
-          category: "announcement",
-          is_pinned: true,
+          category: "announcement", is_pinned: true,
         });
       }
-      setTitle(""); setDescription(""); setDate(""); setTime(""); setLocation(""); setPostToFeed(false); setShowForm(false);
+      setTitle(""); setDescription(""); setDate(""); setTime(""); setLocation(""); setPostToFeed(false); setEventImages([]); setShowForm(false);
     }
   };
 
@@ -84,6 +94,14 @@ export default function AdminEventsPage() {
               <input type="checkbox" checked={postToFeed} onChange={(e) => setPostToFeed(e.target.checked)} className="rounded" />
               Also post to Feed
             </label>
+          </div>
+          {/* Image upload */}
+          <div className="mt-3">
+            <button onClick={() => imageRef.current?.click()} type="button" className="flex items-center gap-1.5 rounded-[6px] bg-surface px-3 py-1.5 font-body text-[11px] text-offwhite hover:text-white">
+              📷 Add Images (max 5)
+            </button>
+            <input ref={imageRef} type="file" accept="image/*" multiple onChange={(e) => { const files = Array.from(e.target.files || []); setEventImages(files.slice(0, 5)); }} className="hidden" />
+            {eventImages.length > 0 && <p className="mt-1 font-body text-[10px] text-primary">{eventImages.length} image(s) selected</p>}
           </div>
           <button onClick={addEvent} disabled={!title} className="mt-3 rounded-[6px] bg-primary px-4 py-2 font-body text-[12px] font-bold text-black hover:bg-primary/90 disabled:opacity-50">Publish Event</button>
         </motion.div>
