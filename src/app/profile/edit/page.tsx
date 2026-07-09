@@ -40,7 +40,28 @@ export default function EditProfilePage() {
   useEffect(() => { setMounted(true); }, []);
   useEffect(() => {
     if (mounted && !authLoading && !user) router.push("/auth/signin");
-    if (user) setDisplayName(user.user_metadata?.full_name || user.email?.split("@")[0] || "");
+    if (user) {
+      // Load existing profile data from Supabase
+      const supabase = (async () => {
+        const { createClient } = await import("@/lib/supabase/client");
+        const sb = createClient();
+        const { data } = await sb.from("profiles").select("*").eq("id", user.id).single();
+        if (data) {
+          setDisplayName(data.full_name || user.email?.split("@")[0] || "");
+          setBio(data.bio || "");
+          setFavoriteAnime(data.favorite_anime || "");
+          setFavoriteGame(data.favorite_game || "");
+          setFavoriteManga(data.favorite_manga || "");
+          setFavoriteCharacter(data.favorite_character || "");
+          setDiscordUsername(data.discord_username || "");
+          setSteamUsername(data.steam_username || "");
+          setValorantIgn(data.valorant_ign || "");
+          setSelectedAnimeGenres(data.anime_genres || []);
+          setSelectedGameGenres(data.game_genres || []);
+          setSelectedMangaGenres(data.manga_genres || []);
+        }
+      })();
+    }
   }, [user, authLoading, router, mounted]);
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>, setter: (url: string) => void) => {
