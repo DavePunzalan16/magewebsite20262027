@@ -142,10 +142,25 @@ export function MembershipForm() {
   const nextStep = () => setStep((s) => Math.min(s + 1, 4));
   const prevStep = () => setStep((s) => Math.max(s - 1, 1));
 
-  const handleSubmit = () => {
-    // In the future this would POST to Supabase
-    console.log("Form submitted:", formData);
-    setSubmitted(true);
+  const handleSubmit = async () => {
+    try {
+      const { createClient } = await import("@/lib/supabase/client");
+      const supabase = createClient();
+      const { error } = await supabase.from("membership_applications").insert({
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        email: formData.email,
+        phone: formData.phone || null,
+        student_id: formData.studentId,
+        college: formData.college,
+        course: formData.course,
+        year_level: formData.yearLevel,
+        interests: formData.interests.length > 0 ? formData.interests : null,
+        preferred_department: formData.preferredDepartment || null,
+        why_join: formData.whyJoin || null,
+      });
+      if (!error) setSubmitted(true);
+    } catch {}
   };
 
   if (submitted) {

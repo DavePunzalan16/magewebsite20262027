@@ -62,6 +62,7 @@ export default function FeedPage() {
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState("All");
   const [newPost, setNewPost] = useState("");
+  const [postCategory, setPostCategory] = useState("general");
   const [postFile, setPostFile] = useState<File | null>(null);
   const [postPreview, setPostPreview] = useState<string | null>(null);
   const [posting, setPosting] = useState(false);
@@ -182,7 +183,7 @@ export default function FeedPage() {
     const isAdmin = user.email === "admin@gmail.com";
     const supabase = createClient();
     const { data } = await supabase.from("posts").insert({
-      user_id: user.id, content: newPost, image_url: imageUrl, category: "general",
+      user_id: user.id, content: newPost, image_url: imageUrl, category: postCategory,
       pending_approval: !isAdmin, // Admin posts go live immediately
     }).select("id, user_id, content, image_url, category, is_pinned, created_at").single();
 
@@ -328,9 +329,18 @@ export default function FeedPage() {
                     </div>
                   )}
                   <div className="mt-2 flex items-center justify-between border-t border-dark-gray/20 pt-2">
-                    <button onClick={() => fileRef.current?.click()} className="flex items-center gap-1 rounded px-2 py-1 font-body text-[11px] text-offwhite/40 hover:text-offwhite" type="button">
-                      <ImageIcon className="h-3.5 w-3.5" /> Photo
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => fileRef.current?.click()} className="flex items-center gap-1 rounded px-2 py-1 font-body text-[11px] text-offwhite/40 hover:text-offwhite" type="button">
+                        <ImageIcon className="h-3.5 w-3.5" /> Photo
+                      </button>
+                      <select value={postCategory} onChange={(e) => setPostCategory(e.target.value)} className="rounded bg-surface/50 px-2 py-1 font-body text-[10px] text-offwhite/60 focus:outline-none">
+                        <option value="general">General</option>
+                        <option value="artwork">Artwork</option>
+                        <option value="gaming">Gaming</option>
+                        <option value="anime">Anime</option>
+                        <option value="meme">Meme</option>
+                      </select>
+                    </div>
                     <input ref={fileRef} type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setPostFile(f); setPostPreview(URL.createObjectURL(f)); } }} className="hidden" />
                     <button onClick={handlePost} disabled={!newPost.trim() || posting} className="flex items-center gap-1 rounded-full bg-primary px-3.5 py-1.5 font-body text-[11px] font-bold text-black disabled:opacity-40">
                       <Send className="h-3 w-3" /> {posting ? "..." : "Post"}
