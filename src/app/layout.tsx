@@ -8,6 +8,7 @@ import { QueryProvider } from "@/components/providers/QueryProvider";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { SkipToContent } from "@/components/ui/SkipToContent";
 import { ThemeSelector } from "@/components/ui/ThemeSelector";
+import { MusicPlayer } from "@/components/ui/MusicPlayer";
 
 const bebasNeue = Bebas_Neue({
   weight: "400",
@@ -138,6 +139,7 @@ export default function RootLayout({
             <AuthProvider>
               <AudioProvider>
                 <LenisProvider>{children}</LenisProvider>
+                <MusicPlayer />
               </AudioProvider>
             </AuthProvider>
           </QueryProvider>

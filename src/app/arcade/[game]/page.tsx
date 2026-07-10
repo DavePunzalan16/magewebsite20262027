@@ -12,10 +12,12 @@ import { ArrowLeft, Trophy, Zap } from "lucide-react";
 // Lazy-load games — each game's code only loads when that game is opened
 const Game2048 = lazy(() => import("@/components/games/Game2048"));
 const GameSnake = lazy(() => import("@/components/games/GameSnake"));
+const GameChess = lazy(() => import("@/components/games/GameChess"));
 
 const gameComponents: Record<string, React.LazyExoticComponent<React.ComponentType<{ onComplete: (result: ArcadeGameResult) => Promise<void> }>>> = {
   "2048": Game2048,
   "snake": GameSnake,
+  "chess": GameChess,
 };
 
 export default function ArcadeGamePage() {

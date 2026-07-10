@@ -17,7 +17,6 @@ import { ExperienceSection } from "@/components/sections/ExperienceSection";
 import { ContactSection } from "@/components/sections/ContactSection";
 import { PremiumFooter } from "@/components/sections/Footer";
 import { SectionDivider } from "@/components/layout/SectionDivider";
-import { MusicPlayer } from "@/components/ui/MusicPlayer";
 
 export default function Home() {
   const [loading, setLoading] = useState(true);
@@ -58,7 +57,6 @@ export default function Home() {
             <ContactSection />
           </main>
           <PremiumFooter />
-          <MusicPlayer />
         </>
       )}
     </>
