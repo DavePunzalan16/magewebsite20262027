@@ -1274,3 +1274,185 @@ create policy "user_badges_delete" on user_badges for delete using (public.is_ad
 ```
 
 **Run it.** Fixes notification bell + badge assignment.
+
+---
+
+## Step 31 — Guild Arcade Data Model
+
+### Arcade Reward Events (generic ledger)
+
+```sql
+create table if not exists arcade_reward_events (
+  id bigint generated always as identity primary key,
+  user_id uuid references profiles(id) on delete cascade not null,
+  event_type text not null,
+  source_game text not null,
+  currency_type text not null check (currency_type in ('xp', 'mana', 'coins')),
+  amount integer not null,
+  season_id text,
+  idempotency_key text unique not null,
+  created_at timestamptz default now()
+);
+
+alter table arcade_reward_events enable row level security;
+create policy "are_select" on arcade_reward_events for select using (auth.uid() = user_id);
+create policy "are_insert" on arcade_reward_events for insert with check (auth.uid() = user_id);
+
+create index idx_are_user on arcade_reward_events(user_id);
+create index idx_are_game on arcade_reward_events(source_game);
+create index idx_are_idempotency on arcade_reward_events(idempotency_key);
+```
+
+### Arcade Game Stats (per-user, per-game)
+
+```sql
+create table if not exists arcade_game_stats (
+  id bigint generated always as identity primary key,
+  user_id uuid references profiles(id) on delete cascade not null,
+  game_key text not null,
+  wins integer default 0,
+  losses integer default 0,
+  high_score integer default 0,
+  play_time_seconds integer default 0,
+  current_streak integer default 0,
+  is_favorite boolean default false,
+  updated_at timestamptz default now(),
+  unique(user_id, game_key)
+);
+
+alter table arcade_game_stats enable row level security;
+create policy "ags_select" on arcade_game_stats for select using (auth.uid() = user_id);
+create policy "ags_insert" on arcade_game_stats for insert with check (auth.uid() = user_id);
+create policy "ags_update" on arcade_game_stats for update using (auth.uid() = user_id);
+
+create index idx_ags_user_game on arcade_game_stats(user_id, game_key);
+```
+
+### Arcade Achievement Definitions + User Achievements
+
+```sql
+create table if not exists arcade_achievement_defs (
+  id bigint generated always as identity primary key,
+  key text unique not null,
+  title text not null,
+  description text,
+  icon text not null default '🏆',
+  rarity text default 'common' check (rarity in ('common', 'rare', 'epic', 'legendary')),
+  game_key text,
+  requirement_type text not null,
+  requirement_value integer not null default 1,
+  xp_reward integer default 0,
+  mana_reward integer default 0,
+  created_at timestamptz default now()
+);
+
+create table if not exists arcade_user_achievements (
+  id bigint generated always as identity primary key,
+  user_id uuid references profiles(id) on delete cascade not null,
+  achievement_id bigint references arcade_achievement_defs(id) on delete cascade not null,
+  unlocked_at timestamptz default now(),
+  unique(user_id, achievement_id)
+);
+
+alter table arcade_achievement_defs enable row level security;
+alter table arcade_user_achievements enable row level security;
+create policy "aad_select" on arcade_achievement_defs for select using (true);
+create policy "aad_admin" on arcade_achievement_defs for all using (public.is_admin());
+create policy "aua_select" on arcade_user_achievements for select using (auth.uid() = user_id);
+create policy "aua_insert" on arcade_user_achievements for insert with check (auth.uid() = user_id);
+```
+
+### Arcade Quest Definitions + User Quest Progress
+
+```sql
+create table if not exists arcade_quest_defs (
+  id bigint generated always as identity primary key,
+  title text not null,
+  description text,
+  cadence text default 'daily' check (cadence in ('daily', 'weekly', 'monthly', 'special')),
+  game_key text,
+  requirement_type text not null,
+  requirement_count integer not null default 1,
+  xp_reward integer default 10,
+  mana_reward integer default 5,
+  is_active boolean default true,
+  season_id text,
+  created_at timestamptz default now()
+);
+
+create table if not exists arcade_user_quest_progress (
+  id bigint generated always as identity primary key,
+  user_id uuid references profiles(id) on delete cascade not null,
+  quest_id bigint references arcade_quest_defs(id) on delete cascade not null,
+  progress integer default 0,
+  completed boolean default false,
+  completed_at timestamptz,
+  period_start timestamptz default now(),
+  unique(user_id, quest_id)
+);
+
+alter table arcade_quest_defs enable row level security;
+alter table arcade_user_quest_progress enable row level security;
+create policy "aqd_select" on arcade_quest_defs for select using (true);
+create policy "aqd_admin" on arcade_quest_defs for all using (public.is_admin());
+create policy "auqp_select" on arcade_user_quest_progress for select using (auth.uid() = user_id);
+create policy "auqp_upsert" on arcade_user_quest_progress for insert with check (auth.uid() = user_id);
+create policy "auqp_update" on arcade_user_quest_progress for update using (auth.uid() = user_id);
+```
+
+### Arcade Leaderboard (materialized via view)
+
+```sql
+create or replace view arcade_leaderboard as
+select 
+  ags.game_key,
+  ags.user_id,
+  p.full_name,
+  p.avatar_url,
+  ags.high_score,
+  ags.wins,
+  ags.current_streak,
+  ags.updated_at
+from arcade_game_stats ags
+join profiles p on p.id = ags.user_id
+order by ags.high_score desc;
+```
+
+### Arcade User Preferences
+
+```sql
+create table if not exists arcade_user_prefs (
+  user_id uuid primary key references profiles(id) on delete cascade,
+  music_enabled boolean default true,
+  reduced_motion boolean default false,
+  favorite_game text,
+  updated_at timestamptz default now()
+);
+
+alter table arcade_user_prefs enable row level security;
+create policy "aup_select" on arcade_user_prefs for select using (auth.uid() = user_id);
+create policy "aup_upsert" on arcade_user_prefs for insert with check (auth.uid() = user_id);
+create policy "aup_update" on arcade_user_prefs for update using (auth.uid() = user_id);
+```
+
+### Seed Arcade Achievements
+
+```sql
+insert into arcade_achievement_defs (key, title, description, icon, rarity, game_key, requirement_type, requirement_value, xp_reward, mana_reward) values
+  ('first_game', 'First Game', 'Play your first arcade game', '🎮', 'common', null, 'games_played', 1, 20, 10),
+  ('score_1000', 'Score Hunter', 'Reach a score of 1000 in any game', '🎯', 'rare', null, 'score', 1000, 50, 25),
+  ('win_streak_5', 'Hot Streak', 'Win 5 games in a row', '🔥', 'epic', null, 'streak', 5, 100, 50),
+  ('2048_master', '2048 Master', 'Score 2048 or higher', '🧮', 'epic', '2048', 'score', 2048, 75, 30),
+  ('snake_50', 'Snake Charmer', 'Reach length 50 in Snake', '🐍', 'rare', 'snake', 'score', 50, 40, 20),
+  ('chess_win', 'Checkmate!', 'Win a game of Chess', '♟️', 'common', 'chess', 'wins', 1, 30, 15),
+  ('arcade_addict', 'Arcade Addict', 'Play 50 total arcade games', '🕹️', 'legendary', null, 'games_played', 50, 200, 100),
+  ('time_player', 'Dedicated Gamer', 'Spend 1 hour in the arcade', '⏰', 'rare', null, 'play_time', 3600, 60, 30);
+
+insert into arcade_quest_defs (title, description, cadence, requirement_type, requirement_count, xp_reward, mana_reward) values
+  ('Daily Player', 'Play any arcade game today', 'daily', 'games_played', 1, 15, 5),
+  ('Score Chaser', 'Score 500+ in any game today', 'daily', 'score', 500, 20, 10),
+  ('Weekly Warrior', 'Play 10 arcade games this week', 'weekly', 'games_played', 10, 50, 25),
+  ('Weekly High Score', 'Beat your personal best this week', 'weekly', 'personal_best', 1, 40, 20);
+```
+
+**Run all blocks in order.** This creates the complete arcade data model.
