@@ -13,11 +13,23 @@ import { ArrowLeft, Trophy, Zap } from "lucide-react";
 const Game2048 = lazy(() => import("@/components/games/Game2048"));
 const GameSnake = lazy(() => import("@/components/games/GameSnake"));
 const GameChess = lazy(() => import("@/components/games/GameChess"));
+const GameTetris = lazy(() => import("@/components/games/GameTetris"));
+const GameFlappy = lazy(() => import("@/components/games/GameFlappy"));
+const GameMemory = lazy(() => import("@/components/games/GameMemory"));
+const GameMinesweeper = lazy(() => import("@/components/games/GameMinesweeper"));
+const GameSudoku = lazy(() => import("@/components/games/GameSudoku"));
+const GameConnect4 = lazy(() => import("@/components/games/GameConnect4"));
 
 const gameComponents: Record<string, React.LazyExoticComponent<React.ComponentType<{ onComplete: (result: ArcadeGameResult) => Promise<void> }>>> = {
   "2048": Game2048,
   "snake": GameSnake,
   "chess": GameChess,
+  "tetris": GameTetris,
+  "flappy": GameFlappy,
+  "memory": GameMemory,
+  "minesweeper": GameMinesweeper,
+  "sudoku": GameSudoku,
+  "connect4": GameConnect4,
 };
 
 export default function ArcadeGamePage() {

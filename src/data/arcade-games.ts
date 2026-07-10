@@ -39,7 +39,7 @@ export const arcadeGames: ArcadeGameConfig[] = [
     difficulty: "medium",
     avgPlayTime: "5-15 min",
     rewardPreview: "+10-70 XP",
-    status: "coming_soon",
+    status: "available",
   },
   {
     key: "flappy",
@@ -49,7 +49,7 @@ export const arcadeGames: ArcadeGameConfig[] = [
     difficulty: "hard",
     avgPlayTime: "1-3 min",
     rewardPreview: "+5-60 XP",
-    status: "coming_soon",
+    status: "available",
   },
   {
     key: "memory",
@@ -59,7 +59,7 @@ export const arcadeGames: ArcadeGameConfig[] = [
     difficulty: "easy",
     avgPlayTime: "2-5 min",
     rewardPreview: "+10-40 XP",
-    status: "coming_soon",
+    status: "available",
   },
   {
     key: "minesweeper",
@@ -69,17 +69,17 @@ export const arcadeGames: ArcadeGameConfig[] = [
     difficulty: "medium",
     avgPlayTime: "3-10 min",
     rewardPreview: "+15-60 XP",
-    status: "coming_soon",
+    status: "available",
   },
   {
     key: "sudoku",
     title: "Sudoku",
-    description: "Fill the 9x9 grid with numbers. Pure logic.",
+    description: "Fill the 4x4 grid with numbers. Pure logic.",
     icon: "🔢",
-    difficulty: "hard",
-    avgPlayTime: "10-30 min",
-    rewardPreview: "+30-100 XP",
-    status: "coming_soon",
+    difficulty: "easy",
+    avgPlayTime: "3-10 min",
+    rewardPreview: "+10-100 XP",
+    status: "available",
   },
   {
     key: "connect4",
@@ -89,6 +89,6 @@ export const arcadeGames: ArcadeGameConfig[] = [
     difficulty: "easy",
     avgPlayTime: "3-8 min",
     rewardPreview: "+10-50 XP",
-    status: "coming_soon",
+    status: "available",
   },
 ];
