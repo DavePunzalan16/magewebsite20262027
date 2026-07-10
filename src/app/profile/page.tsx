@@ -240,17 +240,8 @@ export default function ProfilePage() {
                 );
               })()}
 
-              {/* Task list for leveling up */}
-              <div className="mt-4 border-t border-dark-gray/20 pt-3">
-                <p className="mb-2 font-body text-[10px] font-semibold uppercase tracking-wider text-offwhite/40">Level-Up Tasks</p>
-                <div className="flex flex-col gap-1.5">
-                  <TaskItem label="React to 10 posts" emoji="❤️" target={10} action="reaction" />
-                  <TaskItem label="Comment on 10 posts" emoji="💬" target={10} action="comment" />
-                  <TaskItem label="Create 5 posts" emoji="📝" target={5} action="post" />
-                  <TaskItem label="Add 3 friends" emoji="👥" target={3} action="friend" />
-                  <TaskItem label="Upload gallery image" emoji="🖼️" target={1} action="gallery" />
-                </div>
-              </div>
+              {/* Task list for leveling up — real progress */}
+              <ProfileTasks userId={user.id} level={profile?.level || 1} />
             </div>
 
             {/* Badges — 3D cards */}
@@ -402,12 +393,67 @@ function GuildQRCard({ userId, displayName }: { userId: string; displayName: str
   );
 }
 
-function TaskItem({ label, emoji, target, action }: { label: string; emoji: string; target: number; action: string }) {
+function ProfileTasks({ userId, level }: { userId: string; level: number }) {
+  const [counts, setCounts] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    const fetchCounts = async () => {
+      const supabase = createClient();
+      const [reactions, comments, posts] = await Promise.all([
+        supabase.from("xp_transactions").select("*", { count: "exact", head: true }).eq("user_id", userId).eq("reason", "reaction"),
+        supabase.from("xp_transactions").select("*", { count: "exact", head: true }).eq("user_id", userId).eq("reason", "comment"),
+        supabase.from("xp_transactions").select("*", { count: "exact", head: true }).eq("user_id", userId).eq("reason", "post"),
+      ]);
+      setCounts({ reaction: reactions.count || 0, comment: comments.count || 0, post: posts.count || 0 });
+    };
+    fetchCounts();
+
+    // Realtime: listen for new XP transactions
+    const supabase = createClient();
+    const channel = supabase.channel(`xp-${userId}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "xp_transactions", filter: `user_id=eq.${userId}` },
+        (payload) => {
+          const reason = (payload.new as any)?.reason;
+          if (reason) setCounts((prev) => ({ ...prev, [reason]: (prev[reason] || 0) + 1 }));
+        })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [userId]);
+
+  // Targets scale with level
+  const multiplier = Math.max(1, Math.floor(level / 10) + 1);
+  const tasks = [
+    { label: "React to posts", emoji: "❤️", target: 10 * multiplier, current: counts.reaction || 0, xp: 5 },
+    { label: "Comment on posts", emoji: "💬", target: 10 * multiplier, current: counts.comment || 0, xp: 10 },
+    { label: "Create posts", emoji: "📝", target: 5 * multiplier, current: counts.post || 0, xp: 15 },
+  ];
+
   return (
-    <div className="flex items-center gap-2 rounded-[6px] bg-background/15 px-3 py-1.5">
-      <span className="text-[12px]">{emoji}</span>
-      <span className="flex-1 font-body text-[10px] text-offwhite/60">{label}</span>
-      <span className="font-body text-[9px] text-cyan-400/60">+{target * 5} XP</span>
+    <div className="mt-4 border-t border-dark-gray/20 pt-3">
+      <p className="mb-2 font-body text-[10px] font-semibold uppercase tracking-wider text-offwhite/40">Level-Up Tasks</p>
+      <div className="flex flex-col gap-2">
+        {tasks.map((t) => {
+          const progress = Math.min(Math.round((t.current / t.target) * 100), 100);
+          const done = t.current >= t.target;
+          return (
+            <div key={t.label} className="rounded-[6px] bg-background/15 px-3 py-2">
+              <div className="flex items-center justify-between mb-1">
+                <span className="flex items-center gap-1.5 font-body text-[10px] text-offwhite/60">
+                  <span>{t.emoji}</span> {t.label}
+                </span>
+                <span className={`font-body text-[9px] ${done ? "text-green-400" : "text-cyan-400/60"}`}>
+                  {done ? "✓ Done" : `${t.current}/${t.target}`}
+                </span>
+              </div>
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-dark-gray/30">
+                <div className={`h-full rounded-full transition-all duration-500 ${done ? "bg-green-400" : "bg-cyan-400/60"}`} style={{ width: `${progress}%` }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
+
