@@ -8,8 +8,9 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { PremiumFooter } from "@/components/sections/Footer";
-import { Edit3, Gamepad2, Tv, BookOpen, Heart, Star, Trophy, Shield, Sparkles, Globe, MessageSquare, QrCode, Bookmark, Clock } from "lucide-react";
+import { Edit3, Gamepad2, Tv, BookOpen, Heart, Star, Trophy, Shield, Sparkles, Globe, MessageSquare, QrCode, Bookmark, Clock, Users } from "lucide-react";
 import { ProfileGallery } from "@/components/ui/ProfileGallery";
+import { PageLoader } from "@/components/ui/PageLoader";
 import { arcadeGames } from "@/data/arcade-games";
 
 interface ProfileData {
@@ -63,6 +64,7 @@ export default function ProfilePage() {
   const [badges, setBadges] = useState<Badge[]>([]);
   const [savedPosts, setSavedPosts] = useState<{ id: number; content: string; image_url: string | null; created_at: string; author_name: string; reactions: number }[]>([]);
   const [recentGames, setRecentGames] = useState<{ game_key: string; high_score: number; play_time_seconds: number; updated_at: string }[]>([]);
+  const [friends, setFriends] = useState<{ id: string; full_name: string | null; avatar_url: string | null }[]>([]);
   const [showSavedModal, setShowSavedModal] = useState(false);
   const [showGamesModal, setShowGamesModal] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
@@ -115,10 +117,21 @@ export default function ProfilePage() {
     supabase.from("arcade_game_stats").select("game_key, high_score, play_time_seconds, updated_at")
       .eq("user_id", user.id).order("updated_at", { ascending: false }).limit(9)
       .then(({ data }) => { if (data) setRecentGames(data); });
+    // Fetch friends
+    supabase.from("friendships").select("requester_id, receiver_id")
+      .eq("status", "accepted")
+      .or(`requester_id.eq.${user.id},receiver_id.eq.${user.id}`)
+      .then(async ({ data: friendships }) => {
+        if (friendships && friendships.length > 0) {
+          const friendIds = friendships.map(f => f.requester_id === user.id ? f.receiver_id : f.requester_id);
+          const { data: profiles } = await supabase.from("profiles").select("id, full_name, avatar_url").in("id", friendIds);
+          if (profiles) setFriends(profiles);
+        }
+      });
   }, [user]);
 
   if (!mounted || authLoading || !user) {
-    return <div className="flex min-h-screen items-center justify-center bg-background"><div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" /></div>;
+    return <PageLoader text="Loading profile..." />;
   }
 
   const displayName = profile?.full_name || user.user_metadata?.full_name || user.email?.split("@")[0] || "Mage";
@@ -204,6 +217,30 @@ export default function ProfilePage() {
 
             {/* QR Guild ID */}
             <ProfileGallery userId={user.id} isOwner={true} />
+
+            {/* Friends Section */}
+            {friends.length > 0 && (
+              <div className="rounded-[12px] border border-dark-gray/30 bg-surface/20 p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Users className="h-4 w-4 text-primary" />
+                  <h3 className="font-body text-[13px] font-semibold text-white">Friends</h3>
+                  <span className="ml-auto font-body text-[10px] text-offwhite/30">{friends.length}</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {friends.slice(0, 9).map((f) => (
+                    <Link key={f.id} href={`/profile/${f.id}`} prefetch={false} className="flex flex-col items-center gap-1 rounded-[8px] bg-background/20 p-2 hover:bg-primary/5 transition-colors">
+                      {f.avatar_url ? (
+                        <img src={f.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" />
+                      ) : (
+                        <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center font-body text-[11px] text-primary font-bold">{(f.full_name || "M").charAt(0)}</div>
+                      )}
+                      <span className="font-body text-[9px] text-offwhite/50 truncate w-full text-center">{f.full_name || "Member"}</span>
+                    </Link>
+                  ))}
+                </div>
+                {friends.length > 9 && <p className="mt-2 text-center font-body text-[9px] text-offwhite/30">+{friends.length - 9} more</p>}
+              </div>
+            )}
 
             {/* Saved Posts (bookmarks) — private, only you can see */}
             {savedPosts.length > 0 && (

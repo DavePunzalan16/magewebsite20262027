@@ -10,6 +10,7 @@ import { uploadFile } from "@/lib/upload";
 import { siteConfig } from "@/data/portfolio";
 import { useRealtimeFeed } from "@/hooks/useRealtimeFeed";
 import { PremiumFooter } from "@/components/sections/Footer";
+import { PageLoader } from "@/components/ui/PageLoader";
 import { awardClientXP } from "@/lib/xp-client";
 import {
   Heart, MessageCircle, Share2, Bookmark, Send, ImageIcon,
@@ -60,6 +61,7 @@ export default function FeedPage() {
   const { user, loading: authLoading } = useAuth();
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pageReady, setPageReady] = useState(false);
   const [activeCategory, setActiveCategory] = useState("All");
   const [newPost, setNewPost] = useState("");
   const [postCategory, setPostCategory] = useState("general");
@@ -73,6 +75,11 @@ export default function FeedPage() {
   const [commentReactions, setCommentReactions] = useState<Record<number, { count: number; liked: boolean }>>({});
   const [userProfile, setUserProfile] = useState<{ full_name: string; avatar_url: string | null } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Page ready after auth resolves
+  useEffect(() => {
+    if (!authLoading) setPageReady(true);
+  }, [authLoading]);
 
   // Get current user profile for avatar display
   useEffect(() => {
@@ -288,6 +295,8 @@ export default function FeedPage() {
     else navigator.clipboard.writeText(post.content);
     setPosts((prev) => prev.map((p) => p.id === post.id ? { ...p, shares: p.shares + 1 } : p));
   };
+
+  if (!pageReady) return <PageLoader text="Loading guild feed..." />;
 
   return (
     <div className="min-h-screen bg-background">
@@ -725,7 +734,7 @@ function FriendRequestsSidebar({ userId }: { userId?: string }) {
                   await supabase.from("friendships").delete()
                     .or(`and(requester_id.eq.${userId},receiver_id.eq.${f.id}),and(requester_id.eq.${f.id},receiver_id.eq.${userId})`);
                   setFriends(prev => prev.filter(fr => fr.id !== f.id));
-                }} className="hidden group-hover:block font-body text-[8px] text-red-400/60 hover:text-red-400">
+                }} className="hidden group-hover:block font-body text-[8px] text-red-400/60 hover:text-red-400" title="Unfriend">
                   ✗
                 </button>
                 <div className="ml-auto h-1.5 w-1.5 rounded-full bg-green-400 group-hover:hidden" />

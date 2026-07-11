@@ -74,27 +74,28 @@ export default function FloatingChat() {
                 <div className="flex flex-col">
                   {chat.conversations.length === 0 ? (
                     <div className="p-6 text-center">
-                      <p className="font-body text-[12px] text-offwhite/40">No conversations yet.</p>
-                      <p className="font-body text-[11px] text-offwhite/20 mt-1">Add friends to start chatting!</p>
+                      <MessageCircle className="h-8 w-8 text-offwhite/20 mx-auto mb-2" />
+                      <p className="font-body text-[12px] text-offwhite/40">No friends yet.</p>
+                      <p className="font-body text-[11px] text-offwhite/20 mt-1">Add friends from the feed to chat!</p>
                     </div>
                   ) : (
                     chat.conversations.map(convo => (
                       <button key={convo.friendId} onClick={() => chat.openChat(convo.friendId)}
-                        className="flex items-center gap-3 px-4 py-3 hover:bg-primary/5 transition-colors border-b border-dark-gray/10">
-                        <div className="relative">
+                        className="flex items-center gap-3 px-4 py-3 hover:bg-primary/5 transition-colors border-b border-dark-gray/10 w-full text-left">
+                        <div className="relative shrink-0">
                           {convo.friendAvatar ? (
                             <img src={convo.friendAvatar} alt="" className="h-10 w-10 rounded-full object-cover" />
                           ) : (
-                            <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center font-body text-[12px] text-primary">{convo.friendName[0]}</div>
+                            <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center font-body text-[14px] text-primary font-bold">{convo.friendName[0]}</div>
                           )}
-                          {convo.isOnline && <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-500 border-2 border-surface" />}
+                          <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-500 border-2 border-surface" />
                         </div>
-                        <div className="flex-1 min-w-0 text-left">
+                        <div className="flex-1 min-w-0">
                           <p className="font-body text-[12px] font-semibold text-white truncate">{convo.friendName}</p>
                           <p className="font-body text-[10px] text-offwhite/40 truncate">{convo.lastMessage}</p>
                         </div>
                         {convo.unreadCount > 0 && (
-                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary font-body text-[9px] text-black font-bold">{convo.unreadCount}</span>
+                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary font-body text-[9px] text-black font-bold shrink-0">{convo.unreadCount}</span>
                         )}
                       </button>
                     ))

@@ -58,24 +58,31 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
     // Get accepted friends
     const { data: friendships } = await sb.from("friendships")
-      .select("requester_id, addressee_id")
-      .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`)
+      .select("requester_id, receiver_id")
+      .or(`requester_id.eq.${user.id},receiver_id.eq.${user.id}`)
       .eq("status", "accepted");
 
-    if (!friendships || friendships.length === 0) return;
+    if (!friendships || friendships.length === 0) {
+      setConversations([]);
+      return;
+    }
 
-    const friendIds = friendships.map(f => f.requester_id === user.id ? f.addressee_id : f.requester_id);
+    const friendIds = friendships.map(f => f.requester_id === user.id ? f.receiver_id : f.requester_id);
     const { data: profiles } = await sb.from("profiles").select("id, full_name, avatar_url").in("id", friendIds);
 
-    // Get last messages
-    const { data: msgs } = await sb.from("messages")
-      .select("*")
-      .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
-      .order("created_at", { ascending: false })
-      .limit(100);
+    // Try to get messages (table might not exist yet)
+    let msgs: any[] = [];
+    try {
+      const { data } = await sb.from("messages")
+        .select("*")
+        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (data) msgs = data;
+    } catch { /* messages table may not exist yet */ }
 
     const convos: Conversation[] = (profiles || []).map(p => {
-      const friendMsgs = (msgs || []).filter(m =>
+      const friendMsgs = msgs.filter(m =>
         (m.sender_id === user.id && m.receiver_id === p.id) ||
         (m.sender_id === p.id && m.receiver_id === user.id)
       );
@@ -86,12 +93,12 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         friendId: p.id,
         friendName: p.full_name || "Mage",
         friendAvatar: p.avatar_url,
-        lastMessage: last?.content || "",
-        lastMessageAt: last?.created_at || "",
+        lastMessage: last?.content || "Tap to start chatting",
+        lastMessageAt: last?.created_at || new Date().toISOString(),
         unreadCount: unread,
         isOnline: false,
       };
-    }).sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
+    });
 
     setConversations(convos);
   }, [user]);
