@@ -143,7 +143,7 @@ export interface Notification {
   user_id: string;
   type: "comment" | "reaction" | "mention" | "post" | "moderation";
   title: string;
-  body: string;
+  body: string | null;
   entity_type: string | null;
   entity_id: string | null;
   actor_id: string | null;
@@ -151,6 +151,7 @@ export interface Notification {
   created_at: string;
   // Joined
   actor?: Pick<Profile, "full_name" | "avatar_url">;
+  profiles?: Pick<Profile, "full_name" | "avatar_url">;
 }
 
 export interface Report {
@@ -169,24 +170,9 @@ export interface Report {
 
 export interface PresenceState {
   user_id: string;
-  full_name: string;
+  full_name: string | null;
   avatar_url: string | null;
   online_at: string;
-}
-
-export interface Notification {
-  id: number;
-  user_id: string;
-  type: "comment" | "reaction" | "mention" | "post" | "moderation";
-  title: string;
-  body: string | null;
-  entity_type: string | null;
-  entity_id: string | null;
-  actor_id: string | null;
-  is_read: boolean;
-  created_at: string;
-  // Joined
-  profiles?: Pick<Profile, "full_name" | "avatar_url">;
 }
 
 export interface Report {
@@ -198,11 +184,4 @@ export interface Report {
   reviewed_by: string | null;
   created_at: string;
   reviewed_at: string | null;
-}
-
-export interface PresenceState {
-  user_id: string;
-  full_name: string | null;
-  avatar_url: string | null;
-  online_at: string;
 }

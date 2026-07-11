@@ -363,7 +363,26 @@ export default function FeedPage() {
 
           {/* Posts */}
           {loading ? (
-            <div className="flex flex-col gap-4">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-36 animate-pulse rounded-[12px] bg-surface/30" />)}</div>
+            <div className="flex flex-col items-center justify-center py-16 gap-4">
+              {/* Japanese-style loading animation */}
+              <div className="relative w-20 h-20">
+                <div className="absolute inset-0 rounded-full border-2 border-primary/20 animate-ping" />
+                <div className="absolute inset-2 rounded-full border-2 border-t-primary border-r-transparent border-b-transparent border-l-transparent animate-spin" />
+                <div className="absolute inset-4 flex items-center justify-center">
+                  <span className="font-display text-[20px] text-primary animate-pulse">魔</span>
+                </div>
+              </div>
+              <div className="flex gap-2 items-center">
+                {["読", "込", "中", "..."].map((char, i) => (
+                  <motion.span key={i} className="font-body text-[14px] text-primary/70"
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: [0, 1, 0.5], y: [5, 0, 0] }}
+                    transition={{ delay: i * 0.15, duration: 0.8, repeat: Infinity, repeatDelay: 0.5 }}
+                  >{char}</motion.span>
+                ))}
+              </div>
+              <p className="font-body text-[11px] text-offwhite/30">Loading guild feed...</p>
+            </div>
           ) : posts.length === 0 ? (
             <div className="rounded-[12px] border border-dark-gray/30 bg-surface/20 p-8 text-center">
               <p className="font-body text-[14px] text-offwhite/50">No posts yet. Be the first to share!</p>
@@ -691,16 +710,26 @@ function FriendRequestsSidebar({ userId }: { userId?: string }) {
           </h3>
           <div className="flex flex-col gap-1.5 max-h-[150px] overflow-y-auto">
             {friends.map((f) => (
-              <Link key={f.id} href={`/profile/${f.id}`} prefetch={false} className="flex items-center gap-2 rounded-[6px] px-2 py-1.5 hover:bg-white/5">
-                {f.avatar_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={f.avatar_url} alt="" className="h-5 w-5 rounded-full object-cover" />
-                ) : (
-                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/15 font-body text-[8px] text-primary">{(f.full_name || "M").charAt(0)}</div>
-                )}
-                <span className="truncate font-body text-[10px] text-offwhite/60">{f.full_name || "Member"}</span>
-                <div className="ml-auto h-1.5 w-1.5 rounded-full bg-green-400" />
-              </Link>
+              <div key={f.id} className="flex items-center gap-2 rounded-[6px] px-2 py-1.5 hover:bg-white/5 group">
+                <Link href={`/profile/${f.id}`} prefetch={false} className="flex items-center gap-2 flex-1 min-w-0">
+                  {f.avatar_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={f.avatar_url} alt="" className="h-5 w-5 rounded-full object-cover" />
+                  ) : (
+                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/15 font-body text-[8px] text-primary">{(f.full_name || "M").charAt(0)}</div>
+                  )}
+                  <span className="truncate font-body text-[10px] text-offwhite/60">{f.full_name || "Member"}</span>
+                </Link>
+                <button onClick={async () => {
+                  const supabase = createClient();
+                  await supabase.from("friendships").delete()
+                    .or(`and(requester_id.eq.${userId},receiver_id.eq.${f.id}),and(requester_id.eq.${f.id},receiver_id.eq.${userId})`);
+                  setFriends(prev => prev.filter(fr => fr.id !== f.id));
+                }} className="hidden group-hover:block font-body text-[8px] text-red-400/60 hover:text-red-400">
+                  ✗
+                </button>
+                <div className="ml-auto h-1.5 w-1.5 rounded-full bg-green-400 group-hover:hidden" />
+              </div>
             ))}
           </div>
         </div>

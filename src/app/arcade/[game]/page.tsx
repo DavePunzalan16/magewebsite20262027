@@ -14,22 +14,40 @@ const Game2048 = lazy(() => import("@/components/games/Game2048"));
 const GameSnake = lazy(() => import("@/components/games/GameSnake"));
 const GameChess = lazy(() => import("@/components/games/GameChess"));
 const GameTetris = lazy(() => import("@/components/games/GameTetris"));
-const GameFlappy = lazy(() => import("@/components/games/GameFlappy"));
+const GameMaze = lazy(() => import("@/components/games/GameMaze"));
 const GameMemory = lazy(() => import("@/components/games/GameMemory"));
 const GameMinesweeper = lazy(() => import("@/components/games/GameMinesweeper"));
 const GameSudoku = lazy(() => import("@/components/games/GameSudoku"));
 const GameConnect4 = lazy(() => import("@/components/games/GameConnect4"));
+const GameBrickBreaker = lazy(() => import("@/components/games/GameBrickBreaker"));
+const GameQuiz = lazy(() => import("@/components/games/GameQuiz"));
+const GameRunner = lazy(() => import("@/components/games/GameRunner"));
+const GamePong = lazy(() => import("@/components/games/GamePong"));
+const GameSpaceInvaders = lazy(() => import("@/components/games/GameSpaceInvaders"));
+const GamePenalty = lazy(() => import("@/components/games/GamePenalty"));
+const GamePool = lazy(() => import("@/components/games/GamePool"));
+const GamePacman = lazy(() => import("@/components/games/GamePacman"));
+const GameTowerDefense = lazy(() => import("@/components/games/GameTowerDefense"));
 
 const gameComponents: Record<string, React.LazyExoticComponent<React.ComponentType<{ onComplete: (result: ArcadeGameResult) => Promise<void> }>>> = {
   "2048": Game2048,
   "snake": GameSnake,
   "chess": GameChess,
   "tetris": GameTetris,
-  "flappy": GameFlappy,
+  "maze": GameMaze,
   "memory": GameMemory,
   "minesweeper": GameMinesweeper,
   "sudoku": GameSudoku,
   "connect4": GameConnect4,
+  "brickbreaker": GameBrickBreaker,
+  "quiz": GameQuiz,
+  "runner": GameRunner,
+  "pong": GamePong,
+  "spaceinvaders": GameSpaceInvaders,
+  "penalty": GamePenalty,
+  "pool": GamePool,
+  "pacman": GamePacman,
+  "towerdefense": GameTowerDefense,
 };
 
 export default function ArcadeGamePage() {
@@ -41,8 +59,23 @@ export default function ArcadeGamePage() {
   const [submitting, setSubmitting] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
 
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().then(() => setFullscreen(true)).catch(() => {});
+    } else {
+      document.exitFullscreen().then(() => setFullscreen(false)).catch(() => {});
+    }
+  };
+
   const gameConfig = arcadeGames.find((g) => g.key === gameKey);
   const GameComponent = gameComponents[gameKey];
+
+  // Listen for fullscreen changes (user may press Escape)
+  useEffect(() => {
+    const handler = () => setFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", handler);
+    return () => document.removeEventListener("fullscreenchange", handler);
+  }, []);
 
   // Host-side onComplete handler — games call this, never Supabase directly
   const handleComplete = useCallback(async (gameResult: ArcadeGameResult) => {
@@ -104,15 +137,15 @@ export default function ArcadeGamePage() {
             <span className="text-[16px]">{gameConfig.icon}</span>
             <span className="font-display text-[18px] text-white">{gameConfig.title}</span>
           </div>
-          <button onClick={() => setFullscreen(!fullscreen)} className="rounded-full bg-surface/50 p-1.5 text-offwhite hover:text-white" title={fullscreen ? "Exit fullscreen" : "Fullscreen"}>
+          <button onClick={toggleFullscreen} className="rounded-full bg-surface/50 p-1.5 text-offwhite hover:text-white" title={fullscreen ? "Exit fullscreen" : "Fullscreen"}>
             {fullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
           </button>
         </div>
       </div>
 
       {/* Game area + sidebar */}
-      <div className="mx-auto flex max-w-[1100px] gap-5 px-4 py-4">
-        <div className="flex-1 min-w-0">
+      <div className="mx-auto flex max-w-[1200px] gap-5 px-4 py-3">
+        <div className="flex-1 min-w-0 flex flex-col items-center">
           {/* Result overlay */}
           {result && (
             <motion.div className="mb-4 rounded-[12px] border border-primary/30 bg-primary/5 p-4 text-center" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>

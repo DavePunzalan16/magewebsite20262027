@@ -17,8 +17,8 @@ export class ProductionAnalytics {
       this.db.from("announcements").select("*", { count: "exact", head: true }),
       this.db.from("gallery").select("*", { count: "exact", head: true }),
       this.db.from("membership_applications").select("*", { count: "exact", head: true }),
-      this.db.from("shares").select("*", { count: "exact", head: true }).catch(() => ({ count: 0 })),
-      this.db.from("bookmarks").select("*", { count: "exact", head: true }).catch(() => ({ count: 0 })),
+      this.db.from("shares").select("*", { count: "exact", head: true }),
+      this.db.from("bookmarks").select("*", { count: "exact", head: true }),
     ]);
 
     const totalPosts = posts.count || 0;

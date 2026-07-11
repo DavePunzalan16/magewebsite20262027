@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { arcadeGames } from "@/data/arcade-games";
@@ -25,7 +25,13 @@ const statusStyles: Record<string, string> = {
 
 export default function ArcadePage() {
   const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
   const [playerStats, setPlayerStats] = useState<{ xp: number; level: number; mana: number; totalGames: number }>({ xp: 0, level: 1, mana: 0, totalGames: 0 });
+
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 2800);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -37,6 +43,119 @@ export default function ArcadePage() {
         if (data) setPlayerStats((prev) => ({ ...prev, totalGames: data.reduce((sum, s) => sum + s.wins + s.losses, 0) }));
       });
   }, [user]);
+
+  return (
+    <>
+      <AnimatePresence>
+        {loading && <ArcadeLoadingScreen />}
+      </AnimatePresence>
+      {!loading && <ArcadeContent user={user} playerStats={playerStats} />}
+    </>
+  );
+}
+
+// ─── Matrix-style Loading Screen ─────────────────────────────────────────
+function ArcadeLoadingScreen() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    // Japanese characters + katakana + some guild keywords
+    const chars = "アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン魔法剣士竜炎光闇M.A.G.E.ギルドマスター";
+    const fontSize = 16;
+    const columns = Math.floor(canvas.width / fontSize);
+    const drops: number[] = Array(columns).fill(1);
+
+    const draw = () => {
+      ctx.fillStyle = "rgba(30, 0, 49, 0.08)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.font = `${fontSize}px monospace`;
+
+      for (let i = 0; i < drops.length; i++) {
+        const char = chars[Math.floor(Math.random() * chars.length)];
+        const x = i * fontSize;
+        const y = drops[i] * fontSize;
+
+        // Random color — mostly purple, some green/cyan
+        const rand = Math.random();
+        if (rand < 0.7) ctx.fillStyle = `rgba(195, 177, 255, ${0.4 + Math.random() * 0.6})`;
+        else if (rand < 0.85) ctx.fillStyle = `rgba(34, 197, 94, ${0.5 + Math.random() * 0.5})`;
+        else ctx.fillStyle = `rgba(0, 245, 255, ${0.5 + Math.random() * 0.5})`;
+
+        ctx.fillText(char, x, y);
+
+        if (y > canvas.height && Math.random() > 0.975) {
+          drops[i] = 0;
+        }
+        drops[i]++;
+      }
+    };
+
+    const interval = setInterval(draw, 45);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-background"
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <canvas ref={canvasRef} className="absolute inset-0" />
+      <div className="relative z-10 flex flex-col items-center gap-4">
+        <motion.div
+          initial={{ scale: 0, rotate: -180 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ duration: 0.8, type: "spring" }}
+          className="flex h-24 w-24 items-center justify-center rounded-full border-2 border-primary/50 bg-background/80 backdrop-blur-sm shadow-[0_0_40px_rgba(195,177,255,0.3)]"
+        >
+          <Gamepad2 className="h-12 w-12 text-primary" />
+        </motion.div>
+        <motion.h1
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="font-display text-[36px] text-white drop-shadow-[0_0_20px_rgba(195,177,255,0.5)]"
+        >
+          GUILD ARCADE
+        </motion.h1>
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.8 }}
+          className="font-body text-[14px] text-primary/70"
+        >
+          ギルドマスターコード起動中...
+        </motion.p>
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: 200 }}
+          transition={{ delay: 1, duration: 1.5, ease: "easeInOut" }}
+          className="h-1 rounded-full bg-gradient-to-r from-primary/50 via-primary to-primary/50 shadow-[0_0_10px_rgba(195,177,255,0.5)]"
+        />
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: [0, 1, 0.5, 1] }}
+          transition={{ delay: 1.5, duration: 1, repeat: Infinity }}
+          className="font-body text-[11px] text-offwhite/40"
+        >
+          Loading games...
+        </motion.p>
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Main Arcade Content ─────────────────────────────────────────────────
+function ArcadeContent({ user, playerStats }: { user: any; playerStats: { xp: number; level: number; mana: number; totalGames: number } }) {
 
   return (
     <div className="min-h-screen bg-background">

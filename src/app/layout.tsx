@@ -9,6 +9,8 @@ import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { SkipToContent } from "@/components/ui/SkipToContent";
 import { ThemeSelector } from "@/components/ui/ThemeSelector";
 import { MusicPlayer } from "@/components/ui/MusicPlayer";
+import { ChatProvider } from "@/components/chat/ChatProvider";
+import FloatingChat from "@/components/chat/FloatingChat";
 
 const bebasNeue = Bebas_Neue({
   weight: "400",
@@ -137,10 +139,13 @@ export default function RootLayout({
         <ThemeProvider>
           <QueryProvider>
             <AuthProvider>
-              <AudioProvider>
-                <LenisProvider>{children}</LenisProvider>
-                <MusicPlayer />
-              </AudioProvider>
+              <ChatProvider>
+                <AudioProvider>
+                  <LenisProvider>{children}</LenisProvider>
+                  <FloatingChat />
+                  <MusicPlayer />
+                </AudioProvider>
+              </ChatProvider>
             </AuthProvider>
           </QueryProvider>
           <ThemeSelector />

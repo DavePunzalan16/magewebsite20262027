@@ -20,7 +20,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { user_id, status } = attendanceSchema.parse({ ...body, event_id: parseInt(id) });
 
     const service = new EventsService();
-    const result = await service.checkIn(parseInt(id), user_id, status);
+    const result = await service.checkIn(parseInt(id), user_id, status as "present" | "late" | undefined);
 
     if (!result.success) return NextResponse.json({ error: result.error }, { status: 400 });
     return NextResponse.json({ success: true });

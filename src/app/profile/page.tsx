@@ -8,8 +8,9 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { PremiumFooter } from "@/components/sections/Footer";
-import { Edit3, Gamepad2, Tv, BookOpen, Heart, Star, Trophy, Shield, Sparkles, Globe, MessageSquare, QrCode, Bookmark } from "lucide-react";
+import { Edit3, Gamepad2, Tv, BookOpen, Heart, Star, Trophy, Shield, Sparkles, Globe, MessageSquare, QrCode, Bookmark, Clock } from "lucide-react";
 import { ProfileGallery } from "@/components/ui/ProfileGallery";
+import { arcadeGames } from "@/data/arcade-games";
 
 interface ProfileData {
   full_name?: string;
@@ -60,7 +61,10 @@ export default function ProfilePage() {
   const [mounted, setMounted] = useState(false);
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [badges, setBadges] = useState<Badge[]>([]);
-  const [savedPosts, setSavedPosts] = useState<{ id: number; content: string; created_at: string }[]>([]);
+  const [savedPosts, setSavedPosts] = useState<{ id: number; content: string; image_url: string | null; created_at: string; author_name: string; reactions: number }[]>([]);
+  const [recentGames, setRecentGames] = useState<{ game_key: string; high_score: number; play_time_seconds: number; updated_at: string }[]>([]);
+  const [showSavedModal, setShowSavedModal] = useState(false);
+  const [showGamesModal, setShowGamesModal] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
 
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
@@ -84,14 +88,33 @@ export default function ProfilePage() {
           setBadges(assigned);
         }
       });
-    // Fetch bookmarked posts
+    // Fetch bookmarked posts with author info
     supabase.from("bookmarks").select("post_id").eq("user_id", user.id).then(async ({ data: bmarks }) => {
       if (bmarks && bmarks.length > 0) {
         const postIds = bmarks.map((b) => b.post_id);
-        const { data: posts } = await supabase.from("posts").select("id, content, created_at").in("id", postIds).order("created_at", { ascending: false });
-        if (posts) setSavedPosts(posts);
+        const { data: posts } = await supabase.from("posts").select("id, content, image_url, created_at, user_id").in("id", postIds).order("created_at", { ascending: false });
+        if (posts) {
+          // Get author names
+          const userIds = [...new Set(posts.map(p => p.user_id))];
+          const { data: profiles } = await supabase.from("profiles").select("id, full_name").in("id", userIds);
+          const nameMap = new Map(profiles?.map(p => [p.id, p.full_name || "Mage"]) || []);
+          // Get reaction counts
+          const { data: reactions } = await supabase.from("reactions").select("post_id").in("post_id", postIds);
+          const reactMap = new Map<number, number>();
+          reactions?.forEach(r => reactMap.set(r.post_id, (reactMap.get(r.post_id) || 0) + 1));
+
+          setSavedPosts(posts.map(p => ({
+            id: p.id, content: p.content, image_url: p.image_url,
+            created_at: p.created_at, author_name: nameMap.get(p.user_id) || "Mage",
+            reactions: reactMap.get(p.id) || 0,
+          })));
+        }
       }
     });
+    // Fetch recently played games
+    supabase.from("arcade_game_stats").select("game_key, high_score, play_time_seconds, updated_at")
+      .eq("user_id", user.id).order("updated_at", { ascending: false }).limit(9)
+      .then(({ data }) => { if (data) setRecentGames(data); });
   }, [user]);
 
   if (!mounted || authLoading || !user) {
@@ -184,16 +207,44 @@ export default function ProfilePage() {
 
             {/* Saved Posts (bookmarks) — private, only you can see */}
             {savedPosts.length > 0 && (
-              <Card title="Saved Posts" icon={Bookmark}>
-                <div className="flex flex-col gap-1.5 max-h-[200px] overflow-y-auto">
-                  {savedPosts.map((post) => (
-                    <div key={post.id} className="rounded-[6px] bg-background/20 px-3 py-2">
-                      <p className="font-body text-[11px] text-offwhite/70 line-clamp-2">{post.content}</p>
-                      <p className="mt-0.5 font-body text-[9px] text-offwhite/25">{new Date(post.created_at).toLocaleDateString()}</p>
+              <div onClick={() => setShowSavedModal(true)} className="cursor-pointer rounded-[12px] border border-dark-gray/30 bg-surface/20 p-4 hover:border-primary/30 transition-colors">
+                <div className="flex items-center gap-2 mb-3">
+                  <Bookmark className="h-4 w-4 text-primary" />
+                  <h3 className="font-body text-[13px] font-semibold text-white">Saved Posts</h3>
+                  <span className="ml-auto font-body text-[10px] text-offwhite/30">{savedPosts.length} saved</span>
+                </div>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {savedPosts.slice(0, 3).map((post) => (
+                    <div key={post.id} className="rounded-[6px] bg-background/30 p-2 h-[60px] overflow-hidden">
+                      {post.image_url ? <img src={post.image_url} alt="" className="w-full h-full object-cover rounded-[4px]" /> :
+                        <p className="font-body text-[9px] text-offwhite/50 line-clamp-3">{post.content}</p>}
                     </div>
                   ))}
                 </div>
-              </Card>
+                <p className="mt-2 text-center font-body text-[9px] text-primary/50">Tap to view all →</p>
+              </div>
+            )}
+
+            {/* Recently Played Games */}
+            {recentGames.length > 0 && (
+              <div onClick={() => setShowGamesModal(true)} className="cursor-pointer rounded-[12px] border border-dark-gray/30 bg-surface/20 p-4 hover:border-primary/30 transition-colors">
+                <div className="flex items-center gap-2 mb-3">
+                  <Gamepad2 className="h-4 w-4 text-primary" />
+                  <h3 className="font-body text-[13px] font-semibold text-white">Recently Played</h3>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {recentGames.slice(0, 9).map((g) => {
+                    const game = arcadeGames.find(ag => ag.key === g.game_key);
+                    return (
+                      <div key={g.game_key} className="flex flex-col items-center gap-1 rounded-[8px] bg-background/20 p-2">
+                        <span className="text-[20px]">{game?.icon || "🎮"}</span>
+                        <span className="font-body text-[8px] text-offwhite/50 truncate w-full text-center">{game?.title || g.game_key}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="mt-2 text-center font-body text-[9px] text-primary/50">Tap to view details →</p>
+              </div>
             )}
 
             <GuildQRCard userId={user.id} displayName={displayName} />
@@ -300,6 +351,62 @@ export default function ProfilePage() {
         </div>
       </div>
       <PremiumFooter />
+
+      {/* Saved Posts Modal */}
+      {showSavedModal && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => setShowSavedModal(false)}>
+          <div className="w-full max-w-[500px] max-h-[80vh] rounded-[16px] border border-dark-gray/30 bg-surface/95 overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-dark-gray/20 px-5 py-3">
+              <h3 className="font-body text-[14px] font-semibold text-white flex items-center gap-2"><Bookmark className="h-4 w-4 text-primary" /> Saved Posts</h3>
+              <button onClick={() => setShowSavedModal(false)} className="font-body text-[12px] text-offwhite/50 hover:text-white">✕</button>
+            </div>
+            <div className="overflow-y-auto max-h-[70vh] p-4 flex flex-col gap-3">
+              {savedPosts.map((post) => (
+                <div key={post.id} className="rounded-[10px] border border-dark-gray/20 bg-background/20 p-4">
+                  {post.image_url && <img src={post.image_url} alt="" className="w-full h-[160px] object-cover rounded-[8px] mb-3" />}
+                  <p className="font-body text-[12px] text-offwhite/80 line-clamp-4">{post.content}</p>
+                  <div className="mt-2 flex items-center justify-between">
+                    <span className="font-body text-[10px] text-offwhite/40">by {post.author_name}</span>
+                    <div className="flex items-center gap-3">
+                      <span className="flex items-center gap-1 font-body text-[10px] text-red-400"><Heart className="h-3 w-3" />{post.reactions}</span>
+                      <span className="font-body text-[9px] text-offwhite/25">{new Date(post.created_at).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Recently Played Games Modal */}
+      {showGamesModal && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => setShowGamesModal(false)}>
+          <div className="w-full max-w-[500px] max-h-[80vh] rounded-[16px] border border-dark-gray/30 bg-surface/95 overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-dark-gray/20 px-5 py-3">
+              <h3 className="font-body text-[14px] font-semibold text-white flex items-center gap-2"><Gamepad2 className="h-4 w-4 text-primary" /> Recently Played</h3>
+              <button onClick={() => setShowGamesModal(false)} className="font-body text-[12px] text-offwhite/50 hover:text-white">✕</button>
+            </div>
+            <div className="overflow-y-auto max-h-[70vh] p-4 flex flex-col gap-2">
+              {recentGames.map((g) => {
+                const game = arcadeGames.find(ag => ag.key === g.game_key);
+                return (
+                  <div key={g.game_key} className="flex items-center gap-3 rounded-[10px] border border-dark-gray/20 bg-background/20 p-3">
+                    <span className="text-[28px]">{game?.icon || "🎮"}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-body text-[13px] font-semibold text-white">{game?.title || g.game_key}</p>
+                      <p className="font-body text-[10px] text-offwhite/40">High Score: {g.high_score} • {Math.floor(g.play_time_seconds / 60)} min played</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-body text-[9px] text-offwhite/25">{new Date(g.updated_at).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
