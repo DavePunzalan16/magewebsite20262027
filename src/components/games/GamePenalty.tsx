@@ -72,10 +72,20 @@ export default function GamePenalty({ onComplete }: Props) {
       setKeeperX(keeperTargets[keeperChoice]);
     }, 200);
 
-    // Determine result
+    // Determine result — keeper saves only if diving to same zone
     setTimeout(() => {
-      const saved = keeperChoice === targetZone || (power < 20 && Math.random() > 0.5);
-      const missed = power > 90 && Math.random() > 0.6;
+      // Keeper saves if same zone picked. Adjacent zones have partial save chance.
+      const adjacent: Record<Zone, Zone[]> = {
+        left: ["center", "topLeft"],
+        right: ["center", "topRight"],
+        center: ["left", "right"],
+        topLeft: ["left", "center"],
+        topRight: ["right", "center"],
+      };
+      const exactSave = keeperChoice === targetZone;
+      const partialSave = adjacent[keeperChoice]?.includes(targetZone) && Math.random() > 0.7;
+      const saved = exactSave || partialSave;
+      const missed = power > 92 || (power < 15 && Math.random() > 0.4);
 
       if (missed) {
         setResult("miss");

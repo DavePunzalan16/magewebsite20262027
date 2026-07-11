@@ -49,8 +49,23 @@ export default function GamePong({ onComplete }: Props) {
       const rect = canvas.getBoundingClientRect();
       mouseY.current = e.clientY - rect.top;
     };
-    canvas.addEventListener("mousemove", handleMove);
-    return () => canvas.removeEventListener("mousemove", handleMove);
+    // Track mouse globally so player can move even outside canvas
+    window.addEventListener("mousemove", handleMove);
+    return () => window.removeEventListener("mousemove", handleMove);
+  }, []);
+
+  // Keyboard fallback for paddle control
+  useEffect(() => {
+    const keys = new Set<string>();
+    const down = (e: KeyboardEvent) => keys.add(e.key);
+    const up = (e: KeyboardEvent) => keys.delete(e.key);
+    window.addEventListener("keydown", down);
+    window.addEventListener("keyup", up);
+    const interval = setInterval(() => {
+      if (keys.has("ArrowUp") || keys.has("w")) mouseY.current = Math.max(0, mouseY.current - 8);
+      if (keys.has("ArrowDown") || keys.has("s")) mouseY.current = Math.min(H, mouseY.current + 8);
+    }, 16);
+    return () => { window.removeEventListener("keydown", down); window.removeEventListener("keyup", up); clearInterval(interval); };
   }, []);
 
   useEffect(() => {
@@ -148,7 +163,7 @@ export default function GamePong({ onComplete }: Props) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[350px] gap-5">
         <h2 className="font-display text-[28px] text-white">Pong</h2>
-        <p className="font-body text-[12px] text-offwhite/50">First to {WIN_SCORE} wins! Move mouse to control paddle.</p>
+        <p className="font-body text-[12px] text-offwhite/50">First to {WIN_SCORE} wins! Mouse or ↑↓ keys to move.</p>
         <div className="flex gap-3">
           {(["easy", "medium", "hard"] as Difficulty[]).map(d => (
             <button key={d} onClick={() => startGame(d)} className="rounded-[8px] border border-primary/30 bg-primary/5 px-5 py-2 font-body text-[13px] text-primary capitalize hover:bg-primary/10">{d}</button>

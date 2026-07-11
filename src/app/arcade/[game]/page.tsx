@@ -7,7 +7,29 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { arcadeGames } from "@/data/arcade-games";
 import type { ArcadeGameResult } from "@/lib/types/arcade";
-import { ArrowLeft, Trophy, Zap, Maximize2, Minimize2 } from "lucide-react";
+import { ArrowLeft, Trophy, Zap, Maximize2, Minimize2, Info } from "lucide-react";
+
+// Game instructions for each game
+const GAME_INSTRUCTIONS: Record<string, { controls: string[]; howToPlay: string[] }> = {
+  "2048": { controls: ["Arrow keys to slide tiles"], howToPlay: ["Slide tiles to merge same numbers", "Combine to reach 2048", "Game over when no moves left"] },
+  "snake": { controls: ["Arrow keys or WASD"], howToPlay: ["Eat food to grow longer", "Don't hit walls or yourself", "Score increases with length"] },
+  "chess": { controls: ["Click piece → click destination", "Legal moves shown as dots"], howToPlay: ["Capture opponent's King to win", "Each piece moves differently", "10 min timer per player", "Supports castling & promotion"] },
+  "tetris": { controls: ["←→ Move", "↑ Rotate", "↓ Soft drop", "Space Hard drop", "C Hold piece"], howToPlay: ["Complete rows to clear lines", "Don't let blocks reach the top", "Speed increases over time"] },
+  "maze": { controls: ["Arrow keys or WASD"], howToPlay: ["Reach the green exit", "Collect gold coins for bonus", "Timer counts your speed", "Enemies appear at Level 15+"] },
+  "memory": { controls: ["Click cards to flip"], howToPlay: ["Match pairs of cards", "Complete before time runs out", "Difficulty increases each level", "Up to 8×8 grid"] },
+  "minesweeper": { controls: ["Left click to reveal", "Right click to flag"], howToPlay: ["Numbers show adjacent mines", "Flag all mines to win", "Don't click a mine!"] },
+  "sudoku": { controls: ["Click cell → click number", "✕ to clear a cell"], howToPlay: ["Fill 1-9 in each row, column & box", "No repeated numbers allowed", "Choose your difficulty level"] },
+  "connect4": { controls: ["Click column to drop disc"], howToPlay: ["Connect 4 in a row to win", "Horizontal, vertical or diagonal", "2 players take turns"] },
+  "brickbreaker": { controls: ["Move mouse to aim paddle"], howToPlay: ["Destroy all bricks with the ball", "Catch power-ups: Wide, Multi, Slow, +Life", "Unlimited levels until lives run out"] },
+  "quiz": { controls: ["Click answer choice A-D"], howToPlay: ["75 random questions per run", "Choose Easy/Medium/Hard difficulty", "Timer counts down — answer fast!", "Manga, Anime, Games & Guild topics"] },
+  "runner": { controls: ["Space/↑ Jump", "↓ Duck"], howToPlay: ["Jump over ground obstacles", "Duck under flying enemies", "Speed increases over time", "Score by surviving longer"] },
+  "pong": { controls: ["Mouse up/down OR ↑↓ keys"], howToPlay: ["Hit ball past AI paddle to score", "First to 7 wins", "Ball spin affected by paddle hit", "Choose AI difficulty"] },
+  "spaceinvaders": { controls: ["←→ or A/D to move", "Space to shoot"], howToPlay: ["Destroy all aliens before they reach you", "Avoid enemy bullets", "Waves get harder each round"] },
+  "penalty": { controls: ["Click zone in goal to shoot", "Hold for power meter"], howToPlay: ["Aim at 5 zones in the goal", "Power affects accuracy (too high = miss)", "Keeper dives randomly", "Score more than half to win"] },
+  "pool": { controls: ["Click & drag from cue ball", "Release to shoot"], howToPlay: ["Pocket all 15 balls", "Drag direction = aim, distance = power", "Balls have realistic physics", "Cue ball resets if pocketed"] },
+  "pacman": { controls: ["Arrow keys or WASD"], howToPlay: ["Eat all yellow pellets to win", "Big pellets let you eat ghosts", "Avoid ghosts or lose a life", "3 lives total"] },
+  "towerdefense": { controls: ["Select tower type → click grid", "Towers auto-shoot enemies"], howToPlay: ["Enemies follow the path", "Place towers to destroy them", "Earn gold from kills to buy more", "Don't let enemies reach the end"] },
+};
 
 // Lazy-load games — each game's code only loads when that game is opened
 const Game2048 = lazy(() => import("@/components/games/Game2048"));
@@ -170,8 +192,28 @@ export default function ArcadeGamePage() {
           {submitting && <p className="mt-2 text-center font-body text-[11px] text-offwhite/30">Saving result...</p>}
         </div>
 
-        {/* Right sidebar — Leaderboard */}
-        <aside className="hidden w-[200px] shrink-0 lg:block">
+        {/* Right sidebar — Instructions + Leaderboard */}
+        <aside className="hidden w-[220px] shrink-0 lg:block">
+          {/* Instructions */}
+          {GAME_INSTRUCTIONS[gameKey] && (
+            <div className="mb-4 rounded-[12px] border border-dark-gray/30 bg-surface/20 p-4">
+              <h3 className="mb-2 flex items-center gap-2 font-body text-[11px] font-semibold text-white">
+                <Info className="h-3.5 w-3.5 text-primary" /> How to Play
+              </h3>
+              <div className="mb-3">
+                <p className="font-body text-[9px] uppercase tracking-wider text-offwhite/30 mb-1">Controls</p>
+                {GAME_INSTRUCTIONS[gameKey].controls.map((c, i) => (
+                  <p key={i} className="font-body text-[10px] text-offwhite/60 leading-relaxed">• {c}</p>
+                ))}
+              </div>
+              <div>
+                <p className="font-body text-[9px] uppercase tracking-wider text-offwhite/30 mb-1">Rules</p>
+                {GAME_INSTRUCTIONS[gameKey].howToPlay.map((h, i) => (
+                  <p key={i} className="font-body text-[10px] text-offwhite/60 leading-relaxed">• {h}</p>
+                ))}
+              </div>
+            </div>
+          )}
           <ArcadeLeaderboard gameKey={gameKey} />
         </aside>
       </div>
