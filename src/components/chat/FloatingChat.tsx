@@ -1,16 +1,50 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useChat } from "./ChatProvider";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { MessageCircle, X, Send, ArrowLeft, ImageIcon } from "lucide-react";
+import { MessageCircle, X, Send, ArrowLeft } from "lucide-react";
 
 export default function FloatingChat() {
   const { user } = useAuth();
   const chat = useChat();
   const [message, setMessage] = useState("");
   const messagesEnd = useRef<HTMLDivElement>(null);
+
+  // Draggable state
+  const [pos, setPos] = useState({ x: 24, y: typeof window !== "undefined" ? window.innerHeight - 72 : 600 });
+  const [dragging, setDragging] = useState(false);
+  const dragOffset = useRef({ x: 0, y: 0 });
+  const hasMoved = useRef(false);
+
+  // Initialize position on mount
+  useEffect(() => {
+    setPos({ x: 24, y: window.innerHeight - 72 });
+  }, []);
+
+  const onPointerDown = useCallback((e: React.PointerEvent) => {
+    setDragging(true);
+    hasMoved.current = false;
+    dragOffset.current = { x: e.clientX - pos.x, y: e.clientY - pos.y };
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  }, [pos]);
+
+  const onPointerMove = useCallback((e: React.PointerEvent) => {
+    if (!dragging) return;
+    hasMoved.current = true;
+    const newX = Math.max(0, Math.min(window.innerWidth - 48, e.clientX - dragOffset.current.x));
+    const newY = Math.max(0, Math.min(window.innerHeight - 48, e.clientY - dragOffset.current.y));
+    setPos({ x: newX, y: newY });
+  }, [dragging]);
+
+  const onPointerUp = useCallback(() => {
+    setDragging(false);
+    // Only toggle chat if we didn't drag
+    if (!hasMoved.current && chat) {
+      chat.setMinimized(!chat.minimized);
+    }
+  }, [chat]);
 
   useEffect(() => {
     messagesEnd.current?.scrollIntoView({ behavior: "smooth" });
@@ -28,29 +62,37 @@ export default function FloatingChat() {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
   };
 
+  // Panel position — above or beside the bubble
+  const panelX = Math.min(pos.x, window.innerWidth - 330);
+  const panelY = pos.y > 500 ? pos.y - 450 : pos.y + 56;
+
   return (
     <>
-      {/* Floating button — bottom left, Messenger style */}
-      <button
-        onClick={() => chat.setMinimized(!chat.minimized)}
-        className="fixed bottom-6 left-6 z-[70] flex h-12 w-12 items-center justify-center rounded-full bg-primary shadow-lg shadow-primary/30 hover:scale-105 transition-transform"
+      {/* Draggable floating button */}
+      <div
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        className={`fixed z-[70] flex h-12 w-12 items-center justify-center rounded-full bg-primary shadow-lg shadow-primary/30 cursor-grab active:cursor-grabbing select-none touch-none ${dragging ? "scale-110" : "hover:scale-105"} transition-transform`}
+        style={{ left: pos.x, top: pos.y }}
       >
-        <MessageCircle className="h-5 w-5 text-black" />
+        <MessageCircle className="h-5 w-5 text-black pointer-events-none" />
         {chat.totalUnread > 0 && (
-          <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 font-body text-[10px] text-white font-bold">
+          <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 font-body text-[10px] text-white font-bold pointer-events-none">
             {chat.totalUnread > 9 ? "9+" : chat.totalUnread}
           </span>
         )}
-      </button>
+      </div>
 
-      {/* Chat panel — bottom left aligned */}
+      {/* Chat panel — positioned near bubble */}
       <AnimatePresence>
         {!chat.minimized && (
           <motion.div
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-20 left-6 z-[70] w-[320px] h-[440px] rounded-[16px] border border-dark-gray/30 bg-surface/95 backdrop-blur-sm shadow-2xl flex flex-col overflow-hidden"
+            className="fixed z-[70] w-[320px] h-[440px] rounded-[16px] border border-dark-gray/30 bg-surface/95 backdrop-blur-sm shadow-2xl flex flex-col overflow-hidden"
+            style={{ left: panelX, top: panelY }}
           >
             {/* Header */}
             <div className="flex items-center justify-between border-b border-dark-gray/20 px-4 py-3">
