@@ -60,10 +60,10 @@ export default function GameMinesweeper({ onComplete }: Props) {
         <span className="font-body text-[12px] text-offwhite/50">💣 {MINES} mines · Right-click to flag</span>
         <button onClick={reset} className="rounded-full bg-surface px-3 py-1 font-body text-[10px] text-offwhite hover:text-white">Reset</button>
       </div>
-      <div className="inline-grid gap-0.5 mx-auto rounded-[8px] border border-dark-gray/30 bg-surface/30 p-1" style={{ gridTemplateColumns: `repeat(${SIZE}, 32px)` }}>
+      <div className="inline-grid gap-1 mx-auto rounded-[8px] border border-dark-gray/30 bg-surface/30 p-2" style={{ gridTemplateColumns: `repeat(${SIZE}, 38px)` }}>
         {grid.map((row, r) => row.map((cell, c) => (
           <button key={`${r}-${c}`} onClick={() => reveal(r, c)} onContextMenu={(e) => flag(e, r, c)}
-            className={`h-8 w-8 rounded-[3px] flex items-center justify-center font-body text-[12px] font-bold transition-all ${cell.revealed ? (cell.mine ? "bg-red-500/60 text-white" : "bg-background/50 text-offwhite") : "bg-primary/10 hover:bg-primary/20 text-transparent"}`}>
+            className={`h-9 w-9 rounded-[4px] flex items-center justify-center font-body text-[13px] font-bold transition-all ${cell.revealed ? (cell.mine ? "bg-red-500/60 text-white" : "bg-background/50 text-offwhite") : "bg-primary/10 hover:bg-primary/20 text-transparent"}`}>
             {cell.revealed ? (cell.mine ? "💣" : cell.adjacent || "") : cell.flagged ? "🚩" : ""}
           </button>
         )))}

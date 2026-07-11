@@ -87,7 +87,7 @@ export default function GameChess({ onComplete }: Props) {
       </div>
 
       {/* Board */}
-      <div className="mx-auto inline-grid grid-cols-8 gap-0 rounded-[8px] overflow-hidden border border-dark-gray/30">
+      <div className="mx-auto inline-grid grid-cols-8 gap-0 rounded-[8px] overflow-hidden border-2 border-dark-gray/40">
         {board.map((row, r) => row.map((piece, c) => {
           const isLight = (r + c) % 2 === 0;
           const isSelected = selected && selected[0] === r && selected[1] === c;
@@ -95,11 +95,11 @@ export default function GameChess({ onComplete }: Props) {
             <button
               key={`${r}-${c}`}
               onClick={() => handleClick(r, c)}
-              className={`flex items-center justify-center text-[24px] md:text-[28px] w-10 h-10 md:w-12 md:h-12 transition-all ${
-                isLight ? "bg-[#b58863]" : "bg-[#f0d9b5]"
-              } ${isSelected ? "ring-2 ring-primary ring-inset" : ""} hover:brightness-110`}
+              className={`flex items-center justify-center text-[30px] md:text-[36px] w-12 h-12 md:w-14 md:h-14 transition-all ${
+                isLight ? "bg-[#3d2b1f]" : "bg-[#1a0f0a]"
+              } ${isSelected ? "ring-2 ring-cyan-400 ring-inset" : ""} hover:brightness-125`}
             >
-              {piece ? PIECE_SYMBOLS[piece] : ""}
+              {piece ? <span className={piece[0] === "w" ? "text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.5)]" : "text-offwhite/80"}>{PIECE_SYMBOLS[piece]}</span> : ""}
             </button>
           );
         }))}

@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { arcadeGames } from "@/data/arcade-games";
 import type { ArcadeGameResult } from "@/lib/types/arcade";
-import { ArrowLeft, Trophy, Zap } from "lucide-react";
+import { ArrowLeft, Trophy, Zap, Maximize2, Minimize2 } from "lucide-react";
 
 // Lazy-load games — each game's code only loads when that game is opened
 const Game2048 = lazy(() => import("@/components/games/Game2048"));
@@ -39,6 +39,7 @@ export default function ArcadeGamePage() {
   const gameKey = params.game as string;
   const [result, setResult] = useState<{ xp: number; mana: number } | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
 
   const gameConfig = arcadeGames.find((g) => g.key === gameKey);
   const GameComponent = gameComponents[gameKey];
@@ -92,7 +93,7 @@ export default function ArcadeGamePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className={`min-h-screen bg-background ${fullscreen ? "fixed inset-0 z-[90] overflow-auto" : ""}`}>
       {/* Header */}
       <div className="sticky top-0 z-40 border-b border-dark-gray/20 bg-background/95 backdrop-blur-sm">
         <div className="mx-auto flex h-12 max-w-[800px] items-center justify-between px-4">
@@ -103,12 +104,14 @@ export default function ArcadeGamePage() {
             <span className="text-[16px]">{gameConfig.icon}</span>
             <span className="font-display text-[18px] text-white">{gameConfig.title}</span>
           </div>
-          <div className="w-16" /> {/* Spacer */}
+          <button onClick={() => setFullscreen(!fullscreen)} className="rounded-full bg-surface/50 p-1.5 text-offwhite hover:text-white" title={fullscreen ? "Exit fullscreen" : "Fullscreen"}>
+            {fullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          </button>
         </div>
       </div>
 
       {/* Game area + sidebar */}
-      <div className="mx-auto flex max-w-[900px] gap-5 px-4 py-6">
+      <div className="mx-auto flex max-w-[1100px] gap-5 px-4 py-4">
         <div className="flex-1 min-w-0">
           {/* Result overlay */}
           {result && (

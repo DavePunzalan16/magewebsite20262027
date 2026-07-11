@@ -55,10 +55,10 @@ export default function GameConnect4({ onComplete }: Props) {
         <span className="font-body text-[13px] text-white">Turn: <span className={turn === 1 ? "text-red-400" : "text-yellow-400"}>{turn === 1 ? "🔴 Red" : "🟡 Yellow"}</span></span>
         <button onClick={reset} className="rounded-full bg-surface px-3 py-1 font-body text-[10px] text-offwhite hover:text-white">Reset</button>
       </div>
-      <div className="inline-grid gap-1 rounded-[10px] border border-dark-gray/30 bg-blue-900/30 p-2" style={{ gridTemplateColumns: `repeat(${COLS}, 36px)` }}>
+      <div className="inline-grid gap-1.5 rounded-[10px] border border-dark-gray/30 bg-blue-900/30 p-3" style={{ gridTemplateColumns: `repeat(${COLS}, 44px)` }}>
         {board.map((row, r) => row.map((cell, c) => (
           <button key={`${r}-${c}`} onClick={() => dropPiece(c)}
-            className={`h-9 w-9 rounded-full border transition-all ${cell === 1 ? "bg-red-500 border-red-400" : cell === 2 ? "bg-yellow-400 border-yellow-300" : "bg-dark-gray/20 border-dark-gray/30 hover:bg-white/10"}`} />
+            className={`h-10 w-10 rounded-full border-2 transition-all ${cell === 1 ? "bg-red-500 border-red-400 shadow-sm shadow-red-500/30" : cell === 2 ? "bg-yellow-400 border-yellow-300 shadow-sm shadow-yellow-400/30" : "bg-dark-gray/20 border-dark-gray/30 hover:bg-white/10"}`} />
         )))}
       </div>
       {winner && <p className="mt-3 text-center font-body text-[14px] text-green-400">🎉 {winner === 1 ? "Red" : "Yellow"} wins!</p>}

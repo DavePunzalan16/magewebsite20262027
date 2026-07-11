@@ -112,9 +112,9 @@ export default function GameTetris({ onComplete }: Props) {
         <button onClick={reset} className="rounded-full bg-surface px-3 py-1 font-body text-[10px] text-offwhite hover:text-white">Reset</button>
       </div>
       <div className="mx-auto rounded-[8px] border border-dark-gray/30 bg-black/50 p-1 inline-block">
-        <div className="grid" style={{ gridTemplateColumns: `repeat(${COLS}, 18px)` }}>
+        <div className="grid" style={{ gridTemplateColumns: `repeat(${COLS}, 24px)` }}>
           {display.flat().map((cell, i) => (
-            <div key={i} className="h-[18px] w-[18px] border border-dark-gray/10" style={{ backgroundColor: cell ? COLORS[cell - 1] : "transparent" }} />
+            <div key={i} className="h-[24px] w-[24px] border border-dark-gray/10 rounded-[2px]" style={{ backgroundColor: cell ? COLORS[cell - 1] : "transparent" }} />
           ))}
         </div>
       </div>

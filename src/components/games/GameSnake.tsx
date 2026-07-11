@@ -10,8 +10,8 @@ interface Props {
 type Direction = "UP" | "DOWN" | "LEFT" | "RIGHT";
 type Position = { x: number; y: number };
 
-const GRID_SIZE = 20;
-const CELL_SIZE = 20; // px
+const GRID_SIZE = 22;
+const CELL_SIZE = 22; // px
 const INITIAL_SPEED = 150;
 
 export default function GameSnake({ onComplete }: Props) {

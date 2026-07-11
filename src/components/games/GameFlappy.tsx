@@ -5,8 +5,8 @@ import type { ArcadeGameResult } from "@/lib/types/arcade";
 
 interface Props { onComplete: (result: ArcadeGameResult) => Promise<void>; }
 
-const CANVAS_W = 320;
-const CANVAS_H = 480;
+const CANVAS_W = 400;
+const CANVAS_H = 550;
 const BIRD_SIZE = 20;
 const PIPE_W = 40;
 const GAP = 120;
