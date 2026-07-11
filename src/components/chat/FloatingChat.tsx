@@ -30,12 +30,12 @@ export default function FloatingChat() {
 
   return (
     <>
-      {/* Floating button */}
+      {/* Floating button — bottom left, Messenger style */}
       <button
         onClick={() => chat.setMinimized(!chat.minimized)}
-        className="fixed bottom-6 right-6 z-[70] flex h-14 w-14 items-center justify-center rounded-full bg-primary shadow-lg shadow-primary/30 hover:scale-105 transition-transform"
+        className="fixed bottom-6 left-6 z-[70] flex h-12 w-12 items-center justify-center rounded-full bg-primary shadow-lg shadow-primary/30 hover:scale-105 transition-transform"
       >
-        <MessageCircle className="h-6 w-6 text-black" />
+        <MessageCircle className="h-5 w-5 text-black" />
         {chat.totalUnread > 0 && (
           <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 font-body text-[10px] text-white font-bold">
             {chat.totalUnread > 9 ? "9+" : chat.totalUnread}
@@ -43,14 +43,14 @@ export default function FloatingChat() {
         )}
       </button>
 
-      {/* Chat panel */}
+      {/* Chat panel — bottom left aligned */}
       <AnimatePresence>
         {!chat.minimized && (
           <motion.div
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-24 right-6 z-[70] w-[340px] h-[460px] rounded-[16px] border border-dark-gray/30 bg-surface/95 backdrop-blur-sm shadow-2xl flex flex-col overflow-hidden"
+            className="fixed bottom-20 left-6 z-[70] w-[320px] h-[440px] rounded-[16px] border border-dark-gray/30 bg-surface/95 backdrop-blur-sm shadow-2xl flex flex-col overflow-hidden"
           >
             {/* Header */}
             <div className="flex items-center justify-between border-b border-dark-gray/20 px-4 py-3">
