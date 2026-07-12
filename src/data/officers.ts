@@ -166,7 +166,7 @@ export const specialMentions: Officer[] = [
     position: "Website Creator & Developer",
     description: "The Arcane Architect — the mind behind this digital realm, forging the guild's online presence from code and creativity.",
     lore: "When M.A.G.E. was revived in A.Y. 2026-2027, Dave answered the call to build the guild's digital home. This website — every animation, every interaction, every line of code — is his creation. A full-stack developer who fused his passion for web technology with his love for anime and gaming culture, Dave crafted the M.A.G.E. Digital Guild Platform as a labor of love for the community.",
-    image: "/Officers/gojosan.jpg",
+    image: "/Officers/dave.jpg",
     isSpecial: true,
   },
 ];
