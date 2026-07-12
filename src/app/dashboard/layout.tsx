@@ -21,6 +21,7 @@ import {
   Menu,
   X,
   PenSquare,
+  Settings,
 } from "lucide-react";
 
 export default function DashboardLayout({
@@ -70,6 +71,7 @@ export default function DashboardLayout({
     { href: "/dashboard/admin/badges", label: "Badges", icon: BarChart3 },
     { href: "/dashboard/admin/members", label: "Members", icon: Users },
     { href: "/dashboard/admin/analytics", label: "Analytics", icon: BarChart3 },
+    { href: "/dashboard/admin/settings", label: "Settings", icon: Settings },
   ];
 
   const officerLinks = [

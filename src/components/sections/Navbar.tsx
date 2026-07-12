@@ -92,6 +92,11 @@ export function Navbar() {
               {/* Notification bell + dropdown */}
               <NotificationDropdown unreadCount={unreadCount} userId={user.id} />
 
+              {/* Settings icon */}
+              <Link href="/settings" className="flex h-8 w-8 items-center justify-center rounded-full text-offwhite/40 hover:text-primary transition-colors" title="Settings">
+                <Settings className="h-4 w-4" />
+              </Link>
+
               <div ref={dropdownRef} className="relative">
               <button
                 onClick={() => setProfileOpen(!profileOpen)}
