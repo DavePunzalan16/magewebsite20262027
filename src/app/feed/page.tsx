@@ -242,7 +242,7 @@ export default function FeedPage() {
       const supabase = createClient();
       await supabase.from("reposts").insert({ user_id: user.id, post_id: post.id });
       // Award XP for sharing
-      await awardClientXP(user.id, "repost", 5);
+      await awardClientXP(user.id, "repost");
     } catch {}
     alert("Reposted to your profile! 🔁");
   };

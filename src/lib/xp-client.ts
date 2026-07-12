@@ -10,12 +10,14 @@ const XP_REWARDS: Record<string, number> = {
   post: 15,
   comment: 10,
   reaction: 5,
+  repost: 5,
 };
 
 const DAILY_CAPS: Record<string, number> = {
   post: 3,
   comment: 10,
   reaction: 20,
+  repost: 10,
 };
 
 export async function awardClientXP(userId: string, action: string): Promise<{ awarded: boolean; newXp?: number; newLevel?: number }> {

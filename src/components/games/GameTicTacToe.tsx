@@ -18,7 +18,7 @@ export default function GameTicTacToe({ onComplete }: Props) {
   const [phase, setPhase] = useState<"start" | "playing" | "over">("start");
   const [score, setScore] = useState(0);
   const [difficulty, setDifficulty] = useState<Difficulty>("medium");
-  const stateRef = useRef({ board: Array(9).fill(null) as Board, turn: "X" as "X" | "O", winner: null as null | "X" | "O" | "draw", playerWins: 0, aiWins: 0, round: 1, animCells: [] as { idx: number; progress: number }[] });
+  const stateRef = useRef({ board: Array(9).fill(null) as Board, turn: "X" as "X" | "O", winner: null as null | "X" | "O" | "draw", playerWins: 0, aiWins: 0, round: 1, score: 0, animCells: [] as { idx: number; progress: number }[] });
   const rafRef = useRef(0);
   const startTime = useRef(0);
 

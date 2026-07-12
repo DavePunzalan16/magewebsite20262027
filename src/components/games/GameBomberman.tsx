@@ -117,7 +117,7 @@ export default function GameBomberman({ onComplete }: Props) {
       for (const e of enemies) {
         e.x += e.dx * e.speed; e.y += e.dy * e.speed;
         const gx = Math.round(e.x), gy = Math.round(e.y);
-        if (gx <= 0 || gx >= COLS - 1 || gy <= 0 || gy >= ROWS - 1 || (grid[gy]?.[gx] && grid[gy][gx] !== 0)) {
+        if (gx <= 0 || gx >= COLS - 1 || gy <= 0 || gy >= ROWS - 1 || (grid[gy]?.[gx] != null && (grid[gy][gx] as number) !== 0)) {
           e.dx = -e.dx; e.dy = -e.dy;
           if (Math.random() < 0.3) { const tmp = e.dx; e.dx = e.dy; e.dy = tmp; }
         }
