@@ -9,7 +9,6 @@ const TRACKS = [
   { id: "m4", name: "Adventure", file: "/music/M4.mp3" },
   { id: "m5", name: "Night City", file: "/music/M5.mp3" },
   { id: "m6", name: "Epic Fantasy", file: "/music/M6.mp3" },
-  { id: "m7", name: "PhonK Playlist", file: "/music/M7.mp3" },
 ];
 
 interface AudioContextValue {
