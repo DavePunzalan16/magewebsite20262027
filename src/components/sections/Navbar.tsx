@@ -97,6 +97,12 @@ export function Navbar() {
                 <Settings className="h-4 w-4" />
               </Link>
 
+              {/* Author link */}
+              <Link href="/about-author" className="flex h-8 w-8 items-center justify-center rounded-full overflow-hidden border border-dark-gray/30 hover:border-primary/40 transition-colors" title="About the Author">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/Officers/dave.jpg" alt="Author" className="h-full w-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = "/Officers/gojosan.jpg"; }} />
+              </Link>
+
               <div ref={dropdownRef} className="relative">
               <button
                 onClick={() => setProfileOpen(!profileOpen)}

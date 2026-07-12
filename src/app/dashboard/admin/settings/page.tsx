@@ -221,30 +221,53 @@ export default function AdminSettingsPage() {
 
         {/* ABOUT TAB */}
         {tab === "about" && (
-          <div className="rounded-[12px] border border-dark-gray/30 bg-surface/20 p-5">
-            <h2 className="mb-4 font-body text-[15px] font-semibold text-white">About the Author</h2>
-            <div className="flex flex-col items-start gap-5 md:flex-row">
+          <div className="rounded-[12px] border border-dark-gray/30 bg-surface/20 p-6">
+            <div className="flex flex-col items-start gap-6 md:flex-row">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/Officers/dave.jpg" alt="Dave Matthew S. Punzalan" className="h-28 w-28 rounded-[12px] object-cover" onError={(e) => { (e.target as HTMLImageElement).src = "/Officers/gojosan.jpg"; }} />
+              <img src="/Officers/dave.jpg" alt="Dave Matthew S. Punzalan" className="h-32 w-32 rounded-[16px] object-cover border-2 border-primary/20 shadow-lg shadow-primary/10" onError={(e) => { (e.target as HTMLImageElement).src = "/Officers/gojosan.jpg"; }} />
               <div className="flex-1">
-                <h3 className="font-body text-[16px] font-semibold text-white">Dave Matthew S. Punzalan</h3>
-                <p className="mb-2 font-body text-[12px] text-primary">Full Stack Web Developer & CS Graduate</p>
-                <p className="mb-3 font-body text-[12px] leading-relaxed text-offwhite/70">
-                  Built M.A.G.E. as a gamified digital guild platform inspired by fantasy guilds. Passionate about creating immersive web experiences that bring communities together through technology and creativity.
-                </p>
-                <div className="mb-3">
-                  <span className="font-body text-[11px] uppercase text-offwhite/50">Tech Stack</span>
-                  <p className="font-body text-[12px] text-offwhite/80">React, Next.js, TypeScript, Node.js, Supabase, Tailwind CSS</p>
-                </div>
-                <div className="mb-3">
-                  <span className="font-body text-[11px] uppercase text-offwhite/50">Communities</span>
-                  <p className="font-body text-[12px] text-offwhite/80">ACSS, AWS Learning Club, DevCon, GDSC, Python Asia</p>
-                </div>
-                <div className="flex flex-wrap gap-3 font-body text-[11px]">
-                  <a href="https://github.com/DavePunzalan16" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80">GitHub: DavePunzalan16</a>
-                  <a href="mailto:dave16punzalan@gmail.com" className="text-primary hover:text-primary/80">dave16punzalan@gmail.com</a>
-                </div>
+                <h2 className="font-display text-[22px] text-white">About the Author</h2>
+                <h3 className="mt-1 font-body text-[14px] font-semibold text-white">Dave Matthew S. Punzalan</h3>
+                <p className="font-body text-[12px] text-primary">Full Stack Web Developer | Computer Science Graduate | Community Tech Leader</p>
               </div>
+            </div>
+
+            <div className="mt-6 flex flex-col gap-5 font-body text-[12px] leading-relaxed text-offwhite/75">
+              <p>Dave Matthew S. Punzalan is a Bachelor of Computer Science graduate specializing in Full Stack Web Development, with experience designing and developing modern, scalable web applications using React, Next.js, TypeScript, JavaScript, Python, Node.js, Flask, and Supabase. His passion lies in creating interactive digital experiences that combine clean software architecture, intuitive user interfaces, and engaging user experiences.</p>
+
+              <p>Beyond software development, Dave has actively contributed to numerous technology communities and student organizations, serving in leadership roles with the Association of Computer Studies Students (ACSS), AWS Learning Club – UE Caloocan, DevCon, AWS User Group Philippines, Google Developer Student Clubs, Python Asia 2026, and several university organizations. These experiences strengthened his skills in project management, collaboration, technical leadership, and community building.</p>
+
+              <p>M.A.G.E. (Modernized Association Guild Experience) was created from the vision of transforming traditional organization websites into interactive digital communities. Inspired by fantasy guilds, online games, and modern social platforms, the project combines member management, event organization, social networking, gamification, achievements, quests, and browser-based mini games into one unified ecosystem. Rather than functioning as a conventional organization management system, M.A.G.E. aims to encourage engagement, collaboration, and long-term participation through meaningful progression and community interaction.</p>
+
+              <p>The platform reflects Dave&apos;s continuous pursuit of learning modern technologies and applying software engineering principles to real-world solutions. Every feature within M.A.G.E. has been designed with scalability, maintainability, responsiveness, accessibility, and user experience in mind while exploring concepts such as real-time communication, authentication, cloud databases, reusable component architecture, responsive design, and gamification.</p>
+
+              <p>Outside of development, Dave enjoys participating in technology conferences, volunteering at community events, exploring new programming frameworks, building browser games, and continuously expanding his knowledge of full-stack development, cloud technologies, UI/UX design, and software architecture.</p>
+
+              <p className="text-offwhite/60 italic">His long-term goal is to build software that not only solves practical problems but also creates memorable and engaging digital experiences that bring communities together.</p>
+            </div>
+
+            {/* Technologies Used */}
+            <div className="mt-6 rounded-[10px] border border-dark-gray/20 bg-background/30 p-4">
+              <h4 className="mb-3 font-body text-[13px] font-semibold text-white">Technologies Used</h4>
+              <div className="grid gap-2 sm:grid-cols-2 font-body text-[11px]">
+                <div><span className="text-offwhite/40">Frontend:</span> <span className="text-offwhite/80">React, Next.js, TypeScript, JavaScript, Tailwind CSS, HTML5, CSS3</span></div>
+                <div><span className="text-offwhite/40">Backend:</span> <span className="text-offwhite/80">Node.js, Express.js, Flask, Django, REST APIs</span></div>
+                <div><span className="text-offwhite/40">Database & Cloud:</span> <span className="text-offwhite/80">Supabase, PostgreSQL, MySQL, Firebase</span></div>
+                <div><span className="text-offwhite/40">Tools:</span> <span className="text-offwhite/80">Git, GitHub, Vercel, Figma, VS Code, Cursor, Kiro</span></div>
+                <div className="sm:col-span-2"><span className="text-offwhite/40">Concepts:</span> <span className="text-offwhite/80">Responsive Design, Authentication, API Integration, MVC Architecture, Agile Development, Reusable Component Design, Real-Time Applications, UI/UX Design</span></div>
+              </div>
+            </div>
+
+            {/* Development Philosophy */}
+            <div className="mt-4 rounded-[10px] border border-primary/20 bg-primary/5 p-4">
+              <h4 className="mb-2 font-body text-[13px] font-semibold text-primary">Development Philosophy</h4>
+              <p className="font-body text-[12px] italic text-offwhite/70">&ldquo;I believe technology should do more than simply function—it should create meaningful experiences. Every application I build focuses on usability, scalability, maintainability, and thoughtful design. My goal is to develop software that solves real-world problems while fostering collaboration, creativity, and community through modern web technologies.&rdquo;</p>
+            </div>
+
+            {/* Links */}
+            <div className="mt-4 flex flex-wrap gap-4 font-body text-[11px]">
+              <a href="https://github.com/DavePunzalan16" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80">🔗 GitHub</a>
+              <a href="mailto:dave16punzalan@gmail.com" className="text-primary hover:text-primary/80">📧 dave16punzalan@gmail.com</a>
             </div>
           </div>
         )}
