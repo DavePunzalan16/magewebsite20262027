@@ -5,17 +5,17 @@ import type { ArcadeGameResult } from "@/lib/types/arcade";
 
 interface Props { onComplete: (result: ArcadeGameResult) => Promise<void>; }
 
-const W = 620, H = 340;
+const W = 700, H = 380;
 const BALL_R = 11;
-const POCKET_R = 17;
+const POCKET_R = 20;
 const FRICTION = 0.984;
 const MAX_POWER = 18;
 
 interface Ball { x: number; y: number; vx: number; vy: number; id: number; pocketed: boolean; }
 
 const POCKETS = [
-  { x: 22, y: 22 }, { x: W / 2, y: 16 }, { x: W - 22, y: 22 },
-  { x: 22, y: H - 22 }, { x: W / 2, y: H - 16 }, { x: W - 22, y: H - 22 },
+  { x: 26, y: 26 }, { x: W / 2, y: 18 }, { x: W - 26, y: 26 },
+  { x: 26, y: H - 26 }, { x: W / 2, y: H - 18 }, { x: W - 26, y: H - 26 },
 ];
 
 // Ball colors: 1-7 solid, 8 black, 9-15 striped
@@ -264,7 +264,7 @@ export default function GamePool({ onComplete }: Props) {
 
   return (
     <div className="select-none flex flex-col items-center w-full">
-      <div className="mb-2 flex items-center justify-between w-full max-w-[620px]">
+      <div className="mb-2 flex items-center justify-between w-full max-w-[700px]">
         <span className="font-body text-[12px] text-white">Pocketed: <span className="text-green-400 font-bold">{pocketed.length}</span>/15</span>
         <span className="font-body text-[11px] text-offwhite/40">Shots: {shots}</span>
         {foul && <span className="font-body text-[10px] text-red-400 animate-pulse">{foul}</span>}
@@ -272,7 +272,7 @@ export default function GamePool({ onComplete }: Props) {
       </div>
 
       {/* Power meter */}
-      <div className="mb-2 w-full max-w-[620px] h-2 rounded-full bg-dark-gray/30 overflow-hidden">
+      <div className="mb-2 w-full max-w-[700px] h-2 rounded-full bg-dark-gray/30 overflow-hidden">
         <div className="h-full rounded-full transition-all duration-75" style={{ width: `${(power / MAX_POWER) * 100}%`, background: power > MAX_POWER * 0.8 ? "#ef4444" : power > MAX_POWER * 0.5 ? "#eab308" : "#22c55e" }} />
       </div>
 
@@ -295,7 +295,7 @@ export default function GamePool({ onComplete }: Props) {
       </div>
 
       {/* Pocketed balls display */}
-      <div className="mt-2 flex gap-1 flex-wrap justify-center max-w-[620px]">
+      <div className="mt-2 flex gap-1 flex-wrap justify-center max-w-[700px]">
         {pocketed.map(id => (
           <div key={id} className="w-5 h-5 rounded-full border border-white/20 flex items-center justify-center font-body text-[7px] text-white" style={{ backgroundColor: BALL_STYLES[id].fill }}>
             {BALL_STYLES[id].label}

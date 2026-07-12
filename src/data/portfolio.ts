@@ -31,7 +31,7 @@ export const socialLinks: SocialLink[] = [
   { id: "discord", name: "Discord", url: "https://discord.gg/XF2duSHASV", icon: "discord" },
   { id: "instagram", name: "Instagram", url: "https://instagram.com/mageguild.uec", icon: "instagram" },
   { id: "gmail", name: "Email", url: "mailto:mageguildofficial.uecal@gmail.com", icon: "gmail" },
-  { id: "facebook", name: "Facebook", url: "https://facebook.com/mage.guild.ue.cal", icon: "facebook" },
+  { id: "facebook", name: "Facebook", url: "https://www.facebook.com/MAGEguild.UEC", icon: "facebook" },
 ];
 
 export const guildEvents: GuildEvent[] = [

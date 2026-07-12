@@ -22,8 +22,17 @@ type Board = number[][];
 type PieceState = { shape: number[][]; color: number; x: number; y: number };
 
 function createBoard(): Board { return Array(ROWS).fill(null).map(() => Array(COLS).fill(0)); }
+// 7-bag randomizer — ensures all 7 pieces appear before repeating
+let bag: number[] = [];
 function randomPiece(): { shape: number[][]; color: number } {
-  const i = Math.floor(Math.random() * SHAPES.length);
+  if (bag.length === 0) {
+    bag = [0, 1, 2, 3, 4, 5, 6];
+    for (let i = bag.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [bag[i], bag[j]] = [bag[j], bag[i]];
+    }
+  }
+  const i = bag.pop()!;
   return { shape: SHAPES[i], color: i + 1 };
 }
 
@@ -64,6 +73,7 @@ export default function GameTetris({ onComplete }: Props) {
   const [held, setHeld] = useState<{ shape: number[][]; color: number } | null>(null);
   const [canHold, setCanHold] = useState(true);
   const [ghostY, setGhostY] = useState(0);
+  const [paused, setPaused] = useState(false);
   const startTime = useRef(Date.now());
   const dropLock = useRef(false); // Prevent double hard-drop
 
@@ -105,7 +115,7 @@ export default function GameTetris({ onComplete }: Props) {
 
   // Gravity drop
   useEffect(() => {
-    if (!running || gameOver) return;
+    if (!running || gameOver || paused) return;
     const speed = Math.max(80, 500 - lines * 15);
     const id = setInterval(() => {
       if (dropLock.current) return;
@@ -119,13 +129,15 @@ export default function GameTetris({ onComplete }: Props) {
       });
     }, speed);
     return () => clearInterval(id);
-  }, [running, gameOver, board, lines, lockPiece]);
+  }, [running, gameOver, paused, board, lines, lockPiece]);
 
   // Input handler
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (gameOver) return;
       if (!running) { setRunning(true); return; }
+      if (e.key === "Escape" || e.key === "p" || e.key === "P") { setPaused(p => !p); e.preventDefault(); return; }
+      if (paused) return;
       if (dropLock.current) { e.preventDefault(); return; }
 
       switch (e.key) {
@@ -201,7 +213,7 @@ export default function GameTetris({ onComplete }: Props) {
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [running, gameOver, board, score, lines, held, canHold, onComplete, lockPiece]);
+  }, [running, gameOver, paused, board, score, lines, held, canHold, onComplete, lockPiece]);
 
   // Build display board with current piece + ghost
   const display = board.map(r => [...r]);
@@ -267,8 +279,9 @@ export default function GameTetris({ onComplete }: Props) {
         </div>
       </div>
       {!running && !gameOver && <p className="mt-2 text-center font-body text-[11px] text-offwhite/40">Press any key to start</p>}
+      {paused && <p className="mt-2 text-center font-body text-[13px] text-yellow-400 animate-pulse">⏸ PAUSED — Press P or Esc to resume</p>}
       {gameOver && <p className="mt-2 text-center font-body text-[13px] text-red-400">Game Over — Score: {score} | Lines: {lines}</p>}
-      <p className="mt-2 font-body text-[10px] text-offwhite/30">↑ Rotate | ←→ Move | ↓ Soft | Space Hard Drop | C Hold</p>
+      <p className="mt-2 font-body text-[10px] text-offwhite/30">↑ Rotate | ←→ Move | ↓ Soft | Space Hard Drop | C Hold | P Pause</p>
     </div>
   );
 }
