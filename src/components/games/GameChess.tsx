@@ -460,7 +460,20 @@ export default function GameChess({ onComplete }: Props) {
 
       <button onClick={reset} className="mt-3 rounded-full bg-surface px-4 py-1.5 font-body text-[11px] text-offwhite hover:text-white">New Game</button>
 
-      {gameOver && <p className="mt-3 text-center font-body text-[14px] text-green-400">🎉 {result}</p>}
+      {/* Big CHECKMATE overlay */}
+      {gameOver && (
+        <div className="fixed inset-0 z-[75] flex items-center justify-center bg-black/80 backdrop-blur-sm">
+          <div className="text-center">
+            <p className="font-display text-[56px] md:text-[72px] text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-red-400 to-purple-400 animate-pulse">
+              {result?.includes("checkmate") ? "CHECKMATE" : result?.includes("Draw") ? "STALEMATE" : "TIME UP"}
+            </p>
+            <p className="mt-3 font-body text-[16px] text-white">{result}</p>
+            <button onClick={() => { reset(); }} className="mt-6 rounded-full bg-primary px-8 py-3 font-body text-[14px] font-bold text-black hover:bg-primary/80">
+              Play Again
+            </button>
+          </div>
+        </div>
+      )}
       <p className="mt-2 text-center font-body text-[10px] text-offwhite/30">Full rules • Castling • Promotion • 10 min/player</p>
     </div>
   );
