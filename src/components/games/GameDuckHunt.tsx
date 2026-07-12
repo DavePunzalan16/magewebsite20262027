@@ -25,12 +25,11 @@ export default function GameDuckHunt({ onComplete }: Props) {
   const spawnDucks = useCallback(() => {
     const ducks: Duck[] = [];
     for (let i = 0; i < 3; i++) {
-      const side = Math.random() > 0.5 ? 1 : -1;
       ducks.push({
-        x: side > 0 ? -30 : W + 30,
-        y: 100 + Math.random() * 200,
-        vx: (2 + Math.random() * 2) * (side > 0 ? 1 : -1),
-        vy: -1 - Math.random() * 2,
+        x: 50 + Math.random() * (W - 100),
+        y: H - 60 - Math.random() * 40,
+        vx: (1.5 + Math.random() * 2) * (Math.random() > 0.5 ? 1 : -1),
+        vy: -(2 + Math.random() * 2),
         alive: true, frame: 0, flyAway: false
       });
     }
