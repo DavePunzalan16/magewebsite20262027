@@ -8,7 +8,7 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { PremiumFooter } from "@/components/sections/Footer";
-import { Edit3, Gamepad2, Tv, BookOpen, Heart, Star, Trophy, Shield, Sparkles, Globe, MessageSquare, QrCode, Bookmark, Clock, Users } from "lucide-react";
+import { Edit3, Gamepad2, Tv, BookOpen, Heart, Star, Trophy, Shield, Sparkles, Globe, MessageSquare, QrCode, Bookmark, Clock, Users, Repeat2 } from "lucide-react";
 import { ProfileGallery } from "@/components/ui/ProfileGallery";
 import { PageLoader } from "@/components/ui/PageLoader";
 import { arcadeGames } from "@/data/arcade-games";
@@ -384,6 +384,9 @@ export default function ProfilePage() {
                 </div>
               )}
             </div>
+
+            {/* Reposts Section */}
+            <RepostsSection userId={user.id} />
           </div>
         </div>
       </div>
@@ -601,3 +604,58 @@ function ProfileTasks({ userId, level }: { userId: string; level: number }) {
   );
 }
 
+
+// Reposts section — shows posts you've reposted (like Twitter repost)
+function RepostsSection({ userId }: { userId: string }) {
+  const [reposts, setReposts] = useState<{ id: number; content: string; image_url: string | null; author_name: string; created_at: string; reactions: number }[]>([]);
+
+  useEffect(() => {
+    const fetchReposts = async () => {
+      const supabase = createClient();
+      try {
+        const { data: repostData } = await supabase.from("reposts").select("post_id, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(10);
+        if (repostData && repostData.length > 0) {
+          const postIds = repostData.map(r => r.post_id);
+          const { data: posts } = await supabase.from("posts").select("id, content, image_url, user_id, created_at").in("id", postIds);
+          if (posts) {
+            const userIds = [...new Set(posts.map(p => p.user_id))];
+            const { data: profiles } = await supabase.from("profiles").select("id, full_name").in("id", userIds);
+            const nameMap = new Map(profiles?.map(p => [p.id, p.full_name || "Mage"]) || []);
+            const { data: reactions } = await supabase.from("reactions").select("post_id").in("post_id", postIds);
+            const reactMap = new Map<number, number>();
+            reactions?.forEach(r => reactMap.set(r.post_id, (reactMap.get(r.post_id) || 0) + 1));
+
+            setReposts(posts.map(p => ({
+              id: p.id, content: p.content, image_url: p.image_url,
+              author_name: nameMap.get(p.user_id) || "Mage",
+              created_at: p.created_at, reactions: reactMap.get(p.id) || 0,
+            })));
+          }
+        }
+      } catch { /* reposts table may not exist yet */ }
+    };
+    fetchReposts();
+  }, [userId]);
+
+  if (reposts.length === 0) return null;
+
+  return (
+    <div className="rounded-[12px] border border-dark-gray/30 bg-surface/20 p-5">
+      <h2 className="mb-4 flex items-center gap-2 font-body text-[14px] font-semibold text-white">
+        <Repeat2 className="h-4 w-4 text-green-400" /> My Reposts
+      </h2>
+      <div className="flex flex-col gap-3">
+        {reposts.map(post => (
+          <div key={post.id} className="rounded-[10px] border border-dark-gray/20 bg-background/20 p-3">
+            {post.image_url && <img src={post.image_url} alt="" className="w-full h-[120px] object-cover rounded-[8px] mb-2" />}
+            <p className="font-body text-[11px] text-offwhite/70 line-clamp-3">{post.content}</p>
+            <div className="mt-2 flex items-center justify-between">
+              <span className="font-body text-[9px] text-offwhite/30">by {post.author_name}</span>
+              <span className="flex items-center gap-1 font-body text-[9px] text-red-400">❤️ {post.reactions}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

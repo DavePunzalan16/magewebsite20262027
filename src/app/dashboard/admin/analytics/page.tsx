@@ -138,6 +138,78 @@ export default function AnalyticsPage() {
         })}
       </div>
 
+      {/* Visual Charts */}
+      <div className="mb-8 grid gap-4 lg:grid-cols-2">
+        {/* Bar chart — Engagement breakdown */}
+        <div className="rounded-[12px] border border-dark-gray/30 bg-surface/20 p-5">
+          <h2 className="mb-4 font-body text-[14px] font-semibold text-white flex items-center gap-2"><BarChart3 className="h-4 w-4 text-primary" /> Engagement Breakdown</h2>
+          <div className="flex items-end gap-3 h-[140px]">
+            {[
+              { label: "Posts", value: data.posts, color: "bg-primary" },
+              { label: "Reactions", value: data.reactions, color: "bg-red-400" },
+              { label: "Comments", value: data.comments, color: "bg-blue-400" },
+              { label: "Shares", value: data.shares, color: "bg-green-400" },
+              { label: "Bookmarks", value: data.bookmarks, color: "bg-yellow-400" },
+            ].map(bar => {
+              const maxVal = Math.max(data.posts, data.reactions, data.comments, data.shares, data.bookmarks, 1);
+              const height = Math.max((bar.value / maxVal) * 120, 4);
+              return (
+                <div key={bar.label} className="flex flex-col items-center gap-1 flex-1">
+                  <span className="font-body text-[10px] text-white font-bold">{bar.value}</span>
+                  <motion.div className={`w-full max-w-[36px] rounded-t-[4px] ${bar.color}`} initial={{ height: 0 }} animate={{ height }} transition={{ duration: 0.8, delay: 0.1 }} />
+                  <span className="font-body text-[8px] text-offwhite/40 text-center">{bar.label}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Pie-style chart — Content distribution */}
+        <div className="rounded-[12px] border border-dark-gray/30 bg-surface/20 p-5">
+          <h2 className="mb-4 font-body text-[14px] font-semibold text-white flex items-center gap-2"><TrendingUp className="h-4 w-4 text-primary" /> Content Distribution</h2>
+          <div className="flex items-center gap-6">
+            {/* Donut chart */}
+            <div className="relative w-[120px] h-[120px]">
+              <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
+                {(() => {
+                  const total = data.posts + data.events + data.gallery + (data.announcements || 0);
+                  if (total === 0) return <circle cx="18" cy="18" r="14" fill="none" stroke="#333" strokeWidth="4" />;
+                  const segments = [
+                    { value: data.posts, color: "#C3B1FF" },
+                    { value: data.events, color: "#22c55e" },
+                    { value: data.gallery, color: "#eab308" },
+                    { value: data.announcements || 0, color: "#3b82f6" },
+                  ];
+                  let offset = 0;
+                  return segments.map((seg, i) => {
+                    const pct = (seg.value / total) * 100;
+                    const el = <circle key={i} cx="18" cy="18" r="14" fill="none" stroke={seg.color} strokeWidth="4" strokeDasharray={`${pct * 0.88} ${88 - pct * 0.88}`} strokeDashoffset={`-${offset * 0.88}`} />;
+                    offset += pct;
+                    return el;
+                  });
+                })()}
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="font-display text-[16px] text-white">{data.posts + data.events + data.gallery}</span>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2">
+              {[
+                { label: "Posts", value: data.posts, color: "bg-primary" },
+                { label: "Events", value: data.events, color: "bg-green-500" },
+                { label: "Gallery", value: data.gallery, color: "bg-yellow-500" },
+                { label: "Announcements", value: data.announcements || 0, color: "bg-blue-500" },
+              ].map(item => (
+                <div key={item.label} className="flex items-center gap-2">
+                  <div className={`w-2.5 h-2.5 rounded-full ${item.color}`} />
+                  <span className="font-body text-[10px] text-offwhite/60">{item.label}: {item.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Trending posts */}
       {trending.length > 0 && (
         <div className="rounded-[12px] border border-dark-gray/30 bg-surface/20 p-5">
