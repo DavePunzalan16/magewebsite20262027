@@ -126,6 +126,16 @@ const gameComponents: Record<string, React.LazyExoticComponent<React.ComponentTy
   "wordsearch": lazy(() => import("@/components/games/GameWordSearch")),
   "dominoes": lazy(() => import("@/components/games/GameDominoes")),
   "hexminesweeper": lazy(() => import("@/components/games/GameHexMinesweeper")),
+  "battleship": lazy(() => import("@/components/games/GameBattleship")),
+  "escaperoom": lazy(() => import("@/components/games/GameEscapeRoom")),
+  "missilecommand": lazy(() => import("@/components/games/GameMissileCommand")),
+  "stacktower": lazy(() => import("@/components/games/GameStackTower")),
+  "cannondefense": lazy(() => import("@/components/games/GameCannonDefense")),
+  "ninjadash": lazy(() => import("@/components/games/GameNinjaDash")),
+  "parkingmaster": lazy(() => import("@/components/games/GameParkingMaster")),
+  "treasurehunter": lazy(() => import("@/components/games/GameTreasureHunter")),
+  "aliensurvivor": lazy(() => import("@/components/games/GameAlienSurvivor")),
+  "goldminer": lazy(() => import("@/components/games/GameGoldMiner")),
 };
 
 export default function ArcadeGamePage() {
