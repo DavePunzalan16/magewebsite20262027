@@ -192,7 +192,7 @@ export default function DashboardLayout({
       </AnimatePresence>
 
       {/* Main content */}
-      <main className="flex-1 md:ml-[250px]">
+      <main className="flex-1 md:ml-[250px] overflow-x-hidden">
         {/* Top bar (mobile) */}
         <div className="sticky top-0 z-30 flex items-center gap-3 border-b border-dark-gray/20 bg-background/90 px-4 py-3 backdrop-blur-md md:hidden">
           <button
@@ -206,7 +206,7 @@ export default function DashboardLayout({
           <span className="font-display text-[18px] text-white">Dashboard</span>
         </div>
 
-        <div className="p-5 md:p-8">
+        <div className="p-5 md:p-8 max-w-[1200px] overflow-x-hidden">
           {children}
         </div>
       </main>
