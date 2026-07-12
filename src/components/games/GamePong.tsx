@@ -29,6 +29,10 @@ export default function GamePong({ onComplete }: Props) {
   const pScoreRef = useRef(0);
   const aScoreRef = useRef(0);
   const animRef = useRef<number>(0);
+  // Power-ups
+  const powerUp = useRef<{ x: number; y: number; type: "speed" | "wall" | "big"; active: boolean; timer: number }>({ x: 0, y: 0, type: "speed", active: false, timer: 0 });
+  const activeEffect = useRef<{ type: string; timer: number } | null>(null);
+  const frameCount = useRef(0);
 
   const startGame = useCallback((diff: Difficulty) => {
     setDifficulty(diff);
@@ -78,7 +82,11 @@ export default function GamePong({ onComplete }: Props) {
     const aiSpd = AI_SPEED[difficulty];
 
     const loop = () => {
+      frameCount.current++;
       const b = ball.current;
+      const pu = powerUp.current;
+      const eff = activeEffect.current;
+
       // Player paddle
       playerY.current = Math.max(0, Math.min(H - PADDLE_H, mouseY.current - PADDLE_H / 2));
       // AI paddle
@@ -86,26 +94,60 @@ export default function GamePong({ onComplete }: Props) {
       const aiDiff = aiTarget - aiY.current;
       aiY.current += Math.sign(aiDiff) * Math.min(Math.abs(aiDiff), aiSpd);
 
+      // Spawn power-up every 300 frames
+      if (frameCount.current % 300 === 0 && !pu.active) {
+        const types: ("speed" | "wall" | "big")[] = ["speed", "wall", "big"];
+        pu.x = W / 4 + Math.random() * W / 2;
+        pu.y = 30 + Math.random() * (H - 60);
+        pu.type = types[Math.floor(Math.random() * types.length)];
+        pu.active = true;
+      }
+
+      // Active effect countdown
+      if (eff && eff.timer > 0) { eff.timer--; if (eff.timer <= 0) activeEffect.current = null; }
+
+      // Ball speed boost from effect
+      const speedMult = (eff?.type === "speed") ? 1.5 : 1;
+
       // Ball movement
-      b.x += b.vx;
-      b.y += b.vy + b.spin;
+      b.x += b.vx * speedMult;
+      b.y += (b.vy + b.spin) * speedMult;
       b.spin *= 0.98;
 
       // Top/bottom walls
       if (b.y - BALL_R <= 0 || b.y + BALL_R >= H) { b.vy *= -1; b.y = Math.max(BALL_R, Math.min(H - BALL_R, b.y)); }
 
-      // Player paddle collision (left)
+      // Invisible wall effect (blocks AI side)
+      if (eff?.type === "wall" && b.x + BALL_R >= W - 60 && b.vx > 0) {
+        b.vx *= -1; b.x = W - 60 - BALL_R;
+      }
+
+      // Power-up collision with ball
+      if (pu.active && Math.sqrt((b.x - pu.x) ** 2 + (b.y - pu.y) ** 2) < BALL_R + 12) {
+        pu.active = false;
+        activeEffect.current = { type: pu.type, timer: 180 }; // 3 seconds at 60fps
+      }
+
+      // Player paddle collision (left) — edge hit = sharper angle
       if (b.x - BALL_R <= PADDLE_W + 20 && b.x > 20 && b.y >= playerY.current && b.y <= playerY.current + PADDLE_H && b.vx < 0) {
+        const paddleH = (eff?.type === "big") ? PADDLE_H + 30 : PADDLE_H;
         b.vx = Math.abs(b.vx) * 1.05;
-        const hitPos = (b.y - playerY.current) / PADDLE_H - 0.5;
-        b.spin = hitPos * 2;
-        b.vy += hitPos * 3;
+        const hitPos = (b.y - playerY.current) / paddleH - 0.5;
+        // Edge hit = near 90 degree deflection
+        if (Math.abs(hitPos) > 0.4) {
+          b.vy = hitPos * 8; // Sharp angle
+          b.spin = hitPos * 3;
+        } else {
+          b.spin = hitPos * 2;
+          b.vy += hitPos * 3;
+        }
       }
       // AI paddle collision (right)
       if (b.x + BALL_R >= W - PADDLE_W - 20 && b.x < W - 20 && b.y >= aiY.current && b.y <= aiY.current + PADDLE_H && b.vx > 0) {
         b.vx = -Math.abs(b.vx) * 1.05;
         const hitPos = (b.y - aiY.current) / PADDLE_H - 0.5;
         b.spin = hitPos * 2;
+        if (Math.abs(hitPos) > 0.4) b.vy = hitPos * 7;
       }
 
       // Scoring
@@ -137,10 +179,28 @@ export default function GamePong({ onComplete }: Props) {
       ctx.beginPath(); ctx.roundRect(W - 20 - PADDLE_W, aiY.current, PADDLE_W, PADDLE_H, 4); ctx.fill();
       ctx.shadowBlur = 0;
       // Ball
+      // Ball
       ctx.fillStyle = "#fff";
       ctx.shadowColor = "#fff"; ctx.shadowBlur = 6;
       ctx.beginPath(); ctx.arc(b.x, b.y, BALL_R, 0, Math.PI * 2); ctx.fill();
       ctx.shadowBlur = 0;
+      // Power-up particle
+      if (pu.active) {
+        const puColors: Record<string, string> = { speed: "#ef4444", wall: "#3b82f6", big: "#22c55e" };
+        ctx.fillStyle = puColors[pu.type];
+        ctx.shadowColor = puColors[pu.type]; ctx.shadowBlur = 8;
+        ctx.beginPath(); ctx.arc(pu.x, pu.y, 10, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#fff"; ctx.font = "bold 8px sans-serif"; ctx.textAlign = "center";
+        ctx.fillText(pu.type === "speed" ? "⚡" : pu.type === "wall" ? "🛡" : "↕", pu.x, pu.y + 3);
+        ctx.shadowBlur = 0;
+      }
+      // Active effect indicator
+      if (eff) {
+        ctx.fillStyle = "rgba(255,255,255,0.15)";
+        if (eff.type === "wall") { ctx.fillRect(W - 62, 0, 4, H); }
+        ctx.fillStyle = "#fff"; ctx.font = "10px sans-serif"; ctx.textAlign = "center";
+        ctx.fillText(`${eff.type.toUpperCase()} ${Math.ceil(eff.timer / 60)}s`, W / 2, H - 10);
+      }
       // Score
       ctx.font = "bold 32px 'Bebas Neue', sans-serif";
       ctx.fillStyle = "#C3B1FF"; ctx.textAlign = "center";

@@ -10,7 +10,7 @@ const COLS = 16, ROWS = 10;
 const W = COLS * CELL, H = ROWS * CELL;
 
 type Difficulty = "easy" | "hard" | "insane" | "extreme";
-type TowerType = "basic" | "sniper" | "splash" | "freeze" | "laser";
+type TowerType = "basic" | "sniper" | "splash" | "freeze" | "laser" | "shotgun";
 
 interface PathCell { r: number; c: number; }
 interface Enemy { x: number; y: number; hp: number; maxHp: number; speed: number; pathIdx: number; id: number; frozen: number; type: string; }
@@ -37,6 +37,7 @@ const TOWER_SHOP: Record<TowerType, { name: string; cost: number; range: number;
   splash: { name: "Bomb", cost: 100, range: 90, damage: 15, cooldown: 35, color: "#eab308", desc: "Area damage" },
   freeze: { name: "Ice", cost: 80, range: 110, damage: 5, cooldown: 30, color: "#00f5ff", desc: "Slows enemies" },
   laser: { name: "Laser", cost: 200, range: 150, damage: 50, cooldown: 15, color: "#ef4444", desc: "Fast fire rate" },
+  shotgun: { name: "Shotgun", cost: 100, range: 80, damage: 35, cooldown: 20, color: "#f97316", desc: "3 pellets spread" },
 };
 
 const DIFF_CONFIG: Record<Difficulty, { hpMult: number; speedMult: number; goldMult: number; startGold: number; lives: number }> = {
@@ -176,7 +177,15 @@ export default function GameTowerDefense({ onComplete }: Props) {
         if (target) {
           t.lastShot = frameRef.current;
           const shop = TOWER_SHOP[t.type];
-          projectiles.current.push({ x: tx, y: ty, tx: target.x, ty: target.y, damage: t.damage * t.level, splash: t.type === "splash", freeze: t.type === "freeze", color: shop.color });
+          if (t.type === "shotgun") {
+            // Fire 3 pellets in a spread
+            for (let p = -1; p <= 1; p++) {
+              const spread = p * 15;
+              projectiles.current.push({ x: tx, y: ty, tx: target.x + spread, ty: target.y + spread, damage: t.damage * t.level, splash: false, freeze: false, color: shop.color });
+            }
+          } else {
+            projectiles.current.push({ x: tx, y: ty, tx: target.x, ty: target.y, damage: t.damage * t.level, splash: t.type === "splash", freeze: t.type === "freeze", color: shop.color });
+          }
         }
       });
 
