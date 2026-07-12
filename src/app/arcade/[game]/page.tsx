@@ -28,7 +28,19 @@ const GAME_INSTRUCTIONS: Record<string, { controls: string[]; howToPlay: string[
   "penalty": { controls: ["Click zone in goal to shoot", "Hold for power meter"], howToPlay: ["Aim at 5 zones in the goal", "Power affects accuracy (too high = miss)", "Keeper dives randomly", "Score more than half to win"] },
   "pool": { controls: ["Click & drag from cue ball", "Release to shoot"], howToPlay: ["Pocket all 15 balls", "Drag direction = aim, distance = power", "Balls have realistic physics", "Cue ball resets if pocketed"] },
   "pacman": { controls: ["Arrow keys or WASD"], howToPlay: ["Eat all yellow pellets to win", "Big pellets let you eat ghosts", "Avoid ghosts or lose a life", "3 lives total"] },
-  "towerdefense": { controls: ["Select tower type → click grid", "Towers auto-shoot enemies"], howToPlay: ["Enemies follow the path", "Place towers to destroy them", "Earn gold from kills to buy more", "Don't let enemies reach the end"] },
+  "towerdefense": { controls: ["Select tower type → click grid", "Click placed tower to upgrade"], howToPlay: ["Enemies follow the path", "Place towers to destroy them", "Earn gold from kills to buy more", "Don't let enemies reach the end"] },
+  "asteroids": { controls: ["← → Rotate", "↑ Thrust", "Space Shoot"], howToPlay: ["Destroy all asteroids", "Big ones split into smaller", "Don't get hit! 3 lives", "Score increases with difficulty"] },
+  "bomberman": { controls: ["WASD Move", "Space Place bomb"], howToPlay: ["Destroy walls to find paths", "Avoid enemies and your own bombs", "Collect power-ups", "Clear all enemies to advance"] },
+  "whackmole": { controls: ["Click/tap moles to whack"], howToPlay: ["Moles pop up for 1-2 seconds", "Hit as many as possible in 60s", "Combo multiplier for streaks", "Speed increases over time"] },
+  "simonsays": { controls: ["Click the colored quadrant"], howToPlay: ["Watch the sequence carefully", "Repeat it in exact order", "One new color added each round", "Wrong press = game over"] },
+  "bubbleshooter": { controls: ["Mouse aim + click to shoot"], howToPlay: ["Match 3+ same color to pop", "Aim guide shows trajectory", "Don't let bubbles reach bottom", "Clear all bubbles to win"] },
+  "frogger": { controls: ["Arrow keys or WASD to hop"], howToPlay: ["Cross roads without getting hit", "Use logs to cross rivers", "Reach the top 5 times to win", "3 lives, timer per attempt"] },
+  "duckhunt": { controls: ["Click/tap to shoot ducks"], howToPlay: ["3 ducks per round, 10 rounds", "Hit at least 2/3 to advance", "Ducks get faster each round", "Track accuracy for bonus"] },
+  "colorswitch": { controls: ["Space/tap to jump"], howToPlay: ["Pass through matching color only", "Ball changes color on stars", "Endless mode — beat your high", "Timing is everything"] },
+  "fruitninja": { controls: ["Click/swipe to slice fruits"], howToPlay: ["Slice fruits for points", "Avoid bombs (instant death)", "Miss 3 fruits = game over", "Combos give bonus score"] },
+  "tictactoe": { controls: ["Click empty cell to place"], howToPlay: ["Get 3 in a row to win", "Choose AI difficulty level", "Best of 3 rounds", "AI uses minimax on Hard"] },
+  "hexpuzzle": { controls: ["Click piece then click grid"], howToPlay: ["Fill complete rows or columns", "Filled lines auto-clear", "Game over when no piece fits", "Plan ahead for combos"] },
+  "airhockey": { controls: ["Mouse/touch to move paddle"], howToPlay: ["Hit puck past opponent", "First to 7 goals wins", "Choose AI difficulty", "Puck bounces off walls"] },
 };
 
 // Lazy-load games — each game's code only loads when that game is opened
@@ -50,6 +62,18 @@ const GamePenalty = lazy(() => import("@/components/games/GamePenalty"));
 const GamePool = lazy(() => import("@/components/games/GamePool"));
 const GamePacman = lazy(() => import("@/components/games/GamePacman"));
 const GameTowerDefense = lazy(() => import("@/components/games/GameTowerDefense"));
+const GameAsteroids = lazy(() => import("@/components/games/GameAsteroids"));
+const GameBomberman = lazy(() => import("@/components/games/GameBomberman"));
+const GameWhackMole = lazy(() => import("@/components/games/GameWhackMole"));
+const GameSimonSays = lazy(() => import("@/components/games/GameSimonSays"));
+const GameBubbleShooter = lazy(() => import("@/components/games/GameBubbleShooter"));
+const GameFrogger = lazy(() => import("@/components/games/GameFrogger"));
+const GameDuckHunt = lazy(() => import("@/components/games/GameDuckHunt"));
+const GameColorSwitch = lazy(() => import("@/components/games/GameColorSwitch"));
+const GameFruitNinja = lazy(() => import("@/components/games/GameFruitNinja"));
+const GameTicTacToe = lazy(() => import("@/components/games/GameTicTacToe"));
+const GameHexPuzzle = lazy(() => import("@/components/games/GameHexPuzzle"));
+const GameAirHockey = lazy(() => import("@/components/games/GameAirHockey"));
 
 const gameComponents: Record<string, React.LazyExoticComponent<React.ComponentType<{ onComplete: (result: ArcadeGameResult) => Promise<void> }>>> = {
   "2048": Game2048,
@@ -70,6 +94,18 @@ const gameComponents: Record<string, React.LazyExoticComponent<React.ComponentTy
   "pool": GamePool,
   "pacman": GamePacman,
   "towerdefense": GameTowerDefense,
+  "asteroids": GameAsteroids,
+  "bomberman": GameBomberman,
+  "whackmole": GameWhackMole,
+  "simonsays": GameSimonSays,
+  "bubbleshooter": GameBubbleShooter,
+  "frogger": GameFrogger,
+  "duckhunt": GameDuckHunt,
+  "colorswitch": GameColorSwitch,
+  "fruitninja": GameFruitNinja,
+  "tictactoe": GameTicTacToe,
+  "hexpuzzle": GameHexPuzzle,
+  "airhockey": GameAirHockey,
 };
 
 export default function ArcadeGamePage() {
