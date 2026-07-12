@@ -12,6 +12,13 @@ const GRID = 3;
 const HOLE_R = 50;
 const GAME_TIME = 60;
 
+type Difficulty = "easy" | "medium" | "hard";
+const DIFF_CONFIG: Record<Difficulty, { spawnRate: number; moleTime: number; label: string }> = {
+  easy: { spawnRate: 90, moleTime: 50, label: "🟢 Easy — Moles stay 2s" },
+  medium: { spawnRate: 60, moleTime: 35, label: "🟡 Medium — Moles stay 1.5s" },
+  hard: { spawnRate: 40, moleTime: 22, label: "🔴 Hard — Moles stay 1s" },
+};
+
 interface Mole {
   active: boolean;
   timer: number;
@@ -21,21 +28,23 @@ interface Mole {
 export default function GameWhackMole({ onComplete }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [phase, setPhase] = useState<"start" | "playing" | "over">("start");
+  const [difficulty, setDifficulty] = useState<Difficulty>("medium");
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(GAME_TIME);
   const [combo, setCombo] = useState(0);
-  const stateRef = useRef({ moles: Array.from({ length: 9 }, () => ({ active: false, timer: 0, hit: false })) as Mole[], score: 0, combo: 0, spawnRate: 80, frame: 0 });
+  const stateRef = useRef({ moles: Array.from({ length: 9 }, () => ({ active: false, timer: 0, hit: false })) as Mole[], score: 0, combo: 0, spawnRate: 60, moleTime: 35, frame: 0 });
   const rafRef = useRef(0);
   const startTime = useRef(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const startGame = useCallback(() => {
     const s = stateRef.current;
+    const conf = DIFF_CONFIG[difficulty];
     s.moles = Array.from({ length: 9 }, () => ({ active: false, timer: 0, hit: false }));
-    s.score = 0; s.combo = 0; s.spawnRate = 80; s.frame = 0;
+    s.score = 0; s.combo = 0; s.spawnRate = conf.spawnRate; s.moleTime = conf.moleTime; s.frame = 0;
     setScore(0); setCombo(0); setTimeLeft(GAME_TIME); setPhase("playing");
     startTime.current = Date.now();
-  }, []);
+  }, [difficulty]);
 
   // Timer countdown
   useEffect(() => {
@@ -165,6 +174,11 @@ export default function GameWhackMole({ onComplete }: Props) {
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70">
             <p className="font-display text-[28px] text-white">WHACK-A-MOLE</p>
             <p className="mt-2 font-body text-[12px] text-offwhite">Click moles to whack them! 60 seconds</p>
+            <div className="mt-3 flex gap-2">
+              {(["easy", "medium", "hard"] as Difficulty[]).map(d => (
+                <button key={d} onClick={() => setDifficulty(d)} className={`rounded-[6px] border px-3 py-1 font-body text-[10px] capitalize ${difficulty === d ? "border-primary bg-primary/10 text-primary" : "border-dark-gray/30 text-offwhite/50"}`}>{d}</button>
+              ))}
+            </div>
             <button onClick={startGame} className="mt-4 rounded-full bg-primary px-6 py-2 font-body text-[13px] font-bold uppercase text-black">Start</button>
           </div>
         )}

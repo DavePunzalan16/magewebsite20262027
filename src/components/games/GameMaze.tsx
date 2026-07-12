@@ -99,10 +99,12 @@ export default function GameMaze({ onComplete }: Props) {
     setComplete(false);
     startTime.current = Date.now();
 
-    // Spawn enemies at level 15+
-    if (lvl >= 15) {
-      const count = Math.min(1 + Math.floor((lvl - 15) / 3), 4);
-      setEnemies(spawnEnemies(m.walls, count));
+    // Spawn enemies at level 5+
+    if (lvl >= 5) {
+      const count = Math.min(1 + Math.floor((lvl - 5) / 3), 5);
+      // Double enemies at level 10+
+      const finalCount = lvl >= 10 ? Math.min(count * 2, 8) : count;
+      setEnemies(spawnEnemies(m.walls, finalCount));
     } else {
       setEnemies([]);
     }
@@ -250,7 +252,7 @@ export default function GameMaze({ onComplete }: Props) {
         <div className="absolute rounded-full bg-primary shadow-lg shadow-primary/50 transition-all duration-75" style={{ left: playerPos.c * CELL + (CELL - PLAYER_SIZE) / 2, top: playerPos.r * CELL + (CELL - PLAYER_SIZE) / 2, width: PLAYER_SIZE, height: PLAYER_SIZE }} />
       </div>
 
-      <p className="mt-3 font-body text-[11px] text-offwhite/40">WASD / Arrow keys • Collect coins • Reach green exit{level >= 15 ? " • Avoid enemies!" : ""}</p>
+      <p className="mt-3 font-body text-[11px] text-offwhite/40">WASD / Arrow keys • Collect coins • Reach green exit{level >= 5 ? " • Avoid enemies!" : ""}</p>
 
       {/* Death Modal */}
       {dead && (
