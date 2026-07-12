@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowLeft, Github, Mail, Code2, Globe } from "lucide-react";
+import { ArrowLeft, Mail, Code2, Globe } from "lucide-react";
 
 export default function AboutAuthorPage() {
   return (
@@ -66,7 +66,7 @@ export default function AboutAuthorPage() {
               <Globe className="h-4 w-4" /> Portfolio
             </a>
             <a href="https://github.com/DavePunzalan16" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 rounded-full border border-dark-gray/30 bg-surface/30 px-4 py-2 font-body text-[12px] text-offwhite hover:text-primary hover:border-primary/30 transition-colors">
-              <Github className="h-4 w-4" /> GitHub
+              <Globe className="h-4 w-4" /> GitHub
             </a>
             <a href="https://www.linkedin.com/in/davematthewpunzalan" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 rounded-full border border-dark-gray/30 bg-surface/30 px-4 py-2 font-body text-[12px] text-offwhite hover:text-primary hover:border-primary/30 transition-colors">
               <Globe className="h-4 w-4" /> LinkedIn

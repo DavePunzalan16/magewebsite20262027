@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { Settings, Shield, Palette, Bell, FileText, ChevronRight, ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { Settings, Shield, Palette, Bell, FileText, ChevronRight, ArrowLeft, Eye, EyeOff, Code2, Globe, Mail } from "lucide-react";
 import Link from "next/link";
 
 const tabs = [
@@ -13,6 +13,7 @@ const tabs = [
   { id: "security", label: "Security", icon: Shield },
   { id: "appearance", label: "Appearance", icon: Palette },
   { id: "notifications", label: "Notifications", icon: Bell },
+  { id: "author", label: "Author", icon: Code2 },
   { id: "rules", label: "Rules", icon: FileText },
 ];
 
@@ -186,6 +187,38 @@ export default function MemberSettingsPage() {
                     </button>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* AUTHOR */}
+          {tab === "author" && (
+            <div className="rounded-[12px] border border-dark-gray/30 bg-surface/20 p-6">
+              <div className="flex flex-col items-center gap-4 text-center md:flex-row md:text-left">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/Officers/dave.jpg" alt="Dave Matthew S. Punzalan" className="h-24 w-24 rounded-full object-cover border-2 border-primary/30 shadow-lg" onError={(e) => { (e.target as HTMLImageElement).src = "/Officers/gojosan.jpg"; }} />
+                <div>
+                  <h2 className="font-display text-[22px] text-white">Dave Matthew S. Punzalan</h2>
+                  <p className="font-body text-[12px] text-primary font-medium">Full Stack Web Developer | CS Graduate | Community Tech Leader</p>
+                </div>
+              </div>
+              <div className="mt-5 flex flex-col gap-3 font-body text-[12px] leading-relaxed text-offwhite/70">
+                <p>Dave Matthew S. Punzalan is a Bachelor of Computer Science graduate specializing in Full Stack Web Development, with experience designing and developing modern, scalable web applications using React, Next.js, TypeScript, JavaScript, Python, Node.js, Flask, and Supabase.</p>
+                <p>M.A.G.E. (Modernized Association Guild Experience) was created from the vision of transforming traditional organization websites into interactive digital communities. Inspired by fantasy guilds, online games, and modern social platforms, the project combines member management, event organization, social networking, gamification, achievements, quests, and browser-based mini games into one unified ecosystem.</p>
+                <p className="italic text-offwhite/50">&ldquo;I believe technology should do more than simply function—it should create meaningful experiences. My goal is to develop software that solves real-world problems while fostering collaboration, creativity, and community through modern web technologies.&rdquo;</p>
+              </div>
+              <div className="mt-5 rounded-[10px] border border-dark-gray/20 bg-background/30 p-4">
+                <p className="mb-2 font-body text-[11px] uppercase text-offwhite/40">Tech Stack</p>
+                <p className="font-body text-[11px] text-offwhite/70">React, Next.js, TypeScript, Node.js, Supabase, Tailwind CSS, Python, Flask, PostgreSQL, Vercel</p>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <a href="https://dm-punzalan-portfolio2026.vercel.app" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 rounded-full border border-dark-gray/30 bg-surface/30 px-3 py-1.5 font-body text-[10px] text-offwhite hover:text-primary hover:border-primary/30"><Globe className="h-3 w-3" /> Portfolio</a>
+                <a href="https://github.com/DavePunzalan16" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 rounded-full border border-dark-gray/30 bg-surface/30 px-3 py-1.5 font-body text-[10px] text-offwhite hover:text-primary hover:border-primary/30"><Code2 className="h-3 w-3" /> GitHub</a>
+                <a href="https://www.linkedin.com/in/davematthewpunzalan" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 rounded-full border border-dark-gray/30 bg-surface/30 px-3 py-1.5 font-body text-[10px] text-offwhite hover:text-primary hover:border-primary/30"><Globe className="h-3 w-3" /> LinkedIn</a>
+                <a href="https://www.facebook.com/Davethegreat16/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 rounded-full border border-dark-gray/30 bg-surface/30 px-3 py-1.5 font-body text-[10px] text-offwhite hover:text-primary hover:border-primary/30"><Globe className="h-3 w-3" /> Facebook</a>
+                <a href="https://www.instagram.com/punzalan_dave" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 rounded-full border border-dark-gray/30 bg-surface/30 px-3 py-1.5 font-body text-[10px] text-offwhite hover:text-primary hover:border-primary/30"><Globe className="h-3 w-3" /> Instagram</a>
+                <a href="https://www.youtube.com/@davematthewpunzalan6176" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 rounded-full border border-dark-gray/30 bg-surface/30 px-3 py-1.5 font-body text-[10px] text-offwhite hover:text-primary hover:border-primary/30"><Globe className="h-3 w-3" /> YouTube</a>
+                <a href="mailto:dave16punzalan@gmail.com" className="flex items-center gap-1.5 rounded-full border border-dark-gray/30 bg-surface/30 px-3 py-1.5 font-body text-[10px] text-offwhite hover:text-primary hover:border-primary/30"><Mail className="h-3 w-3" /> Email</a>
               </div>
             </div>
           )}
