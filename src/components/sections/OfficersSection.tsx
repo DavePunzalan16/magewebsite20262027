@@ -1,12 +1,13 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import Image from "next/image";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import { Container } from "@/components/layout/Container";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { TiltCard } from "@/components/ui/TiltCard";
-import { officers, specialMentions, type Officer } from "@/data/officers";
+import { officers as staticOfficers, specialMentions, type Officer } from "@/data/officers";
+import { createClient } from "@/lib/supabase/client";
 import { Shield, X, Sparkles, Star } from "lucide-react";
 
 // Officer detail modal
@@ -119,6 +120,23 @@ function OfficerCard({ officer, index, onClick }: { officer: Officer; index: num
 
 export function OfficersSection() {
   const [selectedOfficer, setSelectedOfficer] = useState<Officer | null>(null);
+  const [officers, setOfficers] = useState<Officer[]>(staticOfficers);
+
+  // Fetch from Supabase (realtime), fallback to static
+  useEffect(() => {
+    const supabase = createClient();
+    const fetch = async () => {
+      const { data } = await supabase.from("officers").select("*").eq("is_visible", true).order("display_order", { ascending: true });
+      if (data && data.length > 0) {
+        setOfficers(data.map(o => ({ id: o.id, name: o.name, position: o.position, description: o.description, lore: o.lore, image: o.image })));
+      }
+    };
+    fetch();
+    const channel = supabase.channel("officers-public")
+      .on("postgres_changes", { event: "*", schema: "public", table: "officers" }, () => fetch())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
   const regularOfficers = officers;
   const specialOfficersList = specialMentions;

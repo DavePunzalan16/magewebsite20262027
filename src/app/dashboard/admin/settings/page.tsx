@@ -4,8 +4,10 @@ import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { Settings, Users, Info, Shield, FileText, Activity, ChevronRight } from "lucide-react";
-import { officers as officersData, type Officer } from "@/data/officers";
+import { Settings, Users, Info, Shield, FileText, Activity, ChevronRight, Upload } from "lucide-react";
+import { officers as officersFallback } from "@/data/officers";
+
+interface OfficerDB { id: string; name: string; position: string; description: string; lore: string; image: string; display_order: number; is_visible: boolean; }
 
 const tabs = [
   { id: "officers", label: "Officers", icon: Users },
@@ -41,11 +43,30 @@ export default function AdminSettingsPage() {
   const { user } = useAuth();
   const [tab, setTab] = useState("officers");
 
-  // Officers state
-  const [officerList, setOfficerList] = useState<Officer[]>(officersData);
+  // Officers state — Supabase realtime
+  const [officerList, setOfficerList] = useState<OfficerDB[]>([]);
   const [officerModal, setOfficerModal] = useState(false);
-  const [editingOfficer, setEditingOfficer] = useState<Officer | null>(null);
+  const [editingOfficer, setEditingOfficer] = useState<OfficerDB | null>(null);
   const [officerForm, setOfficerForm] = useState({ name: "", position: "", description: "", lore: "", image: "" });
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch officers from Supabase (fallback to static data)
+  useEffect(() => {
+    const supabase = createClient();
+    const fetchOfficers = async () => {
+      const { data } = await supabase.from("officers").select("*").order("display_order", { ascending: true });
+      if (data && data.length > 0) setOfficerList(data);
+      else setOfficerList(officersFallback.map((o, i) => ({ id: o.id, name: o.name, position: o.position, description: o.description, lore: o.lore, image: o.image, display_order: i, is_visible: true })));
+    };
+    fetchOfficers();
+
+    // Realtime subscription
+    const channel = supabase.channel("officers-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "officers" }, () => fetchOfficers())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
   // Platform state
   const [platform, setPlatform] = useState({
@@ -80,32 +101,48 @@ export default function AdminSettingsPage() {
     return () => clearInterval(interval);
   }, [showPasswordModal]);
 
-  // Officer CRUD
+  // Officer CRUD — Supabase
   const openAddOfficer = () => {
     setEditingOfficer(null);
-    setOfficerForm({ name: "", position: "", description: "", lore: "", image: "" });
+    setOfficerForm({ name: "", position: "", description: "", lore: "", image: "/Officers/gojosan.jpg" });
     setOfficerModal(true);
   };
 
-  const openEditOfficer = (officer: Officer) => {
+  const openEditOfficer = (officer: OfficerDB) => {
     setEditingOfficer(officer);
     setOfficerForm({ name: officer.name, position: officer.position, description: officer.description, lore: officer.lore, image: officer.image });
     setOfficerModal(true);
   };
 
-  const saveOfficer = () => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingImage(true);
+    const supabase = createClient();
+    const ext = file.name.split(".").pop();
+    const path = `officers/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("uploads").upload(path, file);
+    if (!error) {
+      const { data: urlData } = supabase.storage.from("uploads").getPublicUrl(path);
+      setOfficerForm(f => ({ ...f, image: urlData.publicUrl }));
+    }
+    setUploadingImage(false);
+  };
+
+  const saveOfficer = async () => {
     if (!officerForm.name.trim()) return;
+    const supabase = createClient();
     if (editingOfficer) {
-      setOfficerList((prev) => prev.map((o) => o.id === editingOfficer.id ? { ...o, ...officerForm } : o));
+      await supabase.from("officers").update({ name: officerForm.name, position: officerForm.position, description: officerForm.description, lore: officerForm.lore, image: officerForm.image, updated_at: new Date().toISOString() }).eq("id", editingOfficer.id);
     } else {
-      const newOfficer: Officer = { id: `officer-${Date.now()}`, ...officerForm };
-      setOfficerList((prev) => [...prev, newOfficer]);
+      await supabase.from("officers").insert({ name: officerForm.name, position: officerForm.position, description: officerForm.description, lore: officerForm.lore, image: officerForm.image, display_order: officerList.length });
     }
     setOfficerModal(false);
   };
 
-  const deleteOfficer = (id: string) => {
-    setOfficerList((prev) => prev.filter((o) => o.id !== id));
+  const deleteOfficer = async (id: string) => {
+    const supabase = createClient();
+    await supabase.from("officers").delete().eq("id", id);
   };
 
   // OTP handler
@@ -330,6 +367,17 @@ export default function AdminSettingsPage() {
                 className="resize-none rounded-[8px] border border-dark-gray/30 bg-background/40 px-3 py-2 font-body text-[13px] text-white placeholder:text-offwhite/25 focus:border-primary/40 focus:outline-none" />
               <input value={officerForm.image} onChange={(e) => setOfficerForm((f) => ({ ...f, image: e.target.value }))} placeholder="Image URL (e.g. /Officers/name.jpg)"
                 className="rounded-[8px] border border-dark-gray/30 bg-background/40 px-3 py-2 font-body text-[13px] text-white placeholder:text-offwhite/25 focus:border-primary/40 focus:outline-none" />
+              {/* Image upload */}
+              <div className="flex items-center gap-2">
+                <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                <button onClick={() => fileInputRef.current?.click()} disabled={uploadingImage} className="flex items-center gap-1.5 rounded-[6px] bg-primary/10 px-3 py-2 font-body text-[11px] text-primary hover:bg-primary/20 disabled:opacity-50">
+                  <Upload className="h-3.5 w-3.5" /> {uploadingImage ? "Uploading..." : "Upload Photo"}
+                </button>
+                {officerForm.image && officerForm.image !== "/Officers/gojosan.jpg" && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={officerForm.image} alt="Preview" className="h-10 w-10 rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = "/Officers/gojosan.jpg"; }} />
+                )}
+              </div>
             </div>
             <div className="mt-4 flex justify-end gap-2">
               <button onClick={() => setOfficerModal(false)} className="rounded-[6px] px-4 py-2 font-body text-[12px] text-offwhite/50 hover:text-white">Cancel</button>
