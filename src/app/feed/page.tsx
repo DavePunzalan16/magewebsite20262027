@@ -14,7 +14,7 @@ import { PageLoader } from "@/components/ui/PageLoader";
 import { awardClientXP } from "@/lib/xp-client";
 import {
   Heart, MessageCircle, Share2, Bookmark, Send, ImageIcon,
-  MoreHorizontal, Trash2, EyeOff, Pin, ArrowLeft, Users,
+  MoreHorizontal, Trash2, EyeOff, Pin, ArrowLeft, Users, Repeat2,
 } from "lucide-react";
 
 interface FeedPost {
@@ -235,6 +235,18 @@ export default function FeedPage() {
     } catch {}
   };
 
+  // Repost — saves to profile reposts section
+  const handleRepost = async (post: FeedPost) => {
+    if (!user) return;
+    try {
+      const supabase = createClient();
+      await supabase.from("reposts").insert({ user_id: user.id, post_id: post.id });
+      // Award XP for sharing
+      await awardClientXP(user.id, "repost", 5);
+    } catch {}
+    alert("Reposted to your profile! 🔁");
+  };
+
   // Comments
   const handleComment = async (postId: number) => {
     if (!commentText.trim() || !user) return;
@@ -449,6 +461,9 @@ export default function FeedPage() {
                       </button>
                       <button onClick={() => handleShare(post)} className="flex items-center gap-1 rounded-full px-2.5 py-1 font-body text-[11px] text-offwhite/35 hover:text-offwhite">
                         <Share2 className="h-3.5 w-3.5" />{post.shares || ""}
+                      </button>
+                      <button onClick={() => handleRepost(post)} className="flex items-center gap-1 rounded-full px-2.5 py-1 font-body text-[11px] text-green-400/50 hover:text-green-400">
+                        <Repeat2 className="h-3.5 w-3.5" />
                       </button>
                       <button onClick={() => handleBookmark(post.id)} className={`ml-auto rounded-full px-2.5 py-1 ${post.userBookmarked ? "text-primary" : "text-offwhite/25 hover:text-offwhite"}`}>
                         <Bookmark className={`h-3.5 w-3.5 ${post.userBookmarked ? "fill-current" : ""}`} />
