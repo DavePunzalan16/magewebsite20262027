@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -182,9 +182,20 @@ export default function ApprovalsPage() {
               <h2 className="mb-3 font-body text-[15px] font-semibold text-white">Processed</h2>
               <div className="flex flex-col gap-2">
                 {processedApps.map((app) => (
-                  <div key={app.id} className="flex items-center justify-between rounded-[8px] border border-dark-gray/20 bg-surface/10 px-4 py-2">
-                    <p className="font-body text-[12px] text-white">{app.first_name} {app.last_name} <span className="text-offwhite/30">· {app.college}</span></p>
-                    <span className={`rounded-full px-2 py-0.5 font-body text-[9px] font-bold uppercase ${app.status === "approved" ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"}`}>{app.status}</span>
+                  <div key={app.id} className="flex items-center justify-between rounded-[8px] border border-dark-gray/20 bg-surface/10 px-4 py-2.5">
+                    <div className="flex items-center gap-3">
+                      <button onClick={() => setExpandedApp(expandedApp === app.id ? null : app.id)} className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20 shrink-0" title="View details">
+                        <Info className="h-3 w-3" />
+                      </button>
+                      <div>
+                        <p className="font-body text-[12px] text-white">{app.first_name} {app.last_name}</p>
+                        <p className="font-body text-[9px] text-offwhite/40">{app.preferred_department || "No dept"} · {app.college}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`rounded-full px-2 py-0.5 font-body text-[9px] font-bold uppercase ${app.status === "approved" ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"}`}>{app.status}</span>
+                      <RemoveMemberButton appId={app.id} name={`${app.first_name} ${app.last_name}`} onRemove={() => setMemberApps(prev => prev.filter(a => a.id !== app.id))} />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -192,7 +203,98 @@ export default function ApprovalsPage() {
           )}
         </div>
       )}
+
+      {/* Expanded detail for processed items (reuse same expandedApp state) */}
+      <AnimatePresence>
+        {expandedApp && processedApps.find(a => a.id === expandedApp) && (
+          <motion.div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setExpandedApp(null)}>
+            <motion.div className="w-full max-w-[400px] rounded-[16px] border border-dark-gray/30 bg-surface/95 p-6" initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }} onClick={e => e.stopPropagation()}>
+              {(() => { const app = processedApps.find(a => a.id === expandedApp); if (!app) return null; return (
+                <>
+                  <h3 className="font-display text-[20px] text-white mb-3">{app.first_name} {app.last_name}</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <InfoField label="Student ID" value={app.student_id} />
+                    <InfoField label="College" value={app.college} />
+                    <InfoField label="Course" value={app.course} />
+                    <InfoField label="Year" value={app.year_level} />
+                    <InfoField label="Email" value={app.email} />
+                    <InfoField label="Phone" value={app.phone || "—"} />
+                    <InfoField label="Department" value={app.preferred_department || "—"} />
+                    <InfoField label="Status" value={app.status} />
+                  </div>
+                  {app.why_join && <p className="mt-3 font-body text-[11px] text-offwhite/50 italic">&ldquo;{app.why_join}&rdquo;</p>}
+                  <button onClick={() => setExpandedApp(null)} className="mt-4 w-full rounded-full bg-primary/10 py-2 font-body text-[11px] text-primary hover:bg-primary/20">Close</button>
+                </>
+              ); })()}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
+  );
+}
+
+// Remove member button with 10-second warning modal
+function RemoveMemberButton({ appId, name, onRemove }: { appId: number; name: string; onRemove: () => void }) {
+  const [showModal, setShowModal] = useState(false);
+  const [countdown, setCountdown] = useState(10);
+  const [canConfirm, setCanConfirm] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const openModal = () => {
+    setShowModal(true);
+    setCountdown(10);
+    setCanConfirm(false);
+    timerRef.current = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) { setCanConfirm(true); if (timerRef.current) clearInterval(timerRef.current); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const closeModal = () => { setShowModal(false); if (timerRef.current) clearInterval(timerRef.current); };
+
+  const confirmRemove = async () => {
+    const supabase = createClient();
+    await supabase.from("membership_applications").delete().eq("id", appId);
+    onRemove();
+    closeModal();
+  };
+
+  return (
+    <>
+      <button onClick={openModal} className="rounded-full bg-red-500/10 px-2 py-0.5 font-body text-[9px] text-red-400 hover:bg-red-500/20">✕</button>
+      <AnimatePresence>
+        {showModal && (
+          <motion.div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div className="w-full max-w-[360px] rounded-[16px] border border-red-500/30 bg-surface/95 p-6 text-center" initial={{ scale: 0.8, rotateX: 10 }} animate={{ scale: 1, rotateX: 0 }} exit={{ scale: 0.8, opacity: 0 }}>
+              <motion.div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10 border border-red-500/30"
+                animate={{ scale: [1, 1.05, 1] }} transition={{ duration: 1.5, repeat: Infinity }}>
+                <span className="text-[28px]">⚠️</span>
+              </motion.div>
+              <h3 className="font-display text-[22px] text-red-400">Remove Member?</h3>
+              <p className="mt-2 font-body text-[12px] text-offwhite/60">Are you sure you want to remove <span className="text-white font-semibold">{name}</span> from the guild?</p>
+              <p className="mt-1 font-body text-[10px] text-offwhite/30">This action cannot be undone.</p>
+
+              <div className="mt-5 flex gap-3 justify-center">
+                <button onClick={closeModal} className="rounded-full border border-dark-gray/30 px-5 py-2 font-body text-[12px] text-offwhite hover:text-white">Cancel</button>
+                {canConfirm ? (
+                  <motion.button onClick={confirmRemove} className="rounded-full bg-red-500 px-5 py-2 font-body text-[12px] font-bold text-white hover:bg-red-600" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring" }}>
+                    Yes, Remove
+                  </motion.button>
+                ) : (
+                  <div className="flex items-center gap-2 rounded-full bg-red-500/10 px-5 py-2">
+                    <div className="h-5 w-5 rounded-full border-2 border-red-400 border-t-transparent animate-spin" />
+                    <span className="font-body text-[11px] text-red-400">{countdown}s</span>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 

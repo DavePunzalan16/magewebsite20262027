@@ -255,8 +255,29 @@ export default function FeedPage() {
     if (data) {
       setComments((prev) => ({ ...prev, [postId]: [...(prev[postId] || []), { ...data, author_name: userProfile?.full_name || "You", author_avatar: userProfile?.avatar_url || null }] }));
       setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, comments: p.comments + 1 } : p));
-      // Award XP for commenting
       awardClientXP(user.id, "comment");
+
+      // Parse @mentions and notify
+      const mentions = commentText.match(/@(\w[\w\s]*\w|\w+)/g);
+      if (mentions) {
+        const names = mentions.map(m => m.slice(1).trim());
+        const { data: mentionedUsers } = await supabase.from("profiles").select("id, full_name").in("full_name", names);
+        if (mentionedUsers) {
+          for (const mentioned of mentionedUsers) {
+            if (mentioned.id !== user.id) {
+              await supabase.from("notifications").insert({
+                user_id: mentioned.id,
+                type: "mention",
+                title: `${userProfile?.full_name || "Someone"} mentioned you`,
+                body: commentText.slice(0, 100),
+                actor_id: user.id,
+                entity_type: "post",
+                entity_id: String(postId),
+              });
+            }
+          }
+        }
+      }
     }
     setCommentText("");
   };
@@ -483,7 +504,7 @@ export default function FeedPage() {
                             )}
                             <div className="flex-1 rounded-[6px] bg-background/30 px-2.5 py-1.5">
                               <p className="font-body text-[10px] font-semibold text-offwhite/70">{c.author_name}</p>
-                              <p className="font-body text-[11px] text-offwhite/60">{c.content}</p>
+                              <p className="font-body text-[11px] text-offwhite/60">{c.content.split(/(@\w[\w\s]*\w|@\w+)/).map((part, i) => part.startsWith("@") ? <span key={i} className="text-primary font-semibold">{part}</span> : part)}</p>
                             </div>
                             <button onClick={() => handleCommentReact(c.id)} className={`shrink-0 self-center rounded-full p-1 ${(commentReactions[c.id]?.liked) ? "text-red-400" : "text-offwhite/20 hover:text-offwhite/50"}`}>
                               <Heart className={`h-3 w-3 ${(commentReactions[c.id]?.liked) ? "fill-current" : ""}`} />
@@ -493,7 +514,7 @@ export default function FeedPage() {
                         {user && (
                           <div className="mt-2 flex gap-2">
                             <input type="text" value={commentText} onChange={(e) => setCommentText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleComment(post.id)}
-                              placeholder="Comment..." className="flex-1 rounded-full border border-dark-gray/30 bg-background/30 px-3 py-1.5 font-body text-[11px] text-white placeholder:text-offwhite/20 focus:border-primary/30 focus:outline-none" />
+                              placeholder="Comment... use @name to mention" className="flex-1 rounded-full border border-dark-gray/30 bg-background/30 px-3 py-1.5 font-body text-[11px] text-white placeholder:text-offwhite/20 focus:border-primary/30 focus:outline-none" />
                             <button onClick={() => handleComment(post.id)} className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/20 text-primary hover:bg-primary/30"><Send className="h-3 w-3" /></button>
                           </div>
                         )}
