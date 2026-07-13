@@ -97,7 +97,7 @@ const GameBomberman = lazy(() => import("@/components/games/GameBomberman"));
 const GameWhackMole = lazy(() => import("@/components/games/GameWhackMole"));
 const GameSimonSays = lazy(() => import("@/components/games/GameSimonSays"));
 const GameBubbleShooter = lazy(() => import("@/components/games/GameBubbleShooter"));
-const GameFrogger = lazy(() => import("@/components/games/GameFrogger"));
+const GameFrogger = lazy(() => import("@/components/games/GameFarmingSim"));
 const GameDuckHunt = lazy(() => import("@/components/games/GameDuckHunt"));
 const GameColorSwitch = lazy(() => import("@/components/games/GameColorSwitch"));
 const GameFruitNinja = lazy(() => import("@/components/games/GameFruitNinja"));
@@ -140,7 +140,7 @@ const gameComponents: Record<string, React.LazyExoticComponent<React.ComponentTy
   "dotsboxes": lazy(() => import("@/components/games/GameDotsBoxes")),
   "numbermerge": lazy(() => import("@/components/games/GameNumberMerge")),
   "checkers": lazy(() => import("@/components/games/GameCheckers")),
-  "solitaire": lazy(() => import("@/components/games/GameSolitaire")),
+  "solitaire": lazy(() => import("@/components/games/GameIslandSurvival")),
   "pinball": lazy(() => import("@/components/games/GamePinball")),
   "typingspeed": lazy(() => import("@/components/games/GameTypingSpeed")),
   "slidingpuzzle": lazy(() => import("@/components/games/GameSlidingPuzzle")),
