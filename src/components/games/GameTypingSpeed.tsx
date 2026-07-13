@@ -1,143 +1,330 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { ArcadeGameResult } from "@/lib/types/arcade";
 
-interface Props { onComplete: (result: ArcadeGameResult) => Promise<void>; }
-
-const WORDS_SHORT = ["code", "type", "fast", "game", "loop", "node", "data", "fire", "dark", "star", "rust", "void", "hack", "byte", "port"];
-const WORDS_MED = ["react", "array", "quest", "pixel", "debug", "world", "ninja", "magic", "turbo", "blade", "flame", "crypt", "logic", "storm", "fiber"];
-const WORDS_LONG = ["typescript", "algorithm", "component", "function", "developer", "interface", "framework", "animation", "collision", "recursive", "middleware", "generator"];
-
-function getWord(difficulty: number): string {
-  if (difficulty < 5) return WORDS_SHORT[Math.floor(Math.random() * WORDS_SHORT.length)];
-  if (difficulty < 12) return WORDS_MED[Math.floor(Math.random() * WORDS_MED.length)];
-  return WORDS_LONG[Math.floor(Math.random() * WORDS_LONG.length)];
+interface GameTypingSpeedProps {
+  onComplete: (result: ArcadeGameResult) => Promise<void>;
 }
 
-export default function GameTypingSpeed({ onComplete }: Props) {
-  const [phase, setPhase] = useState<"start" | "playing" | "over">("start");
-  const [currentWord, setCurrentWord] = useState("");
-  const [input, setInput] = useState("");
-  const [timeLeft, setTimeLeft] = useState(60);
-  const [wordsTyped, setWordsTyped] = useState(0);
-  const [correctChars, setCorrectChars] = useState(0);
-  const [totalChars, setTotalChars] = useState(0);
-  const [streak, setStreak] = useState(0);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const startTime = useRef(Date.now());
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+const SENTENCES: string[] = [
+  "Naruto never gives up on his dream to become Hokage",
+  "The Guild Master leads with wisdom and courage",
+  "In Valorant you must aim for the head",
+  "Luffy will become the King of Pirates",
+  "A hunter must have a hunter license",
+  "The Survey Corps fights for humanity",
+  "Goku always pushes past his limits",
+  "Every mage needs mana to cast spells",
+  "Press F to pay respects",
+  "The cake is a lie",
+  "You died in Dark Souls again",
+  "Do you know what a guild is",
+  "The adventure begins when you join MAGE",
+  "Anime is not just cartoons it is art",
+  "Gaming brings people together across the world",
+  "Believe in the heart of the cards",
+  "It is over nine thousand",
+  "The world shall know pain",
+  "Plus ultra go beyond your limits",
+  "Omae wa mou shindeiru",
+  "I will take a potato chip and eat it",
+  "People die when they are killed",
+  "One does not simply walk into Mordor",
+  "The guild needs more healers",
+  "Respawn in three two one",
+  "GG well played everyone",
+  "First blood goes to the enemy team",
+  "Victory royale with zero eliminations",
+  "Creepers gonna creep in Minecraft",
+  "The Elden Ring calls to the Tarnished",
+  "Pikachu I choose you",
+  "A sword wields no strength unless the hand that holds it has courage",
+  "The flow of time is always cruel",
+  "War never changes but games always update",
+  "Roll for initiative and hope for the best",
+  "Mana potions taste like grape soda",
+  "The guild hall is where legends gather",
+  "Speed runners break the game for fun",
+  "Every champion was once a noob",
+  "Sakura finally became useful in Boruto",
+  "Zoro always gets lost even with a map",
+  "Saitama can defeat anyone with one punch",
+  "The Sharingan sees through all deception",
+  "Titan shifters hold the power of giants",
+];
 
-  const nextWord = useCallback((wordsCount: number) => {
-    setCurrentWord(getWord(wordsCount));
-    setInput("");
-  }, []);
+const GAME_DURATION = 60;
+
+type GamePhase = "start" | "playing" | "gameover";
+
+function shuffleSentences(): string[] {
+  const copy = [...SENTENCES];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+export default function GameTypingSpeed({ onComplete }: GameTypingSpeedProps) {
+  const [phase, setPhase] = useState<GamePhase>("start");
+  const [sentences, setSentences] = useState<string[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [typedChars, setTypedChars] = useState<string[]>([]);
+  const [timeLeft, setTimeLeft] = useState(GAME_DURATION);
+  const [totalCorrect, setTotalCorrect] = useState(0);
+  const [totalTyped, setTotalTyped] = useState(0);
+  const [sentencesCompleted, setSentencesCompleted] = useState(0);
+  const [wpm, setWpm] = useState(0);
+  const [accuracy, setAccuracy] = useState(100);
+  const [finalScore, setFinalScore] = useState(0);
+
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const startTimeRef = useRef(0);
+  const totalCorrectRef = useRef(0);
+  const totalTypedRef = useRef(0);
+
+  const currentSentence = sentences[currentIndex] || "";
 
   const startGame = useCallback(() => {
+    const shuffled = shuffleSentences();
+    setSentences(shuffled);
+    setCurrentIndex(0);
+    setTypedChars([]);
+    setTimeLeft(GAME_DURATION);
+    setTotalCorrect(0);
+    setTotalTyped(0);
+    setSentencesCompleted(0);
+    setWpm(0);
+    setAccuracy(100);
+    setFinalScore(0);
+    totalCorrectRef.current = 0;
+    totalTypedRef.current = 0;
+    startTimeRef.current = Date.now();
     setPhase("playing");
-    setTimeLeft(60);
-    setWordsTyped(0);
-    setCorrectChars(0);
-    setTotalChars(0);
-    setStreak(0);
-    startTime.current = Date.now();
-    nextWord(0);
-    setTimeout(() => inputRef.current?.focus(), 100);
-  }, [nextWord]);
+  }, []);
 
+  // Timer
   useEffect(() => {
     if (phase !== "playing") return;
+
     timerRef.current = setInterval(() => {
-      setTimeLeft(prev => {
+      setTimeLeft((prev) => {
         if (prev <= 1) {
-          setPhase("over");
+          if (timerRef.current) clearInterval(timerRef.current);
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
   }, [phase]);
 
+  // End game when time runs out
   useEffect(() => {
-    if (phase === "over") {
-      const elapsed = 60;
-      const wpm = Math.round((wordsTyped / elapsed) * 60);
-      const accuracy = totalChars > 0 ? Math.round((correctChars / totalChars) * 100) : 0;
-      const score = wpm * 2 + accuracy;
-      onComplete({ score, won: wpm >= 30, durationSeconds: 60 });
+    if (phase === "playing" && timeLeft === 0) {
+      endGame();
     }
-  }, [phase, wordsTyped, correctChars, totalChars, onComplete]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeLeft, phase]);
 
-  const handleInput = (value: string) => {
+  const endGame = useCallback(() => {
+    const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+    const elapsedMinutes = elapsed / 60;
+    const finalWpm = elapsedMinutes > 0 ? Math.round(totalCorrectRef.current / 5 / elapsedMinutes) : 0;
+    const finalAcc = totalTypedRef.current > 0 ? Math.round((totalCorrectRef.current / totalTypedRef.current) * 100) : 100;
+
+    setWpm(finalWpm);
+    setAccuracy(finalAcc);
+
+    const calculatedScore = sentencesCompleted * 50 + finalWpm;
+    setFinalScore(calculatedScore);
+    setPhase("gameover");
+
+    onComplete({
+      score: calculatedScore,
+      won: sentencesCompleted > 0,
+      durationSeconds: elapsed,
+    });
+  }, [sentencesCompleted, onComplete]);
+
+  // Keyboard handler
+  useEffect(() => {
     if (phase !== "playing") return;
-    setInput(value);
-    setTotalChars(t => t + 1);
 
-    if (value === currentWord) {
-      setWordsTyped(w => w + 1);
-      setCorrectChars(c => c + currentWord.length);
-      setStreak(s => s + 1);
-      nextWord(wordsTyped + 1);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore modifier keys
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === "Shift" || e.key === "Control" || e.key === "Alt" || e.key === "Meta" || e.key === "Tab" || e.key === "Escape") return;
+
+      e.preventDefault();
+
+      if (e.key === "Backspace") {
+        setTypedChars((prev) => {
+          if (prev.length === 0) return prev;
+          return prev.slice(0, -1);
+        });
+        return;
+      }
+
+      if (e.key.length !== 1) return;
+
+      setTypedChars((prev) => {
+        const newTyped = [...prev, e.key];
+        const charIndex = prev.length;
+        const expectedChar = currentSentence[charIndex];
+
+        totalTypedRef.current += 1;
+        setTotalTyped((t) => t + 1);
+
+        if (e.key === expectedChar) {
+          totalCorrectRef.current += 1;
+          setTotalCorrect((c) => c + 1);
+        }
+
+        // Check if sentence completed
+        if (newTyped.length >= currentSentence.length) {
+          setSentencesCompleted((s) => s + 1);
+          setCurrentIndex((idx) => idx + 1);
+          // Update WPM live
+          const elapsedMin = (Date.now() - startTimeRef.current) / 60000;
+          if (elapsedMin > 0) {
+            setWpm(Math.round(totalCorrectRef.current / 5 / elapsedMin));
+          }
+          return [];
+        }
+
+        return newTyped;
+      });
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [phase, currentSentence]);
+
+  // Update live WPM/accuracy
+  useEffect(() => {
+    if (phase !== "playing") return;
+    const elapsed = (Date.now() - startTimeRef.current) / 60000;
+    if (elapsed > 0 && totalCorrect > 0) {
+      setWpm(Math.round(totalCorrect / 5 / elapsed));
     }
-  };
+    if (totalTyped > 0) {
+      setAccuracy(Math.round((totalCorrect / totalTyped) * 100));
+    }
+  }, [totalCorrect, totalTyped, phase]);
 
-  const wpm = timeLeft < 60 ? Math.round((wordsTyped / (60 - timeLeft)) * 60) : 0;
-  const accuracy = totalChars > 0 ? Math.round((correctChars / totalChars) * 100) : 100;
-
+  // START SCREEN
   if (phase === "start") {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[350px] gap-4">
-        <h2 className="font-display text-[28px] text-white">Typing Speed</h2>
-        <p className="font-body text-[12px] text-offwhite/50">Type words as fast as you can! 60 seconds.</p>
-        <button onClick={startGame} className="mt-2 rounded-full bg-primary px-6 py-2 font-body text-[13px] font-bold uppercase text-black">Start</button>
+      <div className="flex flex-col items-center justify-center min-h-[500px] gap-6 p-6">
+        <h1 className="text-4xl font-bold text-[#C3B1FF] font-display">Guild Typing Challenge</h1>
+        <p className="text-center text-[#C7C7C7] max-w-md text-lg">
+          Type anime, gaming, and guild-themed sentences as fast as you can! You have 60 seconds.
+          Score based on sentences completed and words per minute.
+        </p>
+        <button
+          onClick={startGame}
+          className="px-8 py-3 bg-[#C3B1FF] text-[#0A0A0A] font-bold rounded-full text-lg uppercase hover:opacity-90 transition-opacity"
+        >
+          Start Typing
+        </button>
       </div>
     );
   }
 
-  if (phase === "over") {
-    const finalWpm = Math.round((wordsTyped / 60) * 60);
+  // GAME OVER SCREEN
+  if (phase === "gameover") {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[350px] gap-4">
-        <h2 className="font-display text-[24px] text-white">Results</h2>
-        <div className="text-center space-y-2">
-          <p className="font-body text-[18px] text-primary">{finalWpm} WPM</p>
-          <p className="font-body text-[13px] text-offwhite">Words: {wordsTyped} | Accuracy: {accuracy}%</p>
-          <p className="font-body text-[13px] text-offwhite">Best streak: {streak}</p>
+      <div className="flex flex-col items-center justify-center min-h-[500px] gap-6 p-6">
+        <h2 className="text-3xl font-bold text-[#C3B1FF] font-display">Time&apos;s Up!</h2>
+        <div className="bg-[#1A1A1A] rounded-xl p-6 space-y-4 min-w-[280px]">
+          <div className="flex justify-between items-center">
+            <span className="text-[#C7C7C7]">WPM</span>
+            <span className="text-white font-bold text-xl">{wpm}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-[#C7C7C7]">Accuracy</span>
+            <span className="text-white font-bold text-xl">{accuracy}%</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-[#C7C7C7]">Sentences</span>
+            <span className="text-white font-bold text-xl">{sentencesCompleted}</span>
+          </div>
+          <div className="border-t border-[#484848] pt-3 flex justify-between items-center">
+            <span className="text-[#C7C7C7]">Final Score</span>
+            <span className="text-[#C3B1FF] font-bold text-2xl">{finalScore}</span>
+          </div>
         </div>
-        <button onClick={startGame} className="mt-2 rounded-full bg-primary/10 px-4 py-1.5 font-body text-[11px] text-primary hover:bg-primary/20">Play Again</button>
+        <button
+          onClick={startGame}
+          className="px-8 py-3 bg-[#C3B1FF] text-[#0A0A0A] font-bold rounded-full text-lg uppercase hover:opacity-90 transition-opacity"
+        >
+          Play Again
+        </button>
       </div>
     );
   }
 
+  // PLAYING SCREEN
   return (
-    <div className="select-none flex flex-col items-center w-full">
-      <div className="mb-4 flex items-center justify-between w-full max-w-[400px]">
-        <span className="font-body text-[12px] text-primary">WPM: {wpm}</span>
-        <span className={`font-body text-[14px] font-bold ${timeLeft < 10 ? "text-red-400 animate-pulse" : "text-white"}`}>⏱️ {timeLeft}s</span>
-        <span className="font-body text-[12px] text-offwhite">Words: {wordsTyped}</span>
-      </div>
-
-      <div className="mb-4 p-6 rounded-[12px] border border-dark-gray/30 bg-[#0a0a1a] min-w-[300px] text-center">
-        <p className="font-display text-[36px] text-white tracking-wider">{currentWord}</p>
-        <div className="mt-2 flex justify-center gap-[2px]">
-          {currentWord.split("").map((char, i) => (
-            <span key={i} className={`font-body text-[14px] ${
-              i < input.length
-                ? input[i] === char ? "text-green-400" : "text-red-400"
-                : "text-dark-gray"
-            }`}>{char}</span>
-          ))}
+    <div className="flex flex-col items-center gap-6 p-4 w-full max-w-2xl mx-auto">
+      {/* Stats bar */}
+      <div className="flex justify-between items-center w-full text-sm">
+        <div className="flex gap-4">
+          <span className="text-[#C7C7C7]">
+            WPM: <span className="text-white font-bold">{wpm}</span>
+          </span>
+          <span className="text-[#C7C7C7]">
+            Accuracy: <span className="text-white font-bold">{accuracy}%</span>
+          </span>
+        </div>
+        <div className="flex gap-4">
+          <span className="text-[#C7C7C7]">
+            Sentences: <span className="text-white font-bold">{sentencesCompleted}</span>
+          </span>
+          <span
+            className={`font-bold text-lg ${timeLeft <= 10 ? "text-red-400" : "text-[#C3B1FF]"}`}
+          >
+            {timeLeft}s
+          </span>
         </div>
       </div>
 
-      <input ref={inputRef} value={input} onChange={e => handleInput(e.target.value)}
-        className="w-[300px] px-4 py-2 rounded-[8px] bg-surface border border-dark-gray/50 text-white font-body text-[16px] text-center outline-none focus:border-primary"
-        autoFocus placeholder="Type here..." />
+      {/* Sentence display */}
+      <div className="bg-[#1A1A1A] rounded-xl border border-[#484848] p-6 w-full min-h-[120px] flex items-center justify-center">
+        <p className="text-xl sm:text-2xl font-mono leading-relaxed text-center">
+          {currentSentence.split("").map((char, idx) => {
+            let color = "text-[#484848]"; // untyped
+            if (idx < typedChars.length) {
+              color = typedChars[idx] === char ? "text-green-400" : "text-red-400";
+            } else if (idx === typedChars.length) {
+              color = "text-white underline";
+            }
+            return (
+              <span key={idx} className={color}>
+                {char}
+              </span>
+            );
+          })}
+        </p>
+      </div>
 
-      <div className="mt-3 flex gap-4">
-        <span className="font-body text-[11px] text-offwhite/50">Accuracy: {accuracy}%</span>
-        <span className="font-body text-[11px] text-offwhite/50">Streak: {streak}</span>
+      {/* Typing area indicator */}
+      <p className="text-[#C7C7C7] text-sm animate-pulse">
+        Start typing... (use keyboard)
+      </p>
+
+      {/* Progress bar */}
+      <div className="w-full bg-[#222222] rounded-full h-2">
+        <div
+          className="bg-[#C3B1FF] h-2 rounded-full transition-all duration-300"
+          style={{ width: `${((GAME_DURATION - timeLeft) / GAME_DURATION) * 100}%` }}
+        />
       </div>
     </div>
   );
