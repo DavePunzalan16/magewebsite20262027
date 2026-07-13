@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { Container } from "@/components/layout/Container";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { useSupabaseQuery } from "@/hooks/useSupabaseData";
+import { useAuth } from "@/components/providers/AuthProvider";
+import { createClient } from "@/lib/supabase/client";
 import { galleryItems as fallbackItems, galleryCategories, type GalleryCategory, type GalleryItem } from "@/data/gallery";
-import { X, ChevronLeft, ChevronRight, ZoomIn } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, ZoomIn, Heart } from "lucide-react";
 
 interface DbGalleryItem {
   id: number;
@@ -97,13 +99,17 @@ export function DynamicGallery() {
               <AnimatePresence mode="popLayout">
                 {filtered.map((item, index) => (
                   <motion.div key={item.id} layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.25 }} className="mb-3 break-inside-avoid">
-                    <button onClick={() => openLightbox(index)} className="group relative w-full overflow-hidden rounded-[10px] border border-dark-gray/20 transition-all hover:border-primary/30" aria-label={`View ${item.title}`}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={item.src} alt={item.alt} className="w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" loading="lazy" />
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/40">
-                        <ZoomIn className="h-7 w-7 text-white opacity-0 transition-opacity group-hover:opacity-100" />
-                      </div>
-                    </button>
+                    <div className="group relative w-full overflow-hidden rounded-[10px] border border-dark-gray/20 transition-all hover:border-primary/30">
+                      <button onClick={() => openLightbox(index)} className="w-full" aria-label={`View ${item.title}`}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={item.src} alt={item.alt} className="w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" loading="lazy" />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/40">
+                          <ZoomIn className="h-7 w-7 text-white opacity-0 transition-opacity group-hover:opacity-100" />
+                        </div>
+                      </button>
+                      {/* Heart react */}
+                      <GalleryHeart galleryId={item.id} />
+                    </div>
                   </motion.div>
                 ))}
               </AnimatePresence>
@@ -118,5 +124,53 @@ export function DynamicGallery() {
         )}
       </AnimatePresence>
     </>
+  );
+}
+
+
+// Heart reaction component for each gallery item
+function GalleryHeart({ galleryId }: { galleryId: string }) {
+  const { user } = useAuth();
+  const [liked, setLiked] = useState(false);
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    const supabase = createClient();
+    // Fetch count
+    supabase.from("gallery_reactions").select("id", { count: "exact", head: true }).eq("gallery_id", galleryId)
+      .then(({ count: c }) => setCount(c || 0));
+    // Check if user liked
+    if (user) {
+      supabase.from("gallery_reactions").select("id").eq("gallery_id", galleryId).eq("user_id", user.id).single()
+        .then(({ data }) => { if (data) setLiked(true); });
+    }
+    // Realtime
+    const channel = supabase.channel(`gallery-heart-${galleryId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "gallery_reactions", filter: `gallery_id=eq.${galleryId}` }, () => {
+        supabase.from("gallery_reactions").select("id", { count: "exact", head: true }).eq("gallery_id", galleryId)
+          .then(({ count: c }) => setCount(c || 0));
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [galleryId, user]);
+
+  const toggleHeart = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!user) return;
+    const supabase = createClient();
+    if (liked) {
+      await supabase.from("gallery_reactions").delete().eq("gallery_id", galleryId).eq("user_id", user.id);
+      setLiked(false); setCount(c => Math.max(0, c - 1));
+    } else {
+      await supabase.from("gallery_reactions").insert({ gallery_id: galleryId, user_id: user.id });
+      setLiked(true); setCount(c => c + 1);
+    }
+  };
+
+  return (
+    <button onClick={toggleHeart} className="absolute bottom-2 right-2 z-10 flex items-center gap-1 rounded-full bg-black/50 px-2 py-1 backdrop-blur-sm transition-all hover:bg-black/70">
+      <Heart className={`h-3.5 w-3.5 transition-colors ${liked ? "text-red-400 fill-red-400" : "text-white/60"}`} />
+      {count > 0 && <span className="font-body text-[10px] text-white/70">{count}</span>}
+    </button>
   );
 }
