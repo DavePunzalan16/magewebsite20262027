@@ -15,10 +15,18 @@ CREATE TABLE IF NOT EXISTS officers (
 
 -- RLS
 ALTER TABLE officers ENABLE ROW LEVEL SECURITY;
+
+-- Drop old policies if they exist
+DROP POLICY IF EXISTS "Anyone can view officers" ON officers;
+DROP POLICY IF EXISTS "Admin can insert officers" ON officers;
+DROP POLICY IF EXISTS "Admin can update officers" ON officers;
+DROP POLICY IF EXISTS "Admin can delete officers" ON officers;
+
+-- New policies
 CREATE POLICY "Anyone can view officers" ON officers FOR SELECT USING (true);
-CREATE POLICY "Admin can insert officers" ON officers FOR INSERT WITH CHECK (true);
-CREATE POLICY "Admin can update officers" ON officers FOR UPDATE USING (true);
-CREATE POLICY "Admin can delete officers" ON officers FOR DELETE USING (true);
+CREATE POLICY "Authenticated users can insert" ON officers FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+CREATE POLICY "Authenticated users can update" ON officers FOR UPDATE USING (auth.uid() IS NOT NULL);
+CREATE POLICY "Authenticated users can delete" ON officers FOR DELETE USING (auth.uid() IS NOT NULL);
 
 -- Enable realtime
 ALTER PUBLICATION supabase_realtime ADD TABLE officers;

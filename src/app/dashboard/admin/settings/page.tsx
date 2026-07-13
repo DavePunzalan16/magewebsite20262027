@@ -133,9 +133,11 @@ export default function AdminSettingsPage() {
     if (!officerForm.name.trim()) return;
     const supabase = createClient();
     if (editingOfficer) {
-      await supabase.from("officers").update({ name: officerForm.name, position: officerForm.position, description: officerForm.description, lore: officerForm.lore, image: officerForm.image, is_special: officerForm.isSpecial, updated_at: new Date().toISOString() }).eq("id", editingOfficer.id);
+      const { error } = await supabase.from("officers").update({ name: officerForm.name, position: officerForm.position, description: officerForm.description, lore: officerForm.lore, image: officerForm.image, is_special: officerForm.isSpecial, updated_at: new Date().toISOString() }).eq("id", editingOfficer.id);
+      if (error) { alert("Error updating: " + error.message); return; }
     } else {
-      await supabase.from("officers").insert({ name: officerForm.name, position: officerForm.position, description: officerForm.description, lore: officerForm.lore, image: officerForm.image, is_special: officerForm.isSpecial, display_order: officerList.length });
+      const { error } = await supabase.from("officers").insert({ id: `officer-${Date.now()}`, name: officerForm.name, position: officerForm.position, description: officerForm.description, lore: officerForm.lore, image: officerForm.image, is_special: officerForm.isSpecial, display_order: officerList.length, is_visible: true });
+      if (error) { alert("Error adding officer: " + error.message + "\n\nMake sure RLS policies allow insert. Run this in Supabase SQL Editor:\nCREATE POLICY \"Allow all for authenticated\" ON officers FOR ALL USING (auth.uid() IS NOT NULL);"); return; }
     }
     setOfficerModal(false);
   };
