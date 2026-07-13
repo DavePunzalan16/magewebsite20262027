@@ -24,7 +24,7 @@ const statusStyles: Record<string, string> = {
 };
 
 export default function ArcadePage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [playerStats, setPlayerStats] = useState<{ xp: number; level: number; mana: number; totalGames: number }>({ xp: 0, level: 1, mana: 0, totalGames: 0 });
 
@@ -32,6 +32,13 @@ export default function ArcadePage() {
     const timer = setTimeout(() => setLoading(false), 2800);
     return () => clearTimeout(timer);
   }, []);
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      window.location.href = "/auth/signin";
+    }
+  }, [user, authLoading]);
 
   useEffect(() => {
     if (!user) return;

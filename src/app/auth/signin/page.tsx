@@ -120,7 +120,7 @@ export default function SignInPage() {
                   className="w-full rounded-[10px] border border-dark-gray/30 bg-white/[0.03] py-3.5 pl-11 pr-4 font-body text-[15px] text-white placeholder:text-offwhite/25 transition-all focus:border-primary/50 focus:bg-primary/[0.02] focus:outline-none focus:ring-1 focus:ring-primary/30"
                   placeholder="your@email.com"
                   required
-                  autoComplete="email"
+                  autoComplete="off"
                 />
               </div>
             </div>
@@ -139,7 +139,7 @@ export default function SignInPage() {
                   className="w-full rounded-[10px] border border-dark-gray/30 bg-white/[0.03] py-3.5 pl-11 pr-12 font-body text-[15px] text-white placeholder:text-offwhite/25 transition-all focus:border-primary/50 focus:bg-primary/[0.02] focus:outline-none focus:ring-1 focus:ring-primary/30"
                   placeholder="••••••••"
                   required
-                  autoComplete="current-password"
+                  autoComplete="off"
                 />
                 <button
                   type="button"

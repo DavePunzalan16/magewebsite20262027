@@ -81,6 +81,13 @@ export default function FeedPage() {
     if (!authLoading) setPageReady(true);
   }, [authLoading]);
 
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      window.location.href = "/auth/signin";
+    }
+  }, [user, authLoading]);
+
   // Get current user profile for avatar display
   useEffect(() => {
     if (!user) return;
