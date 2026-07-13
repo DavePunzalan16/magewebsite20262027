@@ -305,7 +305,7 @@ export const arcadeGames: ArcadeGameConfig[] = [
   { key: "dotsboxes", title: "Dots & Boxes", description: "Draw lines, complete boxes. Outsmart the AI!", icon: "⬜", difficulty: "medium", avgPlayTime: "3-8 min", rewardPreview: "+10-50 XP", status: "available" },
   { key: "numbermerge", title: "Number Merge", description: "Merge matching tiles to create bigger numbers!", icon: "🔢", difficulty: "easy", avgPlayTime: "3-10 min", rewardPreview: "+10-50 XP", status: "available" },
   { key: "checkers", title: "Checkers", description: "Classic diagonal strategy. Jump and capture!", icon: "⚫", difficulty: "medium", avgPlayTime: "5-15 min", rewardPreview: "+10-60 XP", status: "available" },
-  { key: "solitaire", title: "Solitaire", description: "Classic Klondike card game. Stack aces to kings!", icon: "🃏", difficulty: "medium", avgPlayTime: "5-15 min", rewardPreview: "+10-60 XP", status: "available" },
+  { key: "solitaire", title: "Island Survival", description: "Survive on a procedural island! Gather, craft, escape by raft.", icon: "🏝️", difficulty: "hard", avgPlayTime: "5-20 min", rewardPreview: "+15-100 XP", status: "available" },
   { key: "pinball", title: "Pinball Lite", description: "Keep the ball alive! Z/M for flippers.", icon: "🔮", difficulty: "medium", avgPlayTime: "2-8 min", rewardPreview: "+10-60 XP", status: "available" },
   { key: "typingspeed", title: "Typing Speed", description: "Type words fast! Track your WPM.", icon: "⌨️", difficulty: "easy", avgPlayTime: "1-2 min", rewardPreview: "+5-40 XP", status: "available" },
   { key: "slidingpuzzle", title: "Sliding Puzzle", description: "Slide tiles into the correct order!", icon: "🧩", difficulty: "medium", avgPlayTime: "3-10 min", rewardPreview: "+10-50 XP", status: "available" },
