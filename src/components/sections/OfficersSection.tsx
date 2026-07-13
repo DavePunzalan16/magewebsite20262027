@@ -28,7 +28,8 @@ function OfficerModal({ officer, onClose }: { officer: Officer; onClose: () => v
 
         {/* Image */}
         <div className="mb-5 overflow-hidden rounded-[12px] border border-dark-gray/30">
-          <Image src={officer.image} alt={officer.name} width={500} height={350} className="w-full object-cover" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={officer.image} alt={officer.name} className="w-full object-cover aspect-[5/3.5]" onError={(e) => { (e.target as HTMLImageElement).src = "/Officers/gojosan.jpg"; }} />
         </div>
 
         {/* Special badge */}
@@ -88,7 +89,8 @@ function OfficerCard({ officer, index, onClick }: { officer: Officer; index: num
           <div className="relative z-10 flex flex-1 flex-col p-4 md:p-5">
             {/* Avatar */}
             <div className="mb-3 flex items-center gap-3">
-              <Image src={officer.image} alt="" width={40} height={40} className="h-10 w-10 rounded-full object-cover border border-dark-gray/30" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={officer.image} alt="" className="h-10 w-10 rounded-full object-cover border border-dark-gray/30" onError={(e) => { (e.target as HTMLImageElement).src = "/Officers/gojosan.jpg"; }} />
               {officer.isSpecial && <Star className="h-3.5 w-3.5 text-yellow-400" />}
             </div>
 
