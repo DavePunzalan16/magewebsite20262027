@@ -1,227 +1,383 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import type { ArcadeGameResult } from "@/lib/types/arcade";
+import { ArcadeGameResult } from "@/lib/types/arcade";
 
-interface Props { onComplete: (result: ArcadeGameResult) => Promise<void>; }
+interface Plot {
+  state: "empty" | "planted" | "growing" | "ready";
+  timer: number | null;
+  fertilized: boolean;
+}
 
-const W = 480, H = 560;
-const ROWS = 14, CELL = H / ROWS;
-const FROG_SIZE = 28;
+type CropType = "Wheat" | "Carrot" | "Tomato";
 
-// Row layout from TOP to BOTTOM:
-// 0: Goal (safe)
-// 1-3: River (logs)
-// 4: Safe median
-// 5-9: Road (traffic)
-// 10: Safe median
-// 11-12: Sidewalk (safe)
-// 13: Start (frog spawns here)
+const CROPS: CropType[] = ["Wheat", "Carrot", "Tomato"];
+const GROW_TIME = 5000; // 5 seconds
+const DAY_INTERVAL = 30000; // 30 seconds
+const WIN_GOLD = 200;
+const CROP_PRICE = 10;
+const SEED_COST = 5;
+const FERTILIZER_COST = 15;
+const FIELD_COST = 50;
 
-interface Vehicle { x: number; w: number; speed: number; row: number; }
-interface Log { x: number; w: number; speed: number; row: number; }
-
-export default function GameFrogger({ onComplete }: Props) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [phase, setPhase] = useState<"start" | "playing" | "over" | "win">("start");
-  const [score, setScore] = useState(0);
-  const [lives, setLives] = useState(3);
-  const [crosses, setCrosses] = useState(0);
-
-  const px = useRef(W / 2);
-  const py = useRef(13); // Row index (bottom safe zone)
-  const vehicles = useRef<Vehicle[]>([]);
-  const logs = useRef<Log[]>([]);
-  const livesRef = useRef(3);
-  const crossesRef = useRef(0);
-  const scoreRef = useRef(0);
-  const animRef = useRef<number>(0);
+export default function GameFrogger({
+  onComplete,
+}: {
+  onComplete: (result: ArcadeGameResult) => Promise<void>;
+}) {
+  const [plots, setPlots] = useState<Plot[]>(
+    Array.from({ length: 16 }, () => ({
+      state: "empty",
+      timer: null,
+      fertilized: false,
+    }))
+  );
+  const [inventory, setInventory] = useState<Record<CropType, number>>({
+    Wheat: 0,
+    Carrot: 0,
+    Tomato: 0,
+  });
+  const [gold, setGold] = useState(0);
+  const [totalGoldEarned, setTotalGoldEarned] = useState(0);
+  const [seeds, setSeeds] = useState(5);
+  const [day, setDay] = useState(1);
+  const [unlockedPlots, setUnlockedPlots] = useState(16);
+  const [gameOver, setGameOver] = useState(false);
   const startTime = useRef(Date.now());
+  const hasCompleted = useRef(false);
 
-  const initLanes = useCallback(() => {
-    const v: Vehicle[] = [];
-    const l: Log[] = [];
-    // Traffic rows 5-9
-    for (let i = 0; i < 5; i++) {
-      const row = 5 + i;
-      const dir = i % 2 === 0 ? 1 : -1;
-      const speed = (1.2 + i * 0.4) * dir;
-      const count = 2 + Math.floor(Math.random() * 2);
-      for (let j = 0; j < count; j++) {
-        v.push({ x: j * (W / count) + Math.random() * 40, w: 45 + Math.random() * 25, speed, row });
-      }
-    }
-    // River rows 1-3
-    for (let i = 0; i < 3; i++) {
-      const row = 1 + i;
-      const dir = i % 2 === 0 ? 1 : -1;
-      const speed = (0.8 + i * 0.3) * dir;
-      for (let j = 0; j < 3; j++) {
-        l.push({ x: j * 160 + Math.random() * 40, w: 70 + Math.random() * 40, speed, row });
-      }
-    }
-    vehicles.current = v;
-    logs.current = l;
-  }, []);
-
-  const resetFrog = () => { px.current = W / 2; py.current = 13; };
-
-  const startGame = useCallback(() => {
-    initLanes();
-    resetFrog();
-    livesRef.current = 3; crossesRef.current = 0; scoreRef.current = 0;
-    setLives(3); setCrosses(0); setScore(0); setPhase("playing");
-    startTime.current = Date.now();
-  }, [initLanes]);
-
-  // Controls
+  // Day counter
   useEffect(() => {
-    if (phase !== "playing") return;
-    const handleKey = (e: KeyboardEvent) => {
-      let moved = false;
-      if (e.key === "ArrowUp" || e.key === "w" || e.key === "W") { if (py.current > 0) { py.current--; moved = true; } }
-      else if (e.key === "ArrowDown" || e.key === "s" || e.key === "S") { if (py.current < 13) { py.current++; moved = true; } }
-      else if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") { px.current = Math.max(FROG_SIZE / 2, px.current - CELL); moved = true; }
-      else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") { px.current = Math.min(W - FROG_SIZE / 2, px.current + CELL); moved = true; }
-      if (moved) e.preventDefault();
-    };
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [phase]);
+    if (gameOver) return;
+    const interval = setInterval(() => {
+      setDay((d) => d + 1);
+    }, DAY_INTERVAL);
+    return () => clearInterval(interval);
+  }, [gameOver]);
 
-  // Game loop
+  // Check win condition
   useEffect(() => {
-    if (phase !== "playing") return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const loop = () => {
-      // Move vehicles
-      vehicles.current.forEach(v => {
-        v.x += v.speed;
-        if (v.x > W + v.w) v.x = -v.w;
-        if (v.x < -v.w) v.x = W + v.w;
+    if (totalGoldEarned >= WIN_GOLD && !hasCompleted.current) {
+      hasCompleted.current = true;
+      setGameOver(true);
+      const duration = Math.floor((Date.now() - startTime.current) / 1000);
+      onComplete({
+        score: totalGoldEarned,
+        won: true,
+        durationSeconds: duration,
       });
-      // Move logs
-      logs.current.forEach(l => {
-        l.x += l.speed;
-        if (l.x > W + l.w) l.x = -l.w;
-        if (l.x < -l.w) l.x = W + l.w;
-      });
+    }
+  }, [totalGoldEarned, onComplete]);
 
-      const frogRow = py.current;
-      const frogX = px.current;
-      const frogY = frogRow * CELL + CELL / 2;
+  const handlePlotClick = useCallback(
+    (index: number) => {
+      if (gameOver) return;
+      if (index >= unlockedPlots) return;
 
-      // Check collision with vehicles (rows 5-9)
-      if (frogRow >= 5 && frogRow <= 9) {
-        for (const v of vehicles.current) {
-          if (v.row === frogRow) {
-            const vy = v.row * CELL + CELL / 2;
-            if (Math.abs(frogY - vy) < CELL / 2 && frogX > v.x - v.w / 2 - FROG_SIZE / 2 && frogX < v.x + v.w / 2 + FROG_SIZE / 2) {
-              // Hit!
-              livesRef.current--; setLives(livesRef.current);
-              if (livesRef.current <= 0) { setPhase("over"); onComplete({ score: scoreRef.current, won: false, durationSeconds: Math.floor((Date.now() - startTime.current) / 1000) }); return; }
-              resetFrog();
-            }
-          }
+      setPlots((prev) => {
+        const newPlots = [...prev];
+        const plot = { ...newPlots[index] };
+
+        if (plot.state === "empty" && seeds > 0) {
+          plot.state = "planted";
+          setSeeds((s) => s - 1);
+          // Start grow timer
+          const timerId = window.setTimeout(() => {
+            setPlots((p) => {
+              const updated = [...p];
+              if (updated[index].state === "growing") {
+                updated[index] = { ...updated[index], state: "ready", timer: null };
+              }
+              return updated;
+            });
+          }, GROW_TIME);
+          // Transition to growing after a brief moment
+          setTimeout(() => {
+            setPlots((p) => {
+              const updated = [...p];
+              if (updated[index].state === "planted") {
+                updated[index] = { ...updated[index], state: "growing", timer: timerId };
+              }
+              return updated;
+            });
+          }, 500);
+          newPlots[index] = plot;
+        } else if (plot.state === "ready") {
+          // Harvest
+          const crop = CROPS[Math.floor(Math.random() * CROPS.length)];
+          setInventory((inv) => ({ ...inv, [crop]: inv[crop] + 1 }));
+          plot.state = "empty";
+          plot.timer = null;
+          newPlots[index] = plot;
         }
-      }
 
-      // Check river (rows 1-3) — must be on a log
-      if (frogRow >= 1 && frogRow <= 3) {
-        let onLog = false;
-        for (const l of logs.current) {
-          if (l.row === frogRow && frogX > l.x - l.w / 2 - 5 && frogX < l.x + l.w / 2 + 5) {
-            onLog = true;
-            px.current += l.speed; // Move with log
-            break;
-          }
-        }
-        if (!onLog) {
-          // Fell in water
-          livesRef.current--; setLives(livesRef.current);
-          if (livesRef.current <= 0) { setPhase("over"); onComplete({ score: scoreRef.current, won: false, durationSeconds: Math.floor((Date.now() - startTime.current) / 1000) }); return; }
-          resetFrog();
-        }
-      }
-
-      // Reached goal (row 0)
-      if (frogRow === 0) {
-        crossesRef.current++; setCrosses(crossesRef.current);
-        scoreRef.current += 100; setScore(scoreRef.current);
-        if (crossesRef.current >= 5) { setPhase("win"); onComplete({ score: scoreRef.current, won: true, durationSeconds: Math.floor((Date.now() - startTime.current) / 1000) }); return; }
-        resetFrog();
-      }
-
-      // Draw
-      ctx.fillStyle = "#1a1a2e"; ctx.fillRect(0, 0, W, H);
-      // Safe zones (green)
-      [0, 4, 10, 11, 12, 13].forEach(r => { ctx.fillStyle = "#1a3a1a"; ctx.fillRect(0, r * CELL, W, CELL); });
-      // Road (dark gray)
-      for (let r = 5; r <= 9; r++) { ctx.fillStyle = "#222"; ctx.fillRect(0, r * CELL, W, CELL); ctx.strokeStyle = "#444"; ctx.setLineDash([10, 10]); ctx.beginPath(); ctx.moveTo(0, r * CELL + CELL); ctx.lineTo(W, r * CELL + CELL); ctx.stroke(); ctx.setLineDash([]); }
-      // River (blue)
-      for (let r = 1; r <= 3; r++) { ctx.fillStyle = "#0a2a5a"; ctx.fillRect(0, r * CELL, W, CELL); }
-      // Goal markers
-      ctx.fillStyle = "#22c55e"; for (let i = 0; i < 5; i++) { ctx.fillRect(i * (W / 5) + 10, 4, W / 5 - 20, CELL - 8); }
-      // Vehicles
-      vehicles.current.forEach(v => {
-        const vy = v.row * CELL + CELL / 2;
-        ctx.fillStyle = v.speed > 0 ? "#ef4444" : "#3b82f6";
-        ctx.fillRect(v.x - v.w / 2, vy - CELL / 3, v.w, CELL * 0.6);
+        return newPlots;
       });
-      // Logs
-      logs.current.forEach(l => {
-        const ly = l.row * CELL + CELL / 2;
-        ctx.fillStyle = "#8b4513";
-        ctx.beginPath(); ctx.roundRect(l.x - l.w / 2, ly - CELL / 3, l.w, CELL * 0.6, 4); ctx.fill();
-      });
-      // Frog
-      ctx.fillStyle = "#22c55e"; ctx.shadowColor = "#22c55e"; ctx.shadowBlur = 6;
-      ctx.beginPath(); ctx.arc(px.current, frogY, FROG_SIZE / 2, 0, Math.PI * 2); ctx.fill();
-      ctx.shadowBlur = 0;
-      ctx.fillStyle = "#000"; ctx.beginPath(); ctx.arc(px.current - 5, frogY - 3, 3, 0, Math.PI * 2); ctx.arc(px.current + 5, frogY - 3, 3, 0, Math.PI * 2); ctx.fill();
+    },
+    [gameOver, seeds, unlockedPlots]
+  );
 
-      animRef.current = requestAnimationFrame(loop);
-    };
-    animRef.current = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(animRef.current);
-  }, [phase, onComplete]);
+  const sellAll = () => {
+    const totalCrops = inventory.Wheat + inventory.Carrot + inventory.Tomato;
+    if (totalCrops === 0) return;
+    const earnings = totalCrops * CROP_PRICE;
+    setGold((g) => g + earnings);
+    setTotalGoldEarned((t) => t + earnings);
+    setInventory({ Wheat: 0, Carrot: 0, Tomato: 0 });
+  };
+
+  const buySeeds = () => {
+    if (gold < SEED_COST) return;
+    setGold((g) => g - SEED_COST);
+    setSeeds((s) => s + 3);
+  };
+
+  const buyFertilizer = () => {
+    if (gold < FERTILIZER_COST) return;
+    setGold((g) => g - FERTILIZER_COST);
+    // Instantly grow all "planted" or "growing" plots
+    setPlots((prev) =>
+      prev.map((plot) => {
+        if (plot.state === "planted" || plot.state === "growing") {
+          if (plot.timer) clearTimeout(plot.timer);
+          return { ...plot, state: "ready", timer: null, fertilized: true };
+        }
+        return plot;
+      })
+    );
+  };
+
+  const buyField = () => {
+    if (gold < FIELD_COST) return;
+    if (unlockedPlots >= 24) return;
+    setGold((g) => g - FIELD_COST);
+    setUnlockedPlots((u) => u + 4);
+    setPlots((prev) => [
+      ...prev,
+      ...Array.from({ length: 4 }, () => ({
+        state: "empty" as const,
+        timer: null,
+        fertilized: false,
+      })),
+    ]);
+  };
+
+  const getPlotEmoji = (plot: Plot) => {
+    switch (plot.state) {
+      case "empty":
+        return "⬜";
+      case "planted":
+        return "🌱";
+      case "growing":
+        return "🌿";
+      case "ready":
+        return "🌾";
+      default:
+        return "⬜";
+    }
+  };
+
+  const totalCrops = inventory.Wheat + inventory.Carrot + inventory.Tomato;
 
   return (
-    <div className="select-none flex flex-col items-center w-full">
-      <div className="mb-2 flex items-center justify-between w-full max-w-[480px]">
-        <span className="font-body text-[13px] text-white">Score: <span className="text-green-400 font-bold">{score}</span></span>
-        <span className="font-body text-[11px] text-offwhite/40">Crosses: {crosses}/5</span>
-        <span className="font-body text-[12px] text-red-400">{"🐸".repeat(lives)}</span>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: "16px",
+        padding: "20px",
+        fontFamily: "sans-serif",
+        color: "#fff",
+        minHeight: "500px",
+      }}
+    >
+      <h2 style={{ margin: 0, fontSize: "24px" }}>🌾 Farming Simulator Lite</h2>
+
+      {/* Status Bar */}
+      <div
+        style={{
+          display: "flex",
+          gap: "24px",
+          fontSize: "16px",
+          flexWrap: "wrap",
+          justifyContent: "center",
+        }}
+      >
+        <span>💰 Gold: {gold}</span>
+        <span>🏆 Total Earned: {totalGoldEarned}/{WIN_GOLD}</span>
+        <span>🌱 Seeds: {seeds}</span>
+        <span>📅 Day {day}</span>
       </div>
-      <div className="relative">
-        <canvas ref={canvasRef} width={W} height={H} className="rounded-[10px] border border-dark-gray/30" />
-        {phase === "start" && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 rounded-[10px]">
-            <p className="font-display text-[26px] text-green-400">FROGGER</p>
-            <p className="mt-2 font-body text-[11px] text-offwhite/50">Cross roads & rivers safely!</p>
-            <p className="mt-1 font-body text-[10px] text-offwhite/30">Arrow keys or WASD to hop</p>
-            <button onClick={startGame} className="mt-4 rounded-full bg-green-500 px-6 py-2 font-body text-[13px] font-bold text-black">Start</button>
-          </div>
-        )}
-        {phase === "over" && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 rounded-[10px]">
-            <p className="font-display text-[22px] text-red-400">GAME OVER</p>
-            <p className="font-body text-[13px] text-offwhite mt-1">Score: {score}</p>
-            <button onClick={startGame} className="mt-3 rounded-full bg-primary/10 px-5 py-2 font-body text-[12px] text-primary hover:bg-primary/20">Retry</button>
-          </div>
-        )}
-        {phase === "win" && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 rounded-[10px]">
-            <p className="font-display text-[22px] text-green-400">🎉 You Win!</p>
-            <p className="font-body text-[13px] text-offwhite mt-1">Score: {score}</p>
-            <button onClick={startGame} className="mt-3 rounded-full bg-primary/10 px-5 py-2 font-body text-[12px] text-primary hover:bg-primary/20">Play Again</button>
-          </div>
-        )}
+
+      {/* Progress Bar */}
+      <div
+        style={{
+          width: "100%",
+          maxWidth: "400px",
+          height: "12px",
+          backgroundColor: "#333",
+          borderRadius: "6px",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            width: `${Math.min((totalGoldEarned / WIN_GOLD) * 100, 100)}%`,
+            height: "100%",
+            backgroundColor: "#4ade80",
+            transition: "width 0.3s",
+          }}
+        />
       </div>
+
+      {/* Farm Grid */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4, 60px)",
+          gap: "8px",
+        }}
+      >
+        {plots.map((plot, i) => (
+          <button
+            key={i}
+            onClick={() => handlePlotClick(i)}
+            disabled={i >= unlockedPlots || gameOver}
+            style={{
+              width: "60px",
+              height: "60px",
+              fontSize: "28px",
+              border: i < unlockedPlots ? "2px solid #4a5" : "2px solid #555",
+              borderRadius: "8px",
+              backgroundColor:
+                i < unlockedPlots
+                  ? plot.state === "ready"
+                    ? "#2d4a2d"
+                    : "#1a2e1a"
+                  : "#111",
+              cursor: i < unlockedPlots && !gameOver ? "pointer" : "not-allowed",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              transition: "transform 0.1s",
+            }}
+            title={
+              plot.state === "empty"
+                ? "Click to plant"
+                : plot.state === "ready"
+                ? "Click to harvest"
+                : plot.state
+            }
+          >
+            {i < unlockedPlots ? getPlotEmoji(plot) : "🔒"}
+          </button>
+        ))}
+      </div>
+
+      {/* Inventory */}
+      <div
+        style={{
+          display: "flex",
+          gap: "16px",
+          fontSize: "14px",
+          backgroundColor: "#1a1a2e",
+          padding: "10px 20px",
+          borderRadius: "8px",
+        }}
+      >
+        <span>🌾 Wheat: {inventory.Wheat}</span>
+        <span>🥕 Carrot: {inventory.Carrot}</span>
+        <span>🍅 Tomato: {inventory.Tomato}</span>
+      </div>
+
+      {/* Actions */}
+      <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", justifyContent: "center" }}>
+        <button
+          onClick={sellAll}
+          disabled={totalCrops === 0 || gameOver}
+          style={{
+            padding: "8px 16px",
+            fontSize: "14px",
+            borderRadius: "6px",
+            border: "none",
+            backgroundColor: totalCrops > 0 ? "#f59e0b" : "#555",
+            color: "#000",
+            cursor: totalCrops > 0 && !gameOver ? "pointer" : "not-allowed",
+            fontWeight: "bold",
+          }}
+        >
+          Sell All (+{totalCrops * CROP_PRICE}g)
+        </button>
+        <button
+          onClick={buySeeds}
+          disabled={gold < SEED_COST || gameOver}
+          style={{
+            padding: "8px 16px",
+            fontSize: "14px",
+            borderRadius: "6px",
+            border: "none",
+            backgroundColor: gold >= SEED_COST ? "#4ade80" : "#555",
+            color: "#000",
+            cursor: gold >= SEED_COST && !gameOver ? "pointer" : "not-allowed",
+            fontWeight: "bold",
+          }}
+        >
+          Buy Seeds ({SEED_COST}g)
+        </button>
+        <button
+          onClick={buyFertilizer}
+          disabled={gold < FERTILIZER_COST || gameOver}
+          style={{
+            padding: "8px 16px",
+            fontSize: "14px",
+            borderRadius: "6px",
+            border: "none",
+            backgroundColor: gold >= FERTILIZER_COST ? "#a78bfa" : "#555",
+            color: "#000",
+            cursor: gold >= FERTILIZER_COST && !gameOver ? "pointer" : "not-allowed",
+            fontWeight: "bold",
+          }}
+        >
+          Buy Fertilizer ({FERTILIZER_COST}g)
+        </button>
+        <button
+          onClick={buyField}
+          disabled={gold < FIELD_COST || unlockedPlots >= 24 || gameOver}
+          style={{
+            padding: "8px 16px",
+            fontSize: "14px",
+            borderRadius: "6px",
+            border: "none",
+            backgroundColor: gold >= FIELD_COST && unlockedPlots < 24 ? "#60a5fa" : "#555",
+            color: "#000",
+            cursor:
+              gold >= FIELD_COST && unlockedPlots < 24 && !gameOver
+                ? "pointer"
+                : "not-allowed",
+            fontWeight: "bold",
+          }}
+        >
+          Unlock Field ({FIELD_COST}g)
+        </button>
+      </div>
+
+      {/* Game Over */}
+      {gameOver && (
+        <div
+          style={{
+            marginTop: "12px",
+            padding: "16px 24px",
+            backgroundColor: "#166534",
+            borderRadius: "8px",
+            textAlign: "center",
+            fontSize: "18px",
+            fontWeight: "bold",
+          }}
+        >
+          🎉 You reached {WIN_GOLD} gold! Farm complete!
+        </div>
+      )}
     </div>
   );
 }
