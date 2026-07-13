@@ -7,7 +7,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { Settings, Users, Info, Shield, FileText, Activity, ChevronRight, Upload } from "lucide-react";
 import { officers as officersFallback } from "@/data/officers";
 
-interface OfficerDB { id: string; name: string; position: string; description: string; lore: string; image: string; display_order: number; is_visible: boolean; }
+interface OfficerDB { id: string; name: string; position: string; description: string; lore: string; image: string; display_order: number; is_visible: boolean; is_special: boolean; }
 
 const tabs = [
   { id: "officers", label: "Officers", icon: Users },
@@ -47,7 +47,7 @@ export default function AdminSettingsPage() {
   const [officerList, setOfficerList] = useState<OfficerDB[]>([]);
   const [officerModal, setOfficerModal] = useState(false);
   const [editingOfficer, setEditingOfficer] = useState<OfficerDB | null>(null);
-  const [officerForm, setOfficerForm] = useState({ name: "", position: "", description: "", lore: "", image: "" });
+  const [officerForm, setOfficerForm] = useState({ name: "", position: "", description: "", lore: "", image: "", isSpecial: false });
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -104,13 +104,13 @@ export default function AdminSettingsPage() {
   // Officer CRUD — Supabase
   const openAddOfficer = () => {
     setEditingOfficer(null);
-    setOfficerForm({ name: "", position: "", description: "", lore: "", image: "/Officers/gojosan.jpg" });
+    setOfficerForm({ name: "", position: "", description: "", lore: "", image: "/Officers/gojosan.jpg", isSpecial: false });
     setOfficerModal(true);
   };
 
   const openEditOfficer = (officer: OfficerDB) => {
     setEditingOfficer(officer);
-    setOfficerForm({ name: officer.name, position: officer.position, description: officer.description, lore: officer.lore, image: officer.image });
+    setOfficerForm({ name: officer.name, position: officer.position, description: officer.description, lore: officer.lore, image: officer.image, isSpecial: officer.is_special || false });
     setOfficerModal(true);
   };
 
@@ -133,9 +133,9 @@ export default function AdminSettingsPage() {
     if (!officerForm.name.trim()) return;
     const supabase = createClient();
     if (editingOfficer) {
-      await supabase.from("officers").update({ name: officerForm.name, position: officerForm.position, description: officerForm.description, lore: officerForm.lore, image: officerForm.image, updated_at: new Date().toISOString() }).eq("id", editingOfficer.id);
+      await supabase.from("officers").update({ name: officerForm.name, position: officerForm.position, description: officerForm.description, lore: officerForm.lore, image: officerForm.image, is_special: officerForm.isSpecial, updated_at: new Date().toISOString() }).eq("id", editingOfficer.id);
     } else {
-      await supabase.from("officers").insert({ name: officerForm.name, position: officerForm.position, description: officerForm.description, lore: officerForm.lore, image: officerForm.image, display_order: officerList.length });
+      await supabase.from("officers").insert({ name: officerForm.name, position: officerForm.position, description: officerForm.description, lore: officerForm.lore, image: officerForm.image, is_special: officerForm.isSpecial, display_order: officerList.length });
     }
     setOfficerModal(false);
   };
@@ -378,6 +378,12 @@ export default function AdminSettingsPage() {
                   <img src={officerForm.image} alt="Preview" className="h-10 w-10 rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = "/Officers/gojosan.jpg"; }} />
                 )}
               </div>
+              {/* Special Mention toggle */}
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={officerForm.isSpecial} onChange={(e) => setOfficerForm(f => ({ ...f, isSpecial: e.target.checked }))}
+                  className="h-4 w-4 rounded border-dark-gray/30 bg-background/40 accent-primary" />
+                <span className="font-body text-[12px] text-offwhite/70">⭐ Add to Special Mentions section</span>
+              </label>
             </div>
             <div className="mt-4 flex justify-end gap-2">
               <button onClick={() => setOfficerModal(false)} className="rounded-[6px] px-4 py-2 font-body text-[12px] text-offwhite/50 hover:text-white">Cancel</button>

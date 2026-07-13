@@ -128,7 +128,7 @@ export function OfficersSection() {
     const fetch = async () => {
       const { data } = await supabase.from("officers").select("*").eq("is_visible", true).order("display_order", { ascending: true });
       if (data && data.length > 0) {
-        setOfficers(data.map(o => ({ id: o.id, name: o.name, position: o.position, description: o.description, lore: o.lore, image: o.image })));
+        setOfficers(data.map(o => ({ id: o.id, name: o.name, position: o.position, description: o.description, lore: o.lore, image: o.image, isSpecial: o.is_special || false })));
       }
     };
     fetch();
@@ -138,8 +138,8 @@ export function OfficersSection() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  const regularOfficers = officers;
-  const specialOfficersList = specialMentions;
+  const regularOfficers = officers.filter(o => !o.isSpecial);
+  const specialOfficersList = officers.filter(o => o.isSpecial).length > 0 ? officers.filter(o => o.isSpecial) : specialMentions;
 
   return (
     <>
