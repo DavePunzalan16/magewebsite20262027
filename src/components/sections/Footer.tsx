@@ -63,6 +63,23 @@ function CountUp({ end, suffix = "" }: { end: number; suffix?: string }) {
 function FooterComponent() {
   const [quoteIndex, setQuoteIndex] = useState(0);
   const [showBackTop, setShowBackTop] = useState(false);
+  const [stats, setStats] = useState({ members: 0, events: 0, posts: 0, officers: 0 });
+
+  // Fetch realtime stats
+  useEffect(() => {
+    const fetchStats = async () => {
+      const { createClient } = await import("@/lib/supabase/client");
+      const supabase = createClient();
+      const [m, e, p, o] = await Promise.all([
+        supabase.from("profiles").select("*", { count: "exact", head: true }),
+        supabase.from("events").select("*", { count: "exact", head: true }),
+        supabase.from("posts").select("*", { count: "exact", head: true }),
+        supabase.from("officers").select("*", { count: "exact", head: true }),
+      ]);
+      setStats({ members: m.count || 0, events: e.count || 0, posts: p.count || 0, officers: o.count || 0 });
+    };
+    fetchStats();
+  }, []);
 
   // Rotate quotes
   useEffect(() => {
@@ -132,10 +149,10 @@ function FooterComponent() {
             {/* Platform stats */}
             <div className="flex flex-wrap justify-center gap-6 md:gap-8">
               {[
-                { label: "Members", value: 127, suffix: "+" },
-                { label: "Events", value: 18, suffix: "" },
-                { label: "Posts", value: 250, suffix: "+" },
-                { label: "Officers", value: 18, suffix: "" },
+                { label: "Members", value: stats.members, suffix: "+" },
+                { label: "Events", value: stats.events, suffix: "" },
+                { label: "Posts", value: stats.posts, suffix: "+" },
+                { label: "Officers", value: stats.officers, suffix: "" },
               ].map((stat) => (
                 <div key={stat.label} className="text-center">
                   <p className="font-display text-[22px] text-white"><CountUp end={stat.value} suffix={stat.suffix} /></p>
