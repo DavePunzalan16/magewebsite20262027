@@ -173,9 +173,14 @@ export default function ProfilePage() {
             <p className="font-body text-[13px] text-offwhite/50">{user.email}</p>
             <p className="mt-1.5 max-w-[450px] font-body text-[13px] leading-relaxed text-offwhite/70">{bio}</p>
           </div>
-          <Link href="/profile/edit" prefetch={false} className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-4 py-2 font-body text-[12px] font-semibold text-primary hover:bg-primary/10">
-            <Edit3 className="h-3.5 w-3.5" /> Edit Profile
-          </Link>
+          <div className="flex gap-2">
+            <Link href="/dashboard/member" prefetch={false} className="inline-flex items-center gap-2 rounded-full border border-dark-gray/30 bg-surface/30 px-4 py-2 font-body text-[12px] font-semibold text-offwhite hover:text-white hover:border-primary/30">
+              <Gamepad2 className="h-3.5 w-3.5" /> Dashboard
+            </Link>
+            <Link href="/profile/edit" prefetch={false} className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-4 py-2 font-body text-[12px] font-semibold text-primary hover:bg-primary/10">
+              <Edit3 className="h-3.5 w-3.5" /> Edit Profile
+            </Link>
+          </div>
         </div>
 
         {/* Content grid */}
