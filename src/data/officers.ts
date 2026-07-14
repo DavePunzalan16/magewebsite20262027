@@ -129,7 +129,7 @@ export const officers: Officer[] = [
     position: "CAS Representative",
     description: "The Arcane Scholar — wielding knowledge as his blade, he bridges arts and sciences.",
     lore: "Justin represents the College of Arts & Sciences. His broad perspective brings unique creative insights to guild discussions.",
-    image: "/Officers/gojosan.jpg",
+    image: "/Officers/justin.jpg",
   },
   {
     id: "officer-12",
