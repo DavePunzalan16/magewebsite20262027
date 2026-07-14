@@ -5,13 +5,24 @@ import type { ArcadeGameResult } from "@/lib/types/arcade";
 
 interface Props { onComplete: (result: ArcadeGameResult) => Promise<void>; }
 
-const SIZE = 10;
-const WORD_POOL = ["REACT", "NEXJS", "TYPSCR", "VERCEL", "HOOKS", "STATE", "PROPS", "REDUX", "STYLE", "FETCH",
-  "ARRAY", "CLASS", "ASYNC", "AWAIT", "MOUNT", "EVENT", "ROUTE", "BUILD", "DEBUG", "STACK"];
+const SIZE = 12;
+// M.A.G.E. / Anime / Adventure themed words
+const WORD_POOL = [
+  // M.A.G.E. Guild themed
+  "MAGE", "GUILD", "QUEST", "SPELL", "RUNE", "ARCANE", "ELIXIR", "WAND", "SCROLL", "POTION",
+  // Anime themed
+  "ANIME", "MANGA", "SHONEN", "NINJA", "SENSEI", "JUTSU", "TITAN", "DEMON", "SWORD", "HERO",
+  // Adventure themed
+  "DUNGEON", "DRAGON", "KNIGHT", "CASTLE", "SHIELD", "ROGUE", "RANGER", "ARCHER", "WIZARD", "BOSS",
+  // Gaming themed
+  "LEVEL", "COMBO", "SKILL", "POWER", "ARMOR", "CRAFT", "LOOT", "RAID", "SPAWN", "GRIND",
+];
+
+const DIFFICULTY_WORDS: Record<string, number> = { easy: 4, medium: 6, hard: 8 };
 
 function createPuzzle(): { grid: string[][]; words: string[]; placements: Map<string, Set<string>> } {
   const grid: string[][] = Array.from({ length: SIZE }, () => Array(SIZE).fill(""));
-  const words = [...WORD_POOL].sort(() => Math.random() - 0.5).slice(0, 5);
+  const words = [...WORD_POOL].sort(() => Math.random() - 0.5).slice(0, 6);
   const placements = new Map<string, Set<string>>();
 
   for (const word of words) {

@@ -5,10 +5,10 @@ import type { ArcadeGameResult } from "@/lib/types/arcade";
 
 interface Props { onComplete: (result: ArcadeGameResult) => Promise<void>; }
 
-const GRID = 5;
-const DOT_GAP = 60;
-const DOT_R = 6;
-const OFFSET = 30;
+const GRID = 6;
+const DOT_GAP = 50;
+const DOT_R = 5;
+const OFFSET = 25;
 
 type Line = { r1: number; c1: number; r2: number; c2: number };
 type Owner = "player" | "ai" | null;
@@ -99,17 +99,76 @@ export default function GameDotsBoxes({ onComplete }: Props) {
     return true;
   }, [lines, boxes, playerScore, aiScore, checkBoxes, onComplete]);
 
-  // AI move
+  // AI move — smarter: prioritize completing boxes, avoid giving boxes away
   useEffect(() => {
     if (phase !== "playing" || turn !== "ai") return;
     const timer = setTimeout(() => {
       const available = allLines.current.filter(l => !lines.has(lineKey(l)));
       if (available.length === 0) return;
-      const move = available[Math.floor(Math.random() * available.length)];
+
+      // 1. Find lines that complete a box (3 sides already drawn)
+      const completingMoves: Line[] = [];
+      const safeMoves: Line[] = [];
+      const riskyMoves: Line[] = [];
+
+      for (const line of available) {
+        const key = lineKey(line);
+        const testLines = new Map(lines);
+        testLines.set(key, "ai");
+
+        // Check if this move completes any box
+        let completes = false;
+        for (let r = 0; r < GRID - 1; r++) {
+          for (let c = 0; c < GRID - 1; c++) {
+            const bKey = `${r},${c}`;
+            if (boxes.get(bKey)) continue;
+            const top = lineKey({ r1: r, c1: c, r2: r, c2: c + 1 });
+            const bottom = lineKey({ r1: r + 1, c1: c, r2: r + 1, c2: c + 1 });
+            const left = lineKey({ r1: r, c1: c, r2: r + 1, c2: c });
+            const right = lineKey({ r1: r, c1: c + 1, r2: r + 1, c2: c + 1 });
+            if (testLines.has(top) && testLines.has(bottom) && testLines.has(left) && testLines.has(right)) {
+              completes = true;
+            }
+          }
+        }
+
+        if (completes) {
+          completingMoves.push(line);
+        } else {
+          // Check if this move gives opponent a box (creates 3rd side for any box)
+          let givesBox = false;
+          for (let r = 0; r < GRID - 1; r++) {
+            for (let c = 0; c < GRID - 1; c++) {
+              const bKey = `${r},${c}`;
+              if (boxes.get(bKey)) continue;
+              const sides = [
+                lineKey({ r1: r, c1: c, r2: r, c2: c + 1 }),
+                lineKey({ r1: r + 1, c1: c, r2: r + 1, c2: c + 1 }),
+                lineKey({ r1: r, c1: c, r2: r + 1, c2: c }),
+                lineKey({ r1: r, c1: c + 1, r2: r + 1, c2: c + 1 }),
+              ];
+              const drawnCount = sides.filter(s => testLines.has(s)).length;
+              if (drawnCount === 3 && sides.filter(s => lines.has(s)).length === 2) {
+                givesBox = true;
+              }
+            }
+          }
+          if (givesBox) riskyMoves.push(line);
+          else safeMoves.push(line);
+        }
+      }
+
+      // Priority: complete boxes > safe moves > risky moves
+      const move = completingMoves.length > 0
+        ? completingMoves[Math.floor(Math.random() * completingMoves.length)]
+        : safeMoves.length > 0
+          ? safeMoves[Math.floor(Math.random() * safeMoves.length)]
+          : riskyMoves[Math.floor(Math.random() * riskyMoves.length)] || available[0];
+
       placeLine(move, "ai");
     }, 500);
     return () => clearTimeout(timer);
-  }, [turn, phase, lines, placeLine]);
+  }, [turn, phase, lines, boxes, placeLine]);
 
   const handleLineClick = (line: Line) => {
     if (phase !== "playing" || turn !== "player") return;

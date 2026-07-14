@@ -10,18 +10,20 @@ const CELL = 3;
 const COLS = Math.floor(W / CELL);
 const ROWS = Math.floor(H / CELL);
 
-type Particle = "empty" | "sand" | "water";
+type Particle = "empty" | "sand" | "water" | "gravel" | "grass";
 
 const COLORS: Record<Particle, string> = {
   empty: "#0a0a1a",
   sand: "#eab308",
   water: "#3b82f6",
+  gravel: "#6b7280",
+  grass: "#22c55e",
 };
 
 export default function GameFallingSand({ onComplete }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [phase, setPhase] = useState<"start" | "playing" | "over">("start");
-  const [tool, setTool] = useState<"sand" | "water" | "erase">("sand");
+  const [tool, setTool] = useState<"sand" | "water" | "gravel" | "grass" | "erase">("sand");
   const [particles, setParticles] = useState(0);
   const gridRef = useRef<Particle[][]>([]);
   const mouseRef = useRef({ down: false, x: 0, y: 0 });
@@ -99,7 +101,7 @@ export default function GameFallingSand({ onComplete }: Props) {
       for (let r = ROWS - 2; r >= 0; r--) {
         for (let c = 0; c < COLS; c++) {
           const p = grid[r][c];
-          if (p === "empty") continue;
+          if (p === "empty" || p === "grass") continue;
 
           if (p === "sand") {
             if (grid[r + 1][c] === "empty") {
@@ -110,6 +112,13 @@ export default function GameFallingSand({ onComplete }: Props) {
               grid[r + 1][c + 1] = "sand"; grid[r][c] = "empty";
             } else if (grid[r + 1][c] === "water") {
               grid[r + 1][c] = "sand"; grid[r][c] = "water";
+            }
+          } else if (p === "gravel") {
+            // Gravel falls straight down, doesn't slide sideways
+            if (grid[r + 1][c] === "empty") {
+              grid[r + 1][c] = "gravel"; grid[r][c] = "empty";
+            } else if (grid[r + 1][c] === "water") {
+              grid[r + 1][c] = "gravel"; grid[r][c] = "water";
             }
           } else if (p === "water") {
             if (grid[r + 1][c] === "empty") {
@@ -130,15 +139,28 @@ export default function GameFallingSand({ onComplete }: Props) {
         }
       }
 
+      // Grass grows on top of solid particles
+      if (Math.random() < 0.01) {
+        for (let c = 0; c < COLS; c++) {
+          for (let r = 1; r < ROWS; r++) {
+            if (grid[r][c] !== "empty" && grid[r][c] !== "water" && grid[r][c] !== "grass" && r > 0 && grid[r - 1][c] === "empty") {
+              if (Math.random() < 0.02) grid[r - 1][c] = "grass";
+            }
+          }
+        }
+      }
+
       // Draw
       ctx.fillStyle = COLORS.empty;
       ctx.fillRect(0, 0, W, H);
       for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
-          if (grid[r][c] !== "empty") {
-            ctx.fillStyle = grid[r][c] === "sand"
-              ? `hsl(${45 + Math.random() * 10}, 80%, ${50 + Math.random() * 10}%)`
-              : `hsl(${210 + Math.random() * 10}, 70%, ${50 + Math.random() * 10}%)`;
+          const p = grid[r][c];
+          if (p !== "empty") {
+            if (p === "sand") ctx.fillStyle = `hsl(${45 + Math.random() * 10}, 80%, ${50 + Math.random() * 10}%)`;
+            else if (p === "water") ctx.fillStyle = `hsl(${210 + Math.random() * 10}, 70%, ${50 + Math.random() * 10}%)`;
+            else if (p === "gravel") ctx.fillStyle = `hsl(${0}, 0%, ${40 + Math.random() * 15}%)`;
+            else if (p === "grass") ctx.fillStyle = `hsl(${120 + Math.random() * 20}, 60%, ${35 + Math.random() * 15}%)`;
             ctx.fillRect(c * CELL, r * CELL, CELL, CELL);
           }
         }
@@ -169,7 +191,7 @@ export default function GameFallingSand({ onComplete }: Props) {
 
   return (
     <div className="select-none flex flex-col items-center w-full">
-      <div className="mb-3 flex items-center gap-3">
+      <div className="mb-3 flex items-center gap-2 flex-wrap justify-center">
         <button onClick={() => setTool("sand")}
           className={`px-3 py-1 rounded-full font-body text-[11px] ${tool === "sand" ? "bg-yellow-500/30 text-yellow-400 border border-yellow-400/50" : "bg-surface text-offwhite border border-dark-gray/30"}`}>
           🏜️ Sand
@@ -177,6 +199,14 @@ export default function GameFallingSand({ onComplete }: Props) {
         <button onClick={() => setTool("water")}
           className={`px-3 py-1 rounded-full font-body text-[11px] ${tool === "water" ? "bg-blue-500/30 text-blue-400 border border-blue-400/50" : "bg-surface text-offwhite border border-dark-gray/30"}`}>
           💧 Water
+        </button>
+        <button onClick={() => setTool("gravel")}
+          className={`px-3 py-1 rounded-full font-body text-[11px] ${tool === "gravel" ? "bg-gray-500/30 text-gray-300 border border-gray-400/50" : "bg-surface text-offwhite border border-dark-gray/30"}`}>
+          🪨 Gravel
+        </button>
+        <button onClick={() => setTool("grass")}
+          className={`px-3 py-1 rounded-full font-body text-[11px] ${tool === "grass" ? "bg-green-500/30 text-green-400 border border-green-400/50" : "bg-surface text-offwhite border border-dark-gray/30"}`}>
+          🌿 Grass
         </button>
         <button onClick={() => setTool("erase")}
           className={`px-3 py-1 rounded-full font-body text-[11px] ${tool === "erase" ? "bg-red-500/30 text-red-400 border border-red-400/50" : "bg-surface text-offwhite border border-dark-gray/30"}`}>

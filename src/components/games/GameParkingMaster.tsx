@@ -59,8 +59,18 @@ export default function GameParkingMaster({ onComplete }: Props) {
       } else return;
 
       e.preventDefault();
-      if (x < 0 || x >= GRID || y < 0 || y >= GRID) return;
-      if (lv.walls.some(([wx, wy]) => wx === x && wy === y)) return;
+      if (x < 0 || x >= GRID || y < 0 || y >= GRID) {
+        // Hit boundary = game over
+        setWon(false); setPhase("over");
+        onComplete({ score, won: false, durationSeconds: Math.floor((Date.now() - startTime.current) / 1000) });
+        return;
+      }
+      if (lv.walls.some(([wx, wy]) => wx === x && wy === y)) {
+        // Hit wall = game over
+        setWon(false); setPhase("over");
+        onComplete({ score, won: false, durationSeconds: Math.floor((Date.now() - startTime.current) / 1000) });
+        return;
+      }
 
       setPos([x, y]); setDir(newDir);
 
@@ -110,7 +120,7 @@ export default function GameParkingMaster({ onComplete }: Props) {
             <div key={i} className={`flex items-center justify-center text-[12px] rounded-sm border border-dark-gray/20 ${
               isWall ? "bg-gray-700" : isTarget ? "bg-green-600/40" : "bg-surface"
             }`} style={{ width: CELL, height: CELL }}>
-              {isPlayer ? <span className="text-[16px]">{dirArrow[dir]}</span> : isTarget && !isPlayer ? "🅿️" : isWall ? "█" : ""}
+              {isPlayer ? <span className="text-[18px]">🚙</span> : isTarget && !isPlayer ? "🅿️" : isWall ? "█" : ""}
             </div>
           );
         })}
