@@ -108,10 +108,9 @@ export default function GameDominoes({ onComplete }: Props) {
     }
     const playable = canPlay(domino, ends);
     if (!playable) { setMessage("Can't play this domino!"); return; }
-    if (playable === "left" || playable === "both") {
+    if (playable === "both" || playable === "left") {
       setSelected(idx);
-    }
-    if (playable === "right" && playable !== "both") {
+    } else if (playable === "right") {
       handlePlay(idx, "right");
     }
   };

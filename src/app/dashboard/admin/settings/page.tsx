@@ -57,7 +57,7 @@ export default function AdminSettingsPage() {
     const fetchOfficers = async () => {
       const { data } = await supabase.from("officers").select("*").order("display_order", { ascending: true });
       if (data && data.length > 0) setOfficerList(data);
-      else setOfficerList(officersFallback.map((o, i) => ({ id: o.id, name: o.name, position: o.position, description: o.description, lore: o.lore, image: o.image, display_order: i, is_visible: true })));
+      else setOfficerList(officersFallback.map((o, i) => ({ id: o.id, name: o.name, position: o.position, description: o.description, lore: o.lore, image: o.image, display_order: i, is_visible: true, is_special: false })));
     };
     fetchOfficers();
 

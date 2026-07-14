@@ -321,6 +321,7 @@ export default function GameIslandSurvival({ onComplete }: Props) {
     }
 
     function clickHandler(e:MouseEvent){
+      if(!canvas) return;
       const rect=canvas.getBoundingClientRect();
       const cx=e.clientX-rect.left,cy=e.clientY-rect.top;
       if(state==='start'&&cx>W/2-60&&cx<W/2+60&&cy>420&&cy<460){

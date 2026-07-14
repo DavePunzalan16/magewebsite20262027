@@ -47,7 +47,7 @@ export default function GamePool({ onComplete }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [balls, setBalls] = useState<Ball[]>(createBalls);
   const [turn, setTurn] = useState<1 | 2>(1);
-  const [p1Group, setP1Group] = useState<Group>(null); // null = open table
+  const [p1Group, setP1Group] = useState<Group>(null);
   const [p2Group, setP2Group] = useState<Group>(null);
   const [aiming, setAiming] = useState(false);
   const [aimEnd, setAimEnd] = useState({ x: 0, y: 0 });
@@ -61,15 +61,22 @@ export default function GamePool({ onComplete }: Props) {
   const startTime = useRef(Date.now());
   const animRef = useRef<number>(0);
   const ballsRef = useRef(balls);
+  const firstHitRef = useRef<number | null>(null);
   ballsRef.current = balls;
 
-  const playerGroup = (p: 1 | 2) => p === 1 ? p1Group : p2Group;
+  // Track groups via refs so simulation callbacks have latest values
+  const p1GroupRef = useRef(p1Group);
+  const p2GroupRef = useRef(p2Group);
+  const turnRef = useRef(turn);
+  p1GroupRef.current = p1Group;
+  p2GroupRef.current = p2Group;
+  turnRef.current = turn;
 
   const remainingForPlayer = useCallback((p: 1 | 2, bs: Ball[]) => {
-    const grp = p === 1 ? p1Group : p2Group;
+    const grp = p === 1 ? p1GroupRef.current : p2GroupRef.current;
     if (!grp) return 7;
     return bs.filter(b => !b.pocketed && ((grp === "solids" && isSolid(b.id)) || (grp === "stripes" && isStripe(b.id)))).length;
-  }, [p1Group, p2Group]);
+  }, []);
 
   const draw = useCallback((ctx: CanvasRenderingContext2D, bs: Ball[]) => {
     ctx.fillStyle = "#0d6630"; ctx.fillRect(0, 0, W, H);
@@ -77,15 +84,32 @@ export default function GamePool({ onComplete }: Props) {
     ctx.fillRect(0, 0, W, CUSHION - 2); ctx.fillRect(0, H - CUSHION + 2, W, CUSHION);
     ctx.fillRect(0, 0, CUSHION - 2, H); ctx.fillRect(W - CUSHION + 2, 0, CUSHION, H);
     POCKETS.forEach(p => { ctx.fillStyle = "#000"; ctx.beginPath(); ctx.arc(p.x, p.y, POCKET_R, 0, Math.PI * 2); ctx.fill(); });
+
+    // Get current player's group to dim illegal target balls
+    const currentGroup = turnRef.current === 1 ? p1GroupRef.current : p2GroupRef.current;
+
     bs.forEach(b => {
       if (b.pocketed) return;
       const stripe = isStripe(b.id);
+
+      // Determine if this ball is a legal target for current player
+      let isLegalTarget = true;
+      if (currentGroup && b.id !== 0 && b.id !== 8) {
+        if (currentGroup === "solids" && !isSolid(b.id)) isLegalTarget = false;
+        if (currentGroup === "stripes" && !isStripe(b.id)) isLegalTarget = false;
+      }
+
+      const alpha = isLegalTarget ? 1.0 : 0.5;
+      ctx.globalAlpha = alpha;
+
       ctx.fillStyle = stripe ? "#fff" : BALL_COLORS[b.id];
       ctx.beginPath(); ctx.arc(b.x, b.y, BALL_R, 0, Math.PI * 2); ctx.fill();
       if (stripe) { ctx.fillStyle = BALL_COLORS[b.id]; ctx.beginPath(); ctx.ellipse(b.x, b.y, BALL_R, BALL_R * 0.5, 0, 0, Math.PI * 2); ctx.fill(); }
       if (b.id > 0) { ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(b.x, b.y, 5, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = "#000"; ctx.font = "bold 7px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(String(b.id), b.x, b.y + 0.5); }
       else { ctx.fillStyle = "rgba(255,255,255,0.3)"; ctx.beginPath(); ctx.arc(b.x - 3, b.y - 3, 3, 0, Math.PI * 2); ctx.fill(); }
       ctx.strokeStyle = "rgba(0,0,0,0.2)"; ctx.lineWidth = 0.5; ctx.beginPath(); ctx.arc(b.x, b.y, BALL_R, 0, Math.PI * 2); ctx.stroke();
+
+      ctx.globalAlpha = 1.0;
     });
   }, []);
 
@@ -95,6 +119,7 @@ export default function GamePool({ onComplete }: Props) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     setMoving(true); setMessage("");
+    firstHitRef.current = null;
     let pocketedThisTurn: number[] = [];
     let cuePocketed = false;
 
@@ -136,6 +161,13 @@ export default function GamePool({ onComplete }: Props) {
             const overlap = BALL_R * 2 - dist;
             bs[i].x -= nx * overlap / 2; bs[i].y -= ny * overlap / 2;
             bs[j].x += nx * overlap / 2; bs[j].y += ny * overlap / 2;
+
+            // Track first ball the cue ball hits
+            if (firstHitRef.current === null) {
+              if (bs[i].id === 0 && bs[j].id !== 0) firstHitRef.current = bs[j].id;
+              else if (bs[j].id === 0 && bs[i].id !== 0) firstHitRef.current = bs[i].id;
+            }
+
             anyMoving = true;
           }
         }
@@ -152,52 +184,97 @@ export default function GamePool({ onComplete }: Props) {
   const handleTurnEnd = (bs: Ball[], pocketed: number[], cueFoul: boolean) => {
     let foul = cueFoul;
     let switchTurn = true;
-    const currentGroup = turn === 1 ? p1Group : p2Group;
+    const currentTurn = turnRef.current;
+    const currentGroup = currentTurn === 1 ? p1GroupRef.current : p2GroupRef.current;
+
+    // === FOUL CHECK: First ball hit must be of current player's group ===
+    if (!foul && currentGroup && firstHitRef.current !== null) {
+      const hitId = firstHitRef.current;
+      if (hitId === 8) {
+        // Hitting 8-ball first is only legal if player has no remaining group balls
+        const remaining = remainingForPlayer(currentTurn, bs);
+        // remaining counts non-pocketed group balls (before this turn's pockets are applied),
+        // but pocketed balls are already marked. So check current state.
+        const groupBalls = bs.filter(b => !b.pocketed && b.id !== 8 && b.id !== 0 &&
+          ((currentGroup === "solids" && isSolid(b.id)) || (currentGroup === "stripes" && isStripe(b.id))));
+        if (groupBalls.length > 0) {
+          foul = true;
+          setMessage("Foul! Hit 8-ball first. Must hit your group ball first.");
+        }
+      } else {
+        const hitGroup = getGroup(hitId);
+        if (hitGroup && hitGroup !== currentGroup) {
+          foul = true;
+          setMessage(`Foul! Hit opponent's ${hitGroup === "solids" ? "solid" : "stripe"} first. Turn switches.`);
+        }
+      }
+    }
+
+    // If no ball was hit at all (whiff — cue didn't touch anything), that's a foul
+    if (!foul && !cueFoul && firstHitRef.current === null && currentGroup) {
+      foul = true;
+      setMessage("Foul! Cue ball didn't hit any ball.");
+    }
 
     // Dynamic group assignment (open table)
-    if (!p1Group && pocketed.length > 0) {
-      const firstBall = pocketed[0];
-      if (firstBall !== 8) {
-        const grp = getGroup(firstBall);
+    if (!p1GroupRef.current && pocketed.length > 0 && !foul) {
+      const firstPocketed = pocketed.find(id => id !== 8);
+      if (firstPocketed !== undefined) {
+        const grp = getGroup(firstPocketed);
         if (grp) {
-          if (turn === 1) { setP1Group(grp); setP2Group(grp === "solids" ? "stripes" : "solids"); }
+          if (currentTurn === 1) { setP1Group(grp); setP2Group(grp === "solids" ? "stripes" : "solids"); }
           else { setP2Group(grp); setP1Group(grp === "solids" ? "stripes" : "solids"); }
-          setMessage(`Player ${turn} is ${grp}!`);
+          setMessage(`Player ${currentTurn} is ${grp}!`);
         }
       }
     }
 
     // Check if 8-ball was pocketed
     if (pocketed.includes(8)) {
-      const playerRemaining = remainingForPlayer(turn, bs);
-      if (playerRemaining === 0) {
-        // Legal win! Player cleared all their balls then sank 8
-        setGameOver(true); setWinner(turn);
+      // Count remaining group balls for current player
+      const grp = currentTurn === 1 ? p1GroupRef.current : p2GroupRef.current;
+      const groupBallsLeft = grp
+        ? bs.filter(b => !b.pocketed && b.id !== 8 && b.id !== 0 &&
+            ((grp === "solids" && isSolid(b.id)) || (grp === "stripes" && isStripe(b.id)))).length
+        : 7;
+
+      if (groupBallsLeft === 0 && !foul) {
+        // Legal win — cleared all group balls then sank 8
+        setGameOver(true); setWinner(currentTurn);
         onComplete({ score: 300, won: true, durationSeconds: Math.floor((Date.now() - startTime.current) / 1000) });
         return;
       } else {
-        // Early 8-ball pocket = FOUL, respawn 8-ball, free ball to opponent
-        foul = true;
-        setMessage("Foul! 8-ball pocketed early. Free ball to opponent.");
-        setBalls(prev => prev.map(b => b.id === 8 ? { ...b, x: W / 2, y: H / 2, pocketed: false, vx: 0, vy: 0 } : b));
+        // Illegal 8-ball pocket — opponent wins
+        const otherPlayer = currentTurn === 1 ? 2 : 1;
+        setGameOver(true); setWinner(otherPlayer as 1 | 2);
+        setMessage("Foul! 8-ball pocketed illegally. Opponent wins!");
+        onComplete({ score: 0, won: false, durationSeconds: Math.floor((Date.now() - startTime.current) / 1000) });
+        return;
       }
     }
 
     // Cue ball pocketed
     if (cueFoul) {
       foul = true;
-      setMessage("Cue ball pocketed! Free ball to opponent.");
+      if (!message) setMessage("Cue ball pocketed! Opponent gets free ball.");
       setDraggingCue(true);
       setBalls(prev => prev.map(b => b.id === 0 ? { ...b, x: 180, y: H / 2, pocketed: false, vx: 0, vy: 0 } : b));
     }
 
     // If player pocketed their own group's ball (and no foul), they continue
-    if (!foul && pocketed.length > 0 && currentGroup) {
-      const ownBalls = pocketed.filter(id => id !== 8 && ((currentGroup === "solids" && isSolid(id)) || (currentGroup === "stripes" && isStripe(id))));
-      if (ownBalls.length > 0) switchTurn = false;
+    if (!foul && pocketed.length > 0) {
+      const grp = currentTurn === 1 ? p1GroupRef.current : p2GroupRef.current;
+      if (grp) {
+        const ownBalls = pocketed.filter(id => id !== 8 &&
+          ((grp === "solids" && isSolid(id)) || (grp === "stripes" && isStripe(id))));
+        if (ownBalls.length > 0) switchTurn = false;
+      } else {
+        // Open table — any legal pocket continues turn
+        switchTurn = false;
+      }
     }
 
-    if (foul || (pocketed.length === 0)) switchTurn = true;
+    if (foul || pocketed.length === 0) switchTurn = true;
     if (switchTurn) setTurn(t => t === 1 ? 2 : 1);
     setShots(s => s + 1);
   };
@@ -267,6 +344,13 @@ export default function GamePool({ onComplete }: Props) {
       </div>
       {message && <p className="mb-1 font-body text-[11px] text-yellow-400 animate-pulse">{message}</p>}
       {draggingCue && <p className="mb-1 font-body text-[10px] text-cyan-400">Click anywhere to place cue ball (Free Ball)</p>}
+      {/* Group indicator */}
+      {(p1Group || p2Group) && (
+        <div className="mb-1 font-body text-[10px] text-offwhite/60">
+          Player {turn} must target: <span className="text-primary font-bold">{turn === 1 ? p1Group : p2Group}</span>
+          {" "}({turn === 1 ? (p1Group === "solids" ? "1-7" : "9-15") : (p2Group === "solids" ? "1-7" : "9-15")})
+        </div>
+      )}
       <div className="mb-2 w-full max-w-[700px] h-2 rounded-full bg-dark-gray/30 overflow-hidden">
         <div className="h-full rounded-full transition-all" style={{ width: `${(power / MAX_POWER) * 100}%`, background: power > 12 ? "#ef4444" : power > 7 ? "#eab308" : "#22c55e" }} />
       </div>
@@ -281,7 +365,7 @@ export default function GamePool({ onComplete }: Props) {
           </div>
         )}
       </div>
-      <p className="mt-2 font-body text-[9px] text-offwhite/30">8-Ball rules: Pocket all your group (solids/stripes) then sink the 8-ball last to win!</p>
+      <p className="mt-2 font-body text-[9px] text-offwhite/30">8-Ball rules: Pocket all your group (solids 1-7 / stripes 9-15) then sink the 8-ball last to win!</p>
     </div>
   );
 }
