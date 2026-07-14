@@ -20,8 +20,9 @@ export default function MemberDashboard() {
       </div>
 
       {/* Quick actions */}
-      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {[
+          { label: "My Profile", icon: QrCode, href: "/profile", color: "bg-cyan-500/10 text-cyan-400" },
           { label: "My QR ID", icon: QrCode, href: "/dashboard/member/id", color: "bg-primary/10 text-primary" },
           { label: "Attendance", icon: CheckSquare, href: "/dashboard/member/attendance", color: "bg-green-500/10 text-green-400" },
           { label: "Events", icon: Calendar, href: "/dashboard/member/events", color: "bg-yellow-500/10 text-yellow-400" },

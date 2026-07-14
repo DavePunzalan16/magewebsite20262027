@@ -114,7 +114,7 @@ export default function MemberEventsPage() {
                       "bg-gray-500/10 text-gray-400"
                     }`}>{event.status}</span>
                   </div>
-                  {event.description && <p className="mb-2 font-body text-[12px] text-offwhite/60">{event.description}</p>}
+                  {event.description && <p className="mb-2 font-body text-[12px] text-offwhite/60 whitespace-pre-wrap line-clamp-6">{event.description}</p>}
                   <div className="flex flex-wrap items-center gap-4">
                     {event.date && <span className="flex items-center gap-1 font-body text-[11px] text-offwhite/40"><Calendar className="h-3 w-3 text-primary/50" />{event.date}</span>}
                     {event.time && <span className="flex items-center gap-1 font-body text-[11px] text-offwhite/40"><Clock className="h-3 w-3 text-primary/50" />{event.time}</span>}
