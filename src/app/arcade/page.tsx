@@ -210,6 +210,27 @@ function ArcadeContent({ user, playerStats }: { user: any; playerStats: { xp: nu
         </main>
       </div>
 
+      {/* Coming Soon Section */}
+      <div className="mx-auto max-w-[1200px] px-4 pb-12">
+        <motion.div
+          className="rounded-[16px] border border-primary/20 bg-gradient-to-br from-primary/5 to-transparent p-8 text-center"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+        >
+          <p className="font-display text-[28px] text-white md:text-[36px]">More Adventures Coming Soon</p>
+          <p className="mx-auto mt-3 max-w-[500px] font-body text-[14px] text-offwhite/50">
+            The guild is always expanding. New games, challenges, and features are being forged in the workshop. Stay tuned, Mage!
+          </p>
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            {["🎯 Battle Royale", "🏰 Guild Wars", "🐲 Dragon Quest", "🎪 Festival Games", "🌍 World Boss"].map(tag => (
+              <span key={tag} className="rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 font-body text-[12px] text-primary/70">{tag}</span>
+            ))}
+          </div>
+          <p className="mt-5 font-body text-[11px] text-offwhite/30">60 games and counting • Suggest new games in the Guild Feed!</p>
+        </motion.div>
+      </div>
+
       <PremiumFooter />
     </div>
   );

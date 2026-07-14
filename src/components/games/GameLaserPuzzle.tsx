@@ -30,7 +30,7 @@ function traceLaser(grid: Mirror[][], startRow: number): { path: { r: number; c:
   for (let steps = 0; steps < 100; steps++) {
     if (r < 0 || r >= SIZE || c < 0 || c >= SIZE) break;
     path.push({ r, c });
-    const mirror = grid[r][c];
+    const mirror = grid[r]?.[c];
     if (mirror === "/") {
       if (dir === "right") dir = "up";
       else if (dir === "left") dir = "down";
