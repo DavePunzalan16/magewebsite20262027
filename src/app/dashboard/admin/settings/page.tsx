@@ -47,7 +47,7 @@ export default function AdminSettingsPage() {
   const [officerList, setOfficerList] = useState<OfficerDB[]>([]);
   const [officerModal, setOfficerModal] = useState(false);
   const [editingOfficer, setEditingOfficer] = useState<OfficerDB | null>(null);
-  const [officerForm, setOfficerForm] = useState({ name: "", position: "", description: "", lore: "", image: "", isSpecial: false });
+  const [officerForm, setOfficerForm] = useState({ name: "", position: "", description: "", lore: "", image: "", isSpecial: false, academicYear: "2026-2027" });
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -104,13 +104,13 @@ export default function AdminSettingsPage() {
   // Officer CRUD — Supabase
   const openAddOfficer = () => {
     setEditingOfficer(null);
-    setOfficerForm({ name: "", position: "", description: "", lore: "", image: "/Officers/gojosan.jpg", isSpecial: false });
+    setOfficerForm({ name: "", position: "", description: "", lore: "", image: "/Officers/gojosan.jpg", isSpecial: false, academicYear: "2026-2027" });
     setOfficerModal(true);
   };
 
   const openEditOfficer = (officer: OfficerDB) => {
     setEditingOfficer(officer);
-    setOfficerForm({ name: officer.name, position: officer.position, description: officer.description, lore: officer.lore, image: officer.image, isSpecial: officer.is_special || false });
+    setOfficerForm({ name: officer.name, position: officer.position, description: officer.description, lore: officer.lore, image: officer.image, isSpecial: officer.is_special || false, academicYear: (officer as any).academic_year || "2026-2027" });
     setOfficerModal(true);
   };
 
@@ -133,10 +133,10 @@ export default function AdminSettingsPage() {
     if (!officerForm.name.trim()) return;
     const supabase = createClient();
     if (editingOfficer) {
-      const { error } = await supabase.from("officers").update({ name: officerForm.name, position: officerForm.position, description: officerForm.description, lore: officerForm.lore, image: officerForm.image, is_special: officerForm.isSpecial, updated_at: new Date().toISOString() }).eq("id", editingOfficer.id);
+      const { error } = await supabase.from("officers").update({ name: officerForm.name, position: officerForm.position, description: officerForm.description, lore: officerForm.lore, image: officerForm.image, is_special: officerForm.isSpecial, academic_year: officerForm.academicYear, updated_at: new Date().toISOString() }).eq("id", editingOfficer.id);
       if (error) { alert("Error updating: " + error.message); return; }
     } else {
-      const { error } = await supabase.from("officers").insert({ id: `officer-${Date.now()}`, name: officerForm.name, position: officerForm.position, description: officerForm.description, lore: officerForm.lore, image: officerForm.image, is_special: officerForm.isSpecial, display_order: officerList.length, is_visible: true });
+      const { error } = await supabase.from("officers").insert({ id: `officer-${Date.now()}`, name: officerForm.name, position: officerForm.position, description: officerForm.description, lore: officerForm.lore, image: officerForm.image, is_special: officerForm.isSpecial, academic_year: officerForm.academicYear, display_order: officerList.length, is_visible: true });
       if (error) { alert("Error adding officer: " + error.message + "\n\nMake sure RLS policies allow insert. Run this in Supabase SQL Editor:\nCREATE POLICY \"Allow all for authenticated\" ON officers FOR ALL USING (auth.uid() IS NOT NULL);"); return; }
     }
     setOfficerModal(false);
@@ -362,6 +362,8 @@ export default function AdminSettingsPage() {
               <input value={officerForm.name} onChange={(e) => setOfficerForm((f) => ({ ...f, name: e.target.value }))} placeholder="Name"
                 className="rounded-[8px] border border-dark-gray/30 bg-background/40 px-3 py-2 font-body text-[13px] text-white placeholder:text-offwhite/25 focus:border-primary/40 focus:outline-none" />
               <input value={officerForm.position} onChange={(e) => setOfficerForm((f) => ({ ...f, position: e.target.value }))} placeholder="Position"
+                className="rounded-[8px] border border-dark-gray/30 bg-background/40 px-3 py-2 font-body text-[13px] text-white placeholder:text-offwhite/25 focus:border-primary/40 focus:outline-none" />
+              <input value={officerForm.academicYear} onChange={(e) => setOfficerForm((f) => ({ ...f, academicYear: e.target.value }))} placeholder="Academic Year (e.g. 2026-2027)"
                 className="rounded-[8px] border border-dark-gray/30 bg-background/40 px-3 py-2 font-body text-[13px] text-white placeholder:text-offwhite/25 focus:border-primary/40 focus:outline-none" />
               <textarea value={officerForm.description} onChange={(e) => setOfficerForm((f) => ({ ...f, description: e.target.value }))} placeholder="Description" rows={2}
                 className="resize-none rounded-[8px] border border-dark-gray/30 bg-background/40 px-3 py-2 font-body text-[13px] text-white placeholder:text-offwhite/25 focus:border-primary/40 focus:outline-none" />
