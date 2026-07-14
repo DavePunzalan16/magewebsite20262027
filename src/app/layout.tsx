@@ -11,6 +11,7 @@ import { ThemeSelector } from "@/components/ui/ThemeSelector";
 import { MusicPlayer } from "@/components/ui/MusicPlayer";
 import { ChatProvider } from "@/components/chat/ChatProvider";
 import FloatingChat from "@/components/chat/FloatingChat";
+import { PageVisibilityProvider } from "@/components/providers/PageVisibilityProvider";
 
 const bebasNeue = Bebas_Neue({
   weight: "400",
@@ -144,6 +145,7 @@ export default function RootLayout({
                   <LenisProvider>{children}</LenisProvider>
                   <FloatingChat />
                   <MusicPlayer />
+                  <PageVisibilityProvider />
                 </AudioProvider>
               </ChatProvider>
             </AuthProvider>
