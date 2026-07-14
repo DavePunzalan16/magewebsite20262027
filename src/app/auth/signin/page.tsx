@@ -114,13 +114,15 @@ export default function SignInPage() {
                 <Mail className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-offwhite/30 transition-colors group-focus-within:text-primary" />
                 <input
                   id="signin-email"
-                  type="email"
+                  type="text"
+                  inputMode="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full rounded-[10px] border border-dark-gray/30 bg-white/[0.03] py-3.5 pl-11 pr-4 font-body text-[15px] text-white placeholder:text-offwhite/25 transition-all focus:border-primary/50 focus:bg-primary/[0.02] focus:outline-none focus:ring-1 focus:ring-primary/30"
-                  placeholder="your@email.com"
+                  placeholder="guildsample@gmail.com"
                   required
-                  autoComplete="off"
+                  autoComplete="new-password"
+                  name="guild-email-field"
                 />
               </div>
             </div>
@@ -137,9 +139,10 @@ export default function SignInPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full rounded-[10px] border border-dark-gray/30 bg-white/[0.03] py-3.5 pl-11 pr-12 font-body text-[15px] text-white placeholder:text-offwhite/25 transition-all focus:border-primary/50 focus:bg-primary/[0.02] focus:outline-none focus:ring-1 focus:ring-primary/30"
-                  placeholder="••••••••"
+                  placeholder="123456guild"
                   required
-                  autoComplete="off"
+                  autoComplete="new-password"
+                  name="guild-pass-field"
                 />
                 <button
                   type="button"
