@@ -36,6 +36,7 @@ interface FeedPost {
 
 interface CommentItem {
   id: number;
+  user_id: string;
   content: string;
   created_at: string;
   author_name: string;
@@ -299,6 +300,18 @@ export default function FeedPage() {
     }
   };
 
+  const handleDeleteComment = async (commentId: number, postId: number) => {
+    if (!user) return;
+    const supabase = createClient();
+    await supabase.from("comments").delete().eq("id", commentId).eq("user_id", user.id);
+    setComments((prev) => ({
+      ...prev,
+      [postId]: (prev[postId] || []).filter((c) => c.id !== commentId),
+    }));
+    // Decrement comment count on the post
+    setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, comments: Math.max(0, p.comments - 1) } : p));
+  };
+
   const loadComments = async (postId: number) => {
     if (comments[postId]) return;
     const supabase = createClient();
@@ -310,7 +323,7 @@ export default function FeedPage() {
       const profileMap = new Map(profiles?.map((p) => [p.id, p]) || []);
       const enriched: CommentItem[] = commentsData.map((c) => {
         const p = profileMap.get(c.user_id);
-        return { id: c.id, content: c.content, created_at: c.created_at, author_name: p?.full_name || "Member", author_avatar: p?.avatar_url || null };
+        return { id: c.id, user_id: c.user_id, content: c.content, created_at: c.created_at, author_name: p?.full_name || "Member", author_avatar: p?.avatar_url || null };
       });
       setComments((prev) => ({ ...prev, [postId]: enriched }));
     } else {
@@ -510,9 +523,16 @@ export default function FeedPage() {
                               <p className="font-body text-[10px] font-semibold text-offwhite/70">{c.author_name}</p>
                               <p className="font-body text-[11px] text-offwhite/60">{c.content.split(/(@\w[\w\s]*\w|@\w+)/).map((part, i) => part.startsWith("@") ? <span key={i} className="text-primary font-semibold">{part}</span> : part)}</p>
                             </div>
-                            <button onClick={() => handleCommentReact(c.id)} className={`shrink-0 self-center rounded-full p-1 ${(commentReactions[c.id]?.liked) ? "text-red-400" : "text-offwhite/20 hover:text-offwhite/50"}`}>
-                              <Heart className={`h-3 w-3 ${(commentReactions[c.id]?.liked) ? "fill-current" : ""}`} />
-                            </button>
+                            <div className="flex items-center gap-1 shrink-0 self-center">
+                              {user && user.id === c.user_id && (
+                                <button onClick={() => handleDeleteComment(c.id, post.id)} className="rounded-full p-1 text-offwhite/20 hover:text-red-400" title="Delete comment">
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
+                              )}
+                              <button onClick={() => handleCommentReact(c.id)} className={`rounded-full p-1 ${(commentReactions[c.id]?.liked) ? "text-red-400" : "text-offwhite/20 hover:text-offwhite/50"}`}>
+                                <Heart className={`h-3 w-3 ${(commentReactions[c.id]?.liked) ? "fill-current" : ""}`} />
+                              </button>
+                            </div>
                           </div>
                         ))}
                         {user && (
