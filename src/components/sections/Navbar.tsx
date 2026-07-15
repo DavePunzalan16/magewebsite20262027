@@ -265,7 +265,13 @@ function NotificationDropdown({ unreadCount, userId }: { unreadCount: number; us
     const channel = supabase.channel(`notif-dropdown-${userId}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
         (payload) => {
-          if (payload.new) setNotifications((prev) => [payload.new as any, ...prev].slice(0, 10));
+          if (payload.new) {
+            setNotifications((prev) => [payload.new as any, ...prev].slice(0, 10));
+            // Play notification sound
+            import("@/lib/audio/AudioManager").then(({ audioManager }) => {
+              audioManager.play("/Sound/notification.mp3", { volume: 0.6 });
+            });
+          }
         })
       .subscribe();
     return () => { supabase.removeChannel(channel); };

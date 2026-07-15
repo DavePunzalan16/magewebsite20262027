@@ -212,6 +212,8 @@ export default function FeedPage() {
       awardClientXP(user.id, "post");
     }
     setNewPost(""); setPostFile(null); setPostPreview(null); setPosting(false);
+    // Play success sound
+    import("@/lib/audio/AudioManager").then(({ audioManager }) => audioManager.play("/Sound/success.mp3", { volume: 0.5 }));
   };
 
   // Reactions
