@@ -9,6 +9,8 @@ import { arcadeGames } from "@/data/arcade-games";
 import type { ArcadeGameResult } from "@/lib/types/arcade";
 import { ArrowLeft, Trophy, Zap, Maximize2, Minimize2, Info } from "lucide-react";
 import { playClick, playBack, playGameStart } from "@/lib/sounds";
+import { audioManager } from "@/lib/audio/AudioManager";
+import { UI, GAME, MUSIC, PRELOAD_UI } from "@/lib/audio/SoundMap";
 
 // Game instructions for each game
 const GAME_INSTRUCTIONS: Record<string, { controls: string[]; howToPlay: string[] }> = {
@@ -197,10 +199,23 @@ export default function ArcadeGamePage() {
     return () => document.removeEventListener("fullscreenchange", handler);
   }, []);
 
+  // Initialize audio on first interaction + preload common sounds
+  useEffect(() => {
+    const initAudio = () => {
+      audioManager.init();
+      audioManager.preload(PRELOAD_UI);
+      window.removeEventListener("click", initAudio);
+    };
+    window.addEventListener("click", initAudio, { once: true });
+    return () => { window.removeEventListener("click", initAudio); audioManager.stopMusic(500); };
+  }, []);
+
   // Host-side onComplete handler — games call this, never Supabase directly
   const handleComplete = useCallback(async (gameResult: ArcadeGameResult) => {
     if (!user) return;
     setSubmitting(true);
+    // Play completion sound
+    audioManager.play(gameResult.won ? GAME.victory : GAME.defeat);
 
     try {
       const res = await fetch("/api/arcade/complete", {

@@ -1,56 +1,19 @@
-// Lightweight sound utility for arcade game UI
-// Uses the existing Sound files in /public/Sound/
+/**
+ * Legacy sound exports — redirects to the centralized Audio Manager
+ */
+import { audioManager } from "./audio/AudioManager";
+import { UI, GAME } from "./audio/SoundMap";
 
-const audioCache = new Map<string, HTMLAudioElement>();
-
-function getAudio(src: string): HTMLAudioElement {
-  if (typeof window === "undefined") return new Audio();
-  let audio = audioCache.get(src);
-  if (!audio) {
-    audio = new Audio(src);
-    audio.volume = 0.3;
-    audioCache.set(src, audio);
-  }
-  return audio;
-}
-
-export function playClick() {
-  try {
-    const audio = getAudio("/Sound/button_click.mp3");
-    audio.currentTime = 0;
-    audio.play().catch(() => {});
-  } catch {}
-}
-
-export function playHover() {
-  try {
-    const audio = getAudio("/Sound/button_hover.mp3");
-    audio.currentTime = 0;
-    audio.volume = 0.15;
-    audio.play().catch(() => {});
-  } catch {}
-}
-
-export function playBack() {
-  try {
-    const audio = getAudio("/Sound/button_back.mp3");
-    audio.currentTime = 0;
-    audio.play().catch(() => {});
-  } catch {}
-}
-
-export function playGameStart() {
-  try {
-    const audio = getAudio("/Sound/game_start.mp3");
-    audio.currentTime = 0;
-    audio.play().catch(() => {});
-  } catch {}
-}
-
-export function playAchievement() {
-  try {
-    const audio = getAudio("/Sound/achievement_unlock.mp3");
-    audio.currentTime = 0;
-    audio.play().catch(() => {});
-  } catch {}
-}
+export function playClick() { audioManager.play(UI.buttonClick); }
+export function playHover() { audioManager.play(UI.buttonHover, { volume: 0.4 }); }
+export function playBack() { audioManager.play(UI.buttonBack); }
+export function playGameStart() { audioManager.play(GAME.gameStart); }
+export function playAchievement() { audioManager.play(UI.achievementUnlock); }
+export function playError() { audioManager.play(UI.error); }
+export function playSuccess() { audioManager.play(UI.success); }
+export function playNotification() { audioManager.play(UI.notification); }
+export function playScore() { audioManager.play(GAME.score, { volume: 0.7 }); }
+export function playVictory() { audioManager.play(GAME.victory); }
+export function playDefeat() { audioManager.play(GAME.defeat); }
+export function playCoinCollect() { audioManager.play(UI.coinCollect, { volume: 0.8 }); }
+export function playLevelUp() { audioManager.play(UI.levelUp); }
