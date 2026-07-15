@@ -7,6 +7,7 @@ interface Props { onComplete: (result: ArcadeGameResult) => Promise<void>; }
 
 const SIZE = 5;
 const CELL = 60;
+const MAX_LEVELS = 10;
 
 type PipeType = "straight" | "corner" | "tee" | "cross";
 type Pipe = { type: PipeType; rotation: number };
@@ -111,7 +112,7 @@ export default function GamePipeConnect({ onComplete }: Props) {
     if (checkConnection(newGrid)) {
       const newScore = score + timeLeft * 5 + 50;
       setScore(newScore);
-      if (level >= 5) {
+      if (level >= MAX_LEVELS) {
         setPhase("over"); setWon(true);
         onComplete({ score: newScore, won: true, durationSeconds: Math.floor((Date.now() - startTime.current) / 1000) });
       } else {
@@ -138,7 +139,7 @@ export default function GamePipeConnect({ onComplete }: Props) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[350px] gap-4">
         <h2 className="font-display text-[28px] text-white">Pipe Connect</h2>
-        <p className="font-body text-[12px] text-offwhite/50">Rotate pipes to connect source → drain! 5 levels, 30s each.</p>
+        <p className="font-body text-[12px] text-offwhite/50">Rotate pipes to connect source → drain! {MAX_LEVELS} levels, 30s each.</p>
         <button onClick={startGame} className="mt-2 rounded-full bg-primary px-6 py-2 font-body text-[13px] font-bold uppercase text-black">Start</button>
       </div>
     );
@@ -147,7 +148,7 @@ export default function GamePipeConnect({ onComplete }: Props) {
   return (
     <div className="select-none flex flex-col items-center w-full">
       <div className="mb-3 flex items-center justify-between w-full max-w-[350px]">
-        <span className="font-body text-[12px] text-primary">Level: {level}/5</span>
+        <span className="font-body text-[12px] text-primary">Level: {level}/{MAX_LEVELS}</span>
         <span className={`font-body text-[12px] ${timeLeft < 10 ? "text-red-400 animate-pulse" : "text-offwhite"}`}>⏱️ {timeLeft}s</span>
         <span className="font-body text-[12px] text-primary">Score: {score}</span>
       </div>

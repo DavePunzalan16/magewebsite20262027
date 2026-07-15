@@ -13,7 +13,7 @@ interface WordEntry {
 }
 
 const WORD_POOL: WordEntry[] = [
-  // Anime (20)
+  // Anime (25)
   { word: "naruto", category: "Anime" },
   { word: "onepiece", category: "Anime" },
   { word: "demonslayer", category: "Anime" },
@@ -34,7 +34,12 @@ const WORD_POOL: WordEntry[] = [
   { word: "tokyoghoul", category: "Anime" },
   { word: "evangelion", category: "Anime" },
   { word: "cowboybebop", category: "Anime" },
-  // Gaming (20)
+  { word: "swordartonline", category: "Anime" },
+  { word: "noragami", category: "Anime" },
+  { word: "fireforce", category: "Anime" },
+  { word: "parasyte", category: "Anime" },
+  { word: "dororo", category: "Anime" },
+  // Gaming (25)
   { word: "valorant", category: "Gaming" },
   { word: "minecraft", category: "Gaming" },
   { word: "leagueoflegends", category: "Gaming" },
@@ -55,7 +60,12 @@ const WORD_POOL: WordEntry[] = [
   { word: "hades", category: "Gaming" },
   { word: "stardewvalley", category: "Gaming" },
   { word: "animalcrossing", category: "Gaming" },
-  // Manga (10)
+  { word: "sekiro", category: "Gaming" },
+  { word: "terraria", category: "Gaming" },
+  { word: "cuphead", category: "Gaming" },
+  { word: "witcher", category: "Gaming" },
+  { word: "skyrim", category: "Gaming" },
+  // Manga (15)
   { word: "berserk", category: "Manga" },
   { word: "vagabond", category: "Manga" },
   { word: "slamdunk", category: "Manga" },
@@ -66,12 +76,48 @@ const WORD_POOL: WordEntry[] = [
   { word: "blackclover", category: "Manga" },
   { word: "souleater", category: "Manga" },
   { word: "fairytail", category: "Manga" },
-  // Extra Anime (10+)
-  { word: "swordartonline", category: "Anime" },
-  { word: "noragami", category: "Anime" },
-  { word: "moblord", category: "Anime" },
-  { word: "fireforce", category: "Anime" },
-  { word: "parasyte", category: "Anime" },
+  { word: "drstone", category: "Manga" },
+  { word: "blueLock", category: "Manga" },
+  { word: "haikyuu", category: "Manga" },
+  { word: "nana", category: "Manga" },
+  { word: "akira", category: "Manga" },
+  // Superhero/Comics (25)
+  { word: "spiderman", category: "Comics" },
+  { word: "batman", category: "Comics" },
+  { word: "superman", category: "Comics" },
+  { word: "ironman", category: "Comics" },
+  { word: "wolverine", category: "Comics" },
+  { word: "deadpool", category: "Comics" },
+  { word: "avengers", category: "Comics" },
+  { word: "xmen", category: "Comics" },
+  { word: "wonderwoman", category: "Comics" },
+  { word: "captainamerica", category: "Comics" },
+  { word: "blackpanther", category: "Comics" },
+  { word: "thorragnarok", category: "Comics" },
+  { word: "aquaman", category: "Comics" },
+  { word: "flash", category: "Comics" },
+  { word: "greenlantern", category: "Comics" },
+  { word: "joker", category: "Comics" },
+  { word: "thanos", category: "Comics" },
+  { word: "venom", category: "Comics" },
+  { word: "daredevil", category: "Comics" },
+  { word: "ghostrider", category: "Comics" },
+  { word: "punisher", category: "Comics" },
+  { word: "magneto", category: "Comics" },
+  { word: "galactus", category: "Comics" },
+  { word: "shazam", category: "Comics" },
+  { word: "nightwing", category: "Comics" },
+  // M.A.G.E. Guild (10)
+  { word: "arcane", category: "Guild" },
+  { word: "enchantment", category: "Guild" },
+  { word: "spellbook", category: "Guild" },
+  { word: "sorcery", category: "Guild" },
+  { word: "alchemy", category: "Guild" },
+  { word: "grimoire", category: "Guild" },
+  { word: "conjurer", category: "Guild" },
+  { word: "warlock", category: "Guild" },
+  { word: "mystical", category: "Guild" },
+  { word: "elemental", category: "Guild" },
 ];
 
 const TOTAL_ROUNDS = 30;

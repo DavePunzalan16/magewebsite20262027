@@ -439,6 +439,22 @@ export default function GamePinball({
           >
             <div style={{ fontSize: "36px" }}>Game Over</div>
             <div style={{ fontSize: "20px" }}>Final Score: {score}</div>
+            <button
+              onClick={startGame}
+              style={{
+                padding: "10px 24px",
+                fontSize: "16px",
+                borderRadius: "8px",
+                border: "none",
+                backgroundColor: "#4ade80",
+                color: "#000",
+                cursor: "pointer",
+                fontWeight: "bold",
+                marginTop: "12px",
+              }}
+            >
+              Play Again
+            </button>
           </div>
         )}
       </div>

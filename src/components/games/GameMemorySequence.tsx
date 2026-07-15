@@ -5,7 +5,7 @@ import type { ArcadeGameResult } from "@/lib/types/arcade";
 
 interface Props { onComplete: (result: ArcadeGameResult) => Promise<void>; }
 
-const GRID_SIZE = 3;
+const GRID_SIZE = 4;
 const TOTAL_SQUARES = GRID_SIZE * GRID_SIZE;
 
 export default function GameMemorySequence({ onComplete }: Props) {
@@ -102,10 +102,10 @@ export default function GameMemorySequence({ onComplete }: Props) {
         <span className="font-body text-[12px] text-primary">Score: {score}</span>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 p-4 rounded-[12px] border border-dark-gray/30 bg-[#0a0a1a]">
+      <div className="grid grid-cols-4 gap-3 p-4 rounded-[12px] border border-dark-gray/30 bg-[#0a0a1a]">
         {Array.from({ length: TOTAL_SQUARES }, (_, i) => (
           <button key={i} onClick={() => handleClick(i)}
-            className={`w-[70px] h-[70px] rounded-[10px] transition-all duration-150 ${
+            className={`w-[60px] h-[60px] rounded-[10px] transition-all duration-150 ${
               activeSquare === i ? "bg-primary scale-95 shadow-lg shadow-primary/30" :
               lastWrong === i ? "bg-red-500" :
               "bg-surface hover:bg-surface/80 border border-dark-gray/30"

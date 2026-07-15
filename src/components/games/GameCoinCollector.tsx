@@ -9,7 +9,7 @@ const GRID_W = 15, GRID_H = 10;
 const CELL = 32;
 
 type Pos = { x: number; y: number };
-type Enemy = Pos & { dx: number; dy: number };
+type Enemy = Pos & { dx: number; dy: number; hasCCTV: boolean; cctvAngle: number; cctvDir: number };
 
 function createLevel(level: number) {
   const coins: Pos[] = [];
@@ -34,7 +34,7 @@ function createLevel(level: number) {
     while (occupied.has(`${pos.x},${pos.y}`) || (Math.abs(pos.x) + Math.abs(pos.y) < 4));
     occupied.add(`${pos.x},${pos.y}`);
     const dir = Math.random() > 0.5 ? { dx: 1, dy: 0 } : { dx: 0, dy: 1 };
-    enemies.push({ ...pos, ...dir });
+    enemies.push({ ...pos, ...dir, hasCCTV: i < Math.min(level, 4), cctvAngle: Math.random() * Math.PI * 2, cctvDir: 1 });
   }
 
   return { coins, enemies };
@@ -89,19 +89,39 @@ export default function GameCoinCollector({ onComplete }: Props) {
         let nx = e.x + e.dx, ny = e.y + e.dy;
         if (nx < 0 || nx >= GRID_W) { e.dx *= -1; nx = e.x + e.dx; }
         if (ny < 0 || ny >= GRID_H) { e.dy *= -1; ny = e.y + e.dy; }
-        return { ...e, x: nx, y: ny };
+        // Rotate CCTV angle
+        let newAngle = e.cctvAngle + e.cctvDir * 0.3;
+        if (newAngle > Math.PI || newAngle < -Math.PI) e.cctvDir *= -1;
+        return { ...e, x: nx, y: ny, cctvAngle: newAngle };
       }));
     }, 500);
     return () => { if (enemyTimerRef.current) clearInterval(enemyTimerRef.current); };
   }, [phase]);
 
-  // Collision with enemies
+  // Collision with enemies and CCTV detection
   useEffect(() => {
     if (phase !== "playing") return;
+    // Direct collision
     const hit = enemies.some(e => e.x === player.x && e.y === player.y);
     if (hit) {
       setPhase("over");
       onComplete({ score, won: false, durationSeconds: Math.floor((Date.now() - startTime.current) / 1000) });
+      return;
+    }
+    // CCTV cone detection
+    for (const e of enemies) {
+      if (!e.hasCCTV) continue;
+      const dx = player.x - e.x, dy = player.y - e.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist > 4) continue; // CCTV range is 4 tiles
+      const angleToPlayer = Math.atan2(dy, dx);
+      const angleDiff = Math.abs(angleToPlayer - e.cctvAngle);
+      const normalizedDiff = Math.min(angleDiff, Math.PI * 2 - angleDiff);
+      if (normalizedDiff < 0.4) { // ~23 degree cone
+        setPhase("over");
+        onComplete({ score, won: false, durationSeconds: Math.floor((Date.now() - startTime.current) / 1000) });
+        return;
+      }
     }
   }, [player, enemies, phase, score, onComplete]);
 
@@ -160,10 +180,25 @@ export default function GameCoinCollector({ onComplete }: Props) {
           <div key={`c${i}`} className="absolute text-[14px]"
             style={{ left: c.x * CELL + 8, top: c.y * CELL + 6 }}>🪙</div>
         ))}
-        {/* Enemies */}
+        {/* Enemies with CCTV cones */}
         {enemies.map((e, i) => (
-          <div key={`e${i}`} className="absolute text-[16px] transition-all duration-300"
-            style={{ left: e.x * CELL + 6, top: e.y * CELL + 4 }}>👾</div>
+          <div key={`e${i}`} className="absolute transition-all duration-300" style={{ left: e.x * CELL, top: e.y * CELL, width: CELL, height: CELL }}>
+            {e.hasCCTV && (
+              <div className="absolute" style={{
+                left: CELL / 2, top: CELL / 2,
+                width: 0, height: 0,
+                borderLeft: '60px solid transparent',
+                borderRight: '60px solid transparent',
+                borderBottom: '90px solid rgba(255,255,0,0.12)',
+                transformOrigin: '0 0',
+                transform: `rotate(${e.cctvAngle * (180 / Math.PI) - 90}deg)`,
+                pointerEvents: 'none',
+              }} />
+            )}
+            <span className="absolute text-[16px]" style={{ left: 6, top: 4 }}>
+              {e.hasCCTV ? "📷" : "👾"}
+            </span>
+          </div>
         ))}
         {/* Player */}
         <div className="absolute text-[18px] transition-all duration-100"
