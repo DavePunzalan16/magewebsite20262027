@@ -258,7 +258,7 @@ export default function FeedPage() {
     const supabase = createClient();
     const { data } = await supabase.from("comments").insert({ post_id: postId, user_id: user.id, content: commentText }).select("id, content, created_at").single();
     if (data) {
-      setComments((prev) => ({ ...prev, [postId]: [...(prev[postId] || []), { ...data, author_name: userProfile?.full_name || "You", author_avatar: userProfile?.avatar_url || null }] }));
+      setComments((prev) => ({ ...prev, [postId]: [...(prev[postId] || []), { ...data, user_id: user.id, author_name: userProfile?.full_name || "You", author_avatar: userProfile?.avatar_url || null }] }));
       setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, comments: p.comments + 1 } : p));
       awardClientXP(user.id, "comment");
 
