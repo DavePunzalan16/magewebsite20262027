@@ -7,6 +7,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { arcadeGames } from "@/data/arcade-games";
 import { PremiumFooter } from "@/components/sections/Footer";
+import { playClick, playHover } from "@/lib/sounds";
 import { ArrowLeft, Gamepad2, Trophy, Zap, Star, Lock, Clock } from "lucide-react";
 import type { ArcadeGameConfig } from "@/lib/types/arcade";
 
@@ -238,6 +239,16 @@ function ArcadeContent({ user, playerStats }: { user: any; playerStats: { xp: nu
 
 function GameCard({ game, index }: { game: ArcadeGameConfig; index: number }) {
   const isPlayable = game.status === "available";
+  const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(Math.floor(Math.random() * 50) + 5);
+
+  const handleLike = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    playClick();
+    setLiked(!liked);
+    setLikeCount(c => liked ? c - 1 : c + 1);
+  };
 
   const inner = (
     <motion.div
@@ -252,6 +263,14 @@ function GameCard({ game, index }: { game: ArcadeGameConfig; index: number }) {
       )}
       {game.status === "locked" && (
         <div className="absolute top-3 right-3"><Lock className="h-4 w-4 text-offwhite/30" /></div>
+      )}
+
+      {/* Heart reaction button */}
+      {isPlayable && (
+        <button onClick={handleLike} className="absolute top-3 right-3 flex items-center gap-1 rounded-full bg-surface/80 px-2 py-1 hover:bg-surface transition-colors z-10">
+          <span className={`text-[12px] transition-transform ${liked ? "scale-125" : ""}`}>{liked ? "❤️" : "🤍"}</span>
+          <span className="font-body text-[9px] text-offwhite/50">{likeCount}</span>
+        </button>
       )}
 
       {/* Icon */}

@@ -8,6 +8,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { arcadeGames } from "@/data/arcade-games";
 import type { ArcadeGameResult } from "@/lib/types/arcade";
 import { ArrowLeft, Trophy, Zap, Maximize2, Minimize2, Info } from "lucide-react";
+import { playClick, playBack, playGameStart } from "@/lib/sounds";
 
 // Game instructions for each game
 const GAME_INSTRUCTIONS: Record<string, { controls: string[]; howToPlay: string[] }> = {
@@ -178,6 +179,7 @@ export default function ArcadeGamePage() {
   const [fullscreen, setFullscreen] = useState(false);
 
   const toggleFullscreen = () => {
+    playClick();
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().then(() => setFullscreen(true)).catch(() => {});
     } else {
