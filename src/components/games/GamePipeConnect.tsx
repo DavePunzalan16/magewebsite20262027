@@ -93,8 +93,11 @@ export default function GamePipeConnect({ onComplete }: Props) {
     timerRef.current = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
-          setPhase("over"); setWon(false);
-          onComplete({ score, won: false, durationSeconds: Math.floor((Date.now() - startTime.current) / 1000) });
+          // Use setTimeout to avoid setState during render
+          setTimeout(() => {
+            setPhase("over"); setWon(false);
+            onComplete({ score, won: false, durationSeconds: Math.floor((Date.now() - startTime.current) / 1000) });
+          }, 0);
           return 0;
         }
         return prev - 1;

@@ -114,18 +114,121 @@ export default function AdminEventsPage() {
       ) : (
         <div className="flex flex-col gap-3">
           {events.map((event) => (
-            <div key={event.id} className="flex items-center justify-between rounded-[10px] border border-dark-gray/30 bg-surface/20 p-4">
-              <div className="flex items-center gap-3">
-                <Calendar className="h-4 w-4 text-primary/60" />
-                <div>
-                  <p className="font-body text-[14px] font-medium text-white">{event.title}</p>
-                  <p className="font-body text-[11px] text-offwhite/40">{event.date || "No date"} {event.time ? `· ${event.time}` : ""} {event.location ? `· ${event.location}` : ""}</p>
-                </div>
-              </div>
-              <button onClick={() => deleteEvent(event.id)} className="rounded p-1.5 text-offwhite/30 hover:text-red-400"><Trash2 className="h-4 w-4" /></button>
-            </div>
+            <EventCard key={event.id} event={event} onDelete={deleteEvent} />
           ))}
         </div>
+      )}
+    </div>
+  );
+}
+
+
+// Event card with description, registered members (realtime)
+function EventCard({ event, onDelete }: { event: EventItem; onDelete: (id: number) => void }) {
+  const [showMembers, setShowMembers] = useState(false);
+  const [members, setMembers] = useState<{ id: string; full_name: string | null; avatar_url: string | null; registered_at: string }[]>([]);
+  const [memberCount, setMemberCount] = useState(0);
+  const [loadingMembers, setLoadingMembers] = useState(false);
+
+  // Fetch member count on mount + realtime
+  useEffect(() => {
+    const supabase = createClient();
+    // Initial count
+    supabase.from("event_registrations").select("id", { count: "exact", head: true }).eq("event_id", event.id)
+      .then(({ count }) => { if (count !== null) setMemberCount(count); });
+
+    // Realtime subscription for registration changes
+    const channel = supabase.channel(`event-reg-${event.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "event_registrations", filter: `event_id=eq.${event.id}` },
+        () => {
+          // Refresh count
+          supabase.from("event_registrations").select("id", { count: "exact", head: true }).eq("event_id", event.id)
+            .then(({ count }) => { if (count !== null) setMemberCount(count); });
+          // Refresh members list if expanded
+          if (showMembers) fetchMembers();
+        })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [event.id]);
+
+  const fetchMembers = async () => {
+    setLoadingMembers(true);
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("event_registrations")
+      .select("id, user_id, created_at, profiles(full_name, avatar_url)")
+      .eq("event_id", event.id)
+      .order("created_at", { ascending: false });
+
+    if (data) {
+      setMembers(data.map((d: any) => ({
+        id: d.user_id,
+        full_name: d.profiles?.full_name || "Unknown",
+        avatar_url: d.profiles?.avatar_url || null,
+        registered_at: d.created_at,
+      })));
+    }
+    setLoadingMembers(false);
+  };
+
+  const toggleMembers = () => {
+    if (!showMembers) fetchMembers();
+    setShowMembers(!showMembers);
+  };
+
+  return (
+    <div className="rounded-[10px] border border-dark-gray/30 bg-surface/20 p-4">
+      <div className="flex items-start justify-between">
+        <div className="flex items-start gap-3 flex-1">
+          <Calendar className="h-4 w-4 text-primary/60 mt-0.5 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="font-body text-[14px] font-medium text-white">{event.title}</p>
+            {event.description && (
+              <p className="mt-1 font-body text-[12px] text-offwhite/60 line-clamp-2">{event.description}</p>
+            )}
+            <p className="mt-1 font-body text-[11px] text-offwhite/40">
+              {event.date || "No date"} {event.time ? `· ${event.time}` : ""} {event.location ? `· ${event.location}` : ""}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0 ml-3">
+          {/* Registered members button */}
+          <button onClick={toggleMembers} className="flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 font-body text-[10px] text-primary hover:bg-primary/20 transition-colors" title="View registered members">
+            👥 <span className="font-bold">{memberCount}</span>
+          </button>
+          <button onClick={() => onDelete(event.id)} className="rounded p-1.5 text-offwhite/30 hover:text-red-400">
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Registered members panel */}
+      {showMembers && (
+        <motion.div className="mt-3 border-t border-dark-gray/20 pt-3" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}>
+          <p className="mb-2 font-body text-[11px] font-semibold text-white">Registered Members ({memberCount})</p>
+          {loadingMembers ? (
+            <p className="font-body text-[11px] text-offwhite/40">Loading...</p>
+          ) : members.length === 0 ? (
+            <p className="font-body text-[11px] text-offwhite/40">No registrations yet.</p>
+          ) : (
+            <div className="flex flex-col gap-2 max-h-[200px] overflow-y-auto">
+              {members.map((m) => (
+                <div key={m.id} className="flex items-center gap-2 rounded-[6px] bg-background/30 px-3 py-2">
+                  <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary shrink-0">
+                    {m.full_name?.[0]?.toUpperCase() || "?"}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-body text-[11px] text-white truncate">{m.full_name}</p>
+                  </div>
+                  <span className="font-body text-[9px] text-offwhite/30 shrink-0">
+                    {new Date(m.registered_at).toLocaleDateString()}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </motion.div>
       )}
     </div>
   );
