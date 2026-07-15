@@ -204,12 +204,10 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     };
 
     document.addEventListener("click", handleClick, { passive: true });
-    document.addEventListener("mouseover", handleMouseOver, { passive: true });
     window.addEventListener("mage-audio", handleCustomAudio);
 
     return () => {
       document.removeEventListener("click", handleClick);
-      document.removeEventListener("mouseover", handleMouseOver);
       window.removeEventListener("mage-audio", handleCustomAudio);
     };
   }, []);
