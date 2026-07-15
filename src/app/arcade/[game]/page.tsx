@@ -11,6 +11,7 @@ import { ArrowLeft, Trophy, Zap, Maximize2, Minimize2, Info } from "lucide-react
 import { playClick, playBack, playGameStart } from "@/lib/sounds";
 import { audioManager } from "@/lib/audio/AudioManager";
 import { UI, GAME, MUSIC, PRELOAD_UI } from "@/lib/audio/SoundMap";
+import { GameAudioWrapper } from "@/lib/audio/GameAudioProvider";
 
 // Game instructions for each game
 const GAME_INSTRUCTIONS: Record<string, { controls: string[]; howToPlay: string[] }> = {
@@ -214,8 +215,6 @@ export default function ArcadeGamePage() {
   const handleComplete = useCallback(async (gameResult: ArcadeGameResult) => {
     if (!user) return;
     setSubmitting(true);
-    // Play completion sound
-    audioManager.play(gameResult.won ? GAME.victory : GAME.defeat);
 
     try {
       const res = await fetch("/api/arcade/complete", {
@@ -231,6 +230,8 @@ export default function ArcadeGamePage() {
       const data = await res.json();
       if (data.success) {
         setResult({ xp: data.xpAwarded, mana: data.manaAwarded });
+        audioManager.play(UI.xpGain, { volume: 0.8 });
+        if (data.xpAwarded > 50) audioManager.play(UI.newHighscore, { volume: 0.6 });
       }
     } catch {}
     setSubmitting(false);
@@ -293,13 +294,15 @@ export default function ArcadeGamePage() {
             </motion.div>
           )}
 
-          {/* Game component */}
+          {/* Game component — wrapped with audio provider for all 60 games */}
           <Suspense fallback={
             <div className="flex h-[400px] items-center justify-center rounded-[12px] border border-dark-gray/30 bg-surface/20">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             </div>
           }>
-            <GameComponent onComplete={handleComplete} />
+            <GameAudioWrapper gameKey={gameKey} onComplete={handleComplete}>
+              {(audioOnComplete) => <GameComponent onComplete={audioOnComplete} />}
+            </GameAudioWrapper>
           </Suspense>
 
           {submitting && <p className="mt-2 text-center font-body text-[11px] text-offwhite/30">Saving result...</p>}
