@@ -34,12 +34,7 @@ export default function ArcadePage() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    if (!authLoading && !user) {
-      window.location.href = "/auth/signin";
-    }
-  }, [user, authLoading]);
+  // Allow viewing without login (actions still require auth)
 
   useEffect(() => {
     if (!user) return;
